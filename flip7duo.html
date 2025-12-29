@@ -1,0 +1,948 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Flip 7: Race to 200</title>
+    <style>
+        :root {
+            --bg-color: #2c3e50;
+            --p1-color: #3498db;
+            --p1-bg: rgba(52, 152, 219, 0.15);
+            --p2-color: #e74c3c;
+            --p2-bg: rgba(231, 76, 60, 0.15);
+            --card-width: 80px;
+            --card-height: 110px;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            color: white;
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            padding: 10px;
+            box-sizing: border-box;
+        }
+
+        .lang-btn {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            background: rgba(0,0,0,0.3);
+            border: 1px solid rgba(255,255,255,0.3);
+            color: white;
+            padding: 5px 15px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 0.9em;
+            transition: all 0.2s;
+            width: auto;
+            z-index: 50;
+        }
+        .lang-btn:hover { background: rgba(255,255,255,0.2); }
+
+        header { text-align: center; margin-bottom: 10px; margin-top: 20px;}
+        header h1 { margin: 0.2em 0; }
+        header p { margin: 0; opacity: 0.8; font-size: 0.9em; }
+
+        .game-container {
+            display: flex;
+            width: 100%;
+            max-width: 900px;
+            gap: 15px;
+            flex-grow: 1;
+            position: relative;
+        }
+
+        .player-zone {
+            flex: 1;
+            background: rgba(0,0,0,0.2);
+            border-radius: 15px;
+            padding: 15px;
+            display: flex;
+            flex-direction: column;
+            transition: all 0.3s ease;
+            border: 3px solid transparent;
+            position: relative;
+        }
+
+        .player-zone.active-p1 {
+            border-color: var(--p1-color);
+            background: var(--p1-bg);
+            box-shadow: 0 0 25px rgba(52, 152, 219, 0.4);
+        }
+        .player-zone.active-p2 {
+            border-color: var(--p2-color);
+            background: var(--p2-bg);
+            box-shadow: 0 0 25px rgba(231, 76, 60, 0.4);
+        }
+        
+        .player-overlay {
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.85);
+            border-radius: 12px;
+            display: none;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 10;
+            text-align: center;
+            backdrop-filter: blur(2px);
+            padding: 10px;
+        }
+        .bust-msg { color: #e74c3c; font-size: 2em; font-weight: bold; }
+        .bank-msg { color: #27ae60; font-size: 1.5em; font-weight: bold; }
+        .bonus-msg { color: #f1c40f; font-size: 1.8em; font-weight: bold; animation: pulse 0.5s infinite; }
+
+        .zone-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid rgba(255,255,255,0.1);
+        }
+
+        .p1-title { color: var(--p1-color); }
+        .p2-title { color: var(--p2-color); }
+
+        .score-display { text-align: right; }
+        .current-score { font-size: 1.8em; font-weight: bold; }
+        .total-score { font-size: 0.9em; opacity: 0.8; }
+
+        .status-indicators {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 10px;
+            min-height: 25px;
+            flex-wrap: wrap;
+        }
+        .badge {
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.8em;
+            font-weight: bold;
+            display: none;
+        }
+        .badge-2nd { background-color: #e91e63; color: white; }
+        .badge-forced { background-color: #f39c12; color: black; animation: pulse 1s infinite; }
+        .badge-turn { background-color: #fff; color: #333; }
+        .badge-flip7 { background-color: #f1c40f; color: #333; box-shadow: 0 0 10px #f1c40f; }
+
+        .hand-area {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            align-content: flex-start;
+            flex-grow: 1;
+            min-height: 200px;
+        }
+
+        .card {
+            width: var(--card-width);
+            height: var(--card-height);
+            background-color: white;
+            border-radius: 8px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+            box-shadow: 2px 2px 5px rgba(0,0,0,0.3);
+            color: #333;
+            font-weight: bold;
+            user-select: none;
+            border: 2px solid #ddd;
+            transition: all 0.3s ease;
+        }
+
+        .card.number { color: #2c3e50; }
+        .card.attack { background-color: #2c3e50; color: #f1c40f; border-color: #f1c40f; }
+        .card.defense { background-color: #fce4ec; color: #e91e63; border-color: #e91e63; }
+        .card.bonus { background-color: #fff9c4; color: #f57f17; border-color: #fbc02d; }
+        .card.multiplier { background-color: #ede7f6; color: #673ab7; border-color: #9575cd; }
+        
+        .card.consumed {
+            transform: scale(1.2) rotate(10deg);
+            opacity: 0;
+            background-color: #7f8c8d;
+        }
+
+        .card-corner { position: absolute; font-size: 12px; }
+        .top-left { top: 4px; left: 4px; }
+        .bottom-right { bottom: 4px; right: 4px; transform: rotate(180deg); }
+        .card-center { font-size: 24px; text-align: center; }
+        .card-sub { font-size: 10px; display: block; }
+
+        .controls-container {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            gap: 15px;
+            min-width: 120px;
+            z-index: 20;
+        }
+
+        button {
+            padding: 15px 10px;
+            font-size: 16px;
+            border: none;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-weight: bold;
+            box-shadow: 0 4px 0 rgba(0,0,0,0.2);
+            width: 100%;
+        }
+
+        button:active { transform: translateY(4px); box-shadow: none; }
+        button:disabled { background-color: #7f8c8d; color: #bdc3c7; cursor: not-allowed; transform: none; box-shadow: none; }
+
+        .btn-flip { background-color: #f1c40f; color: #2c3e50; font-size: 18px;}
+        .btn-flip:hover { background-color: #f39c12; }
+        .btn-bank { background-color: #27ae60; color: white; }
+        .btn-bank:hover { background-color: #2ecc71; }
+        .btn-restart { background-color: #34495e; color: white; display: none; }
+
+        .global-info {
+            text-align: center;
+            margin-top: 15px;
+            padding: 10px;
+            background: rgba(0,0,0,0.3);
+            border-radius: 10px;
+            width: 100%;
+            max-width: 900px;
+        }
+
+        .progress-bar-container {
+            width: 100%;
+            height: 6px;
+            background: rgba(255,255,255,0.2);
+            margin-top: 5px;
+            border-radius: 3px;
+            overflow: hidden;
+            display: flex;
+        }
+        .p1-progress { height: 100%; background: var(--p1-color); width: 0%; transition: width 0.5s; }
+        .p2-progress { height: 100%; background: var(--p2-color); width: 0%; transition: width 0.5s; }
+
+        .victory-modal {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.9);
+            z-index: 100;
+            display: none;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            color: #f1c40f;
+            animation: fadeIn 0.5s;
+        }
+        
+        .victory-title { font-size: 4em; font-weight: bold; text-shadow: 0 0 20px #f1c40f; margin: 0;}
+        .victory-sub { font-size: 2em; color: white; margin-bottom: 30px; }
+        .victory-scores { display: flex; gap: 40px; margin-bottom: 40px; }
+        .v-score-box { text-align: center; font-size: 1.5em; color: white; }
+        .v-score-val { font-size: 2em; font-weight: bold; }
+        .winner-highlight { color: #f1c40f; }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); }
+            20%, 40%, 60%, 80% { transform: translateX(5px); }
+        }
+        @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.05); } 100% { transform: scale(1); } }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+        @media (max-width: 768px) {
+            .game-container { flex-direction: column; }
+            .controls-container { flex-direction: row; min-width: auto; padding: 10px 0; order: 2; }
+            .player-zone { order: 1; }
+            #p2-zone { order: 3; }
+            .card { --card-width: 50px; --card-height: 75px; }
+            .card-center { font-size: 16px; }
+            .victory-title { font-size: 2.5em; }
+        }
+    </style>
+</head>
+<body>
+
+<button class="lang-btn" id="langToggle" onclick="game.toggleLanguage()">English</button>
+
+<header>
+    <h1 id="txt-title">Flip 7: 竞速 200分</h1>
+    <p id="txt-subtitle">收集7种不同数字得+15分 | 两人都破200分比大小</p>
+</header>
+
+<div class="game-container" id="gameBoard">
+    <div class="player-zone" id="p1-zone">
+        <div class="player-overlay" id="p1-overlay"></div>
+        <div class="zone-header">
+            <h2 class="p1-title">Player 1</h2>
+            <div class="score-display">
+                <div class="current-score" id="p1-current-score">0</div>
+                <div class="total-score"><span id="txt-p1-total">总分</span>: <span id="p1-total-score">0</span></div>
+            </div>
+        </div>
+        <div class="progress-bar-container">
+            <div class="p1-progress" id="p1-bar"></div>
+        </div>
+        <div class="status-indicators">
+            <span id="p1-badge-turn" class="badge badge-turn">你的回合</span>
+            <span id="p1-badge-flip7" class="badge badge-flip7">FLIP 7 BONUS!</span>
+            <span id="p1-badge-2nd" class="badge badge-2nd">2nd Chance!</span>
+            <span id="p1-badge-forced" class="badge badge-forced"></span>
+        </div>
+        <div class="hand-area" id="p1-hand"></div>
+    </div>
+
+    <div class="controls-container">
+        <button id="btnFlip" class="btn-flip" onclick="game.flipAction()">翻牌 (Hit)</button>
+        <button id="btnBank" class="btn-bank" onclick="game.bankAction()">收手 (Bank)</button>
+        <button id="btnRestart" class="btn-restart" onclick="game.initGame()">再来一局</button>
+    </div>
+
+    <div class="player-zone" id="p2-zone">
+        <div class="player-overlay" id="p2-overlay"></div>
+        <div class="zone-header">
+            <h2 class="p2-title">Player 2</h2>
+            <div class="score-display">
+                <div class="current-score" id="p2-current-score">0</div>
+                <div class="total-score"><span id="txt-p2-total">总分</span>: <span id="p2-total-score">0</span></div>
+            </div>
+        </div>
+        <div class="progress-bar-container">
+            <div class="p2-progress" id="p2-bar"></div>
+        </div>
+        <div class="status-indicators">
+            <span id="p2-badge-turn" class="badge badge-turn">你的回合</span>
+            <span id="p2-badge-flip7" class="badge badge-flip7">FLIP 7 BONUS!</span>
+            <span id="p2-badge-2nd" class="badge badge-2nd">2nd Chance!</span>
+            <span id="p2-badge-forced" class="badge badge-forced"></span>
+        </div>
+        <div class="hand-area" id="p2-hand"></div>
+    </div>
+</div>
+
+<div class="global-info">
+    <span id="roundInfo">第 1 轮</span> | 
+    <span id="txt-target">目标</span>: <span style="color:#f1c40f; font-weight:bold;">200</span> | 
+    <span id="txt-deck">剩余牌</span>: <span id="deckCount">0</span>
+    <div id="gameMessage" style="margin-top:5px; font-weight:bold;">准备开始...</div>
+</div>
+
+<div class="victory-modal" id="victoryModal">
+    <div class="victory-title" id="victoryTitle">Player 1 获胜!</div>
+    <div class="victory-sub" id="victoryReason">率先突破 200 分</div>
+    
+    <div class="victory-scores">
+        <div class="v-score-box">
+            <div>Player 1</div>
+            <div class="v-score-val" id="v-score-p1">0</div>
+        </div>
+        <div class="v-score-box">
+            <div>Player 2</div>
+            <div class="v-score-val" id="v-score-p2">0</div>
+        </div>
+    </div>
+
+    <button id="btnRestartModal" style="width: 200px; background-color: #f1c40f; color: black;" onclick="game.initGame()">再来一局</button>
+</div>
+
+<script>
+    const TEXTS = {
+        zh: {
+            title: "Flip 7: 竞速 200分",
+            subtitle: "收集7种不同数字得+15分 | 两人都破200分比大小",
+            total: "总分",
+            target: "目标",
+            deck: "剩余牌",
+            btn_flip: "翻牌 (Hit)",
+            btn_bank: "收手 (Bank)",
+            btn_restart: "再来一局",
+            btn_must_flip: "必须翻牌",
+            your_turn: "你的回合",
+            flip7_bonus_badge: "FLIP 7 BONUS!",
+            locked: "锁定",
+            ready: "准备开始...",
+            shuffling: "洗牌中...",
+            start_round: "第 {r} 轮开始，目标 200 分！",
+            round_info: "第 {r} 轮",
+            attack_msg: "P{p1} 发动攻击! P{p2} 需连翻 3 张!",
+            defense_msg: "P{p} 消耗 2nd Chance 抵消了 {v}!",
+            flip7_msg: "P{p} 集齐 7 种数字！奖励 +15 分并强制收手！",
+            bank_msg: "P{p} 收手，获得 {s} 分",
+            bust_msg: "P{p} 爆牌了!",
+            bust_overlay: "爆牌<br>0 分",
+            bank_overlay: "收手<br>+{s}",
+            bonus_overlay: "Flip 7!<br>+15 Bonus<br>+{s}",
+            opponent_gone: "对手已离场，P{p} 继续行动!",
+            end_round: "第 {r} 轮结束。继续下一轮...",
+            win_draw: "平 局 !",
+            win_p1: "Player 1 获胜!",
+            win_p2: "Player 2 获胜!",
+            reason_both: "双双破线，P{w} 分数更高",
+            reason_draw: "不可思议的平局",
+            reason_first: "率先突破 200 分",
+            card_atk: "攻击",
+            card_def: "保命",
+            card_bon: "加分",
+            card_mul: "乘倍",
+            lang_btn: "English"
+        },
+        en: {
+            title: "Flip 7: Race to 200",
+            subtitle: "Collect 7 unique numbers for +15 Bonus | High score wins if both >200",
+            total: "Total",
+            target: "Target",
+            deck: "Deck",
+            btn_flip: "Hit",
+            btn_bank: "Bank",
+            btn_restart: "Play Again",
+            btn_must_flip: "Must Flip",
+            your_turn: "Your Turn",
+            flip7_bonus_badge: "FLIP 7 BONUS!",
+            locked: "Locked",
+            ready: "Ready...",
+            shuffling: "Shuffling...",
+            start_round: "Round {r} Start. Race to 200!",
+            round_info: "Round {r}",
+            attack_msg: "P{p1} Attacks! P{p2} must flip 3 cards!",
+            defense_msg: "P{p} used 2nd Chance to block {v}!",
+            flip7_msg: "P{p} collected 7 unique numbers! +15 Bonus & Bank!",
+            bank_msg: "P{p} Banked. Gained {s} points.",
+            bust_msg: "P{p} Busted!",
+            bust_overlay: "BUST<br>0 Pts",
+            bank_overlay: "BANK<br>+{s}",
+            bonus_overlay: "Flip 7!<br>+15 Bonus<br>+{s}",
+            opponent_gone: "Opponent done. P{p} continues!",
+            end_round: "Round {r} End. Next round...",
+            win_draw: "DRAW !",
+            win_p1: "Player 1 Wins!",
+            win_p2: "Player 2 Wins!",
+            reason_both: "Both >200, P{w} is higher",
+            reason_draw: "Incredible Draw",
+            reason_first: "Reached 200 First",
+            card_atk: "ATK",
+            card_def: "SAFE",
+            card_bon: "BON",
+            card_mul: "MUL",
+            lang_btn: "中文"
+        }
+    };
+
+    const CARD_TYPES = {
+        NUMBER: 'number',
+        FLIP3_ATTACK: 'attack',
+        SECOND_CHANCE: 'defense',
+        BONUS_10: 'bonus',
+        MULTIPLIER_2: 'multiplier'
+    };
+    
+    const TARGET_SCORE = 200;
+
+    class Game {
+        constructor() {
+            this.lang = 'zh'; 
+            this.players = [];
+            this.deck = [];
+            this.currentRound = 1;
+            this.turnIndex = 0; 
+            this.isRoundActive = false;
+            this.forcedDrawDebt = [0, 0];
+            // 状态记忆
+            this.lastStatusKey = 'ready';
+            this.lastStatusParams = {};
+            
+            this.initGame();
+        }
+
+        t(key, params = {}) {
+            let text = TEXTS[this.lang][key] || key;
+            for (const [k, v] of Object.entries(params)) {
+                text = text.replace(`{${k}}`, v);
+            }
+            return text;
+        }
+
+        // --- 核心修复：更新状态信息 ---
+        updateStatus(key, params = {}) {
+            this.lastStatusKey = key;
+            this.lastStatusParams = params;
+            document.getElementById('gameMessage').innerHTML = this.t(key, params);
+        }
+
+        toggleLanguage() {
+            this.lang = this.lang === 'zh' ? 'en' : 'zh';
+            document.getElementById('langToggle').innerText = this.t('lang_btn');
+            
+            this.updateStaticTexts();
+            // 1. 刷新底部的消息
+            this.updateStatus(this.lastStatusKey, this.lastStatusParams);
+            // 2. 刷新玩家遮罩（如果存在）
+            this.refreshOverlays();
+            this.updateUI(); 
+        }
+
+        updateStaticTexts() {
+            document.getElementById('txt-title').innerText = this.t('title');
+            document.getElementById('txt-subtitle').innerText = this.t('subtitle');
+            document.getElementById('txt-p1-total').innerText = this.t('total');
+            document.getElementById('txt-p2-total').innerText = this.t('total');
+            document.getElementById('txt-target').innerText = this.t('target');
+            document.getElementById('txt-deck').innerText = this.t('deck');
+            document.getElementById('btnRestart').innerText = this.t('btn_restart');
+            document.getElementById('btnRestartModal').innerText = this.t('btn_restart');
+            
+            document.getElementById('p1-badge-turn').innerText = this.t('your_turn');
+            document.getElementById('p2-badge-turn').innerText = this.t('your_turn');
+            
+            this.redrawHands();
+        }
+
+        createPlayerState(id) {
+            return {
+                id: id,
+                hand: [],
+                currentScoreRaw: 0,
+                scoreMultiplier: 1,
+                bonusScore: 0,
+                totalScore: 0,
+                isDoneForRound: false,
+                hasFlip7Bonus: false,
+                // 新增：用于记录遮罩状态
+                overlayState: null // { type: 'bust' | 'bank', score: 0, isBonus: false }
+            };
+        }
+
+        checkHasSecondChance(player) {
+            return player.hand.some(c => c.type === CARD_TYPES.SECOND_CHANCE);
+        }
+
+        checkFlip7Condition(player) {
+            const numbers = player.hand
+                .filter(c => c.type === CARD_TYPES.NUMBER)
+                .map(c => c.value);
+            const uniqueNumbers = new Set(numbers);
+            return uniqueNumbers.size >= 7;
+        }
+
+        initGame() {
+            document.getElementById('victoryModal').style.display = 'none';
+            this.players = [this.createPlayerState(1), this.createPlayerState(2)];
+            this.deck = this.createDeck();
+            this.currentRound = 1;
+            this.turnIndex = 0;
+            this.forcedDrawDebt = [0, 0];
+            
+            document.getElementById('btnRestart').style.display = 'none';
+            document.getElementById('btnFlip').style.display = 'block';
+            document.getElementById('btnBank').style.display = 'block';
+
+            this.updateStaticTexts();
+            this.startRound();
+        }
+
+        startRound() {
+            this.turnIndex = 0; 
+            this.forcedDrawDebt = [0, 0];
+            this.resetPlayersForRound();
+            this.isRoundActive = true;
+            
+            if (this.deck.length < 15) {
+                this.deck = this.createDeck();
+                this.updateStatus('shuffling');
+            }
+
+            this.updateUI();
+            this.highlightActivePlayer();
+            this.updateStatus('start_round', {r: this.currentRound});
+        }
+
+        createDeck() {
+            let deck = [];
+            for (let i = 1; i <= 12; i++) {
+                for (let j = 0; j < i; j++) deck.push({ type: CARD_TYPES.NUMBER, value: i, id: Math.random() });
+            }
+            for(let i=0; i<4; i++) deck.push({ type: CARD_TYPES.FLIP3_ATTACK, value: 'ATK', id: Math.random() });
+            for(let i=0; i<3; i++) deck.push({ type: CARD_TYPES.SECOND_CHANCE, value: '2nd', id: Math.random() });
+            for(let i=0; i<3; i++) deck.push({ type: CARD_TYPES.BONUS_10, value: '+10', id: Math.random() });
+            for(let i=0; i<2; i++) deck.push({ type: CARD_TYPES.MULTIPLIER_2, value: 'x2', id: Math.random() });
+            return this.shuffle(deck);
+        }
+
+        shuffle(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+            return array;
+        }
+
+        resetPlayersForRound() {
+            this.players.forEach(p => {
+                p.hand = [];
+                p.currentScoreRaw = 0;
+                p.scoreMultiplier = 1;
+                p.bonusScore = 0;
+                p.isDoneForRound = false;
+                p.hasFlip7Bonus = false;
+                p.overlayState = null; // 重置遮罩状态
+                this.clearPlayerOverlay(p.id);
+            });
+        }
+
+        flipAction() {
+            if (!this.isRoundActive) return;
+            const activePlayer = this.players[this.turnIndex];
+            
+            if (activePlayer.isDoneForRound) {
+                this.switchTurn();
+                return;
+            }
+
+            if (this.deck.length === 0) {
+                this.bankAction();
+                return;
+            }
+
+            const card = this.deck.pop();
+            let isBust = false;
+            let cardSavedBy2ndChance = false;
+
+            if (this.forcedDrawDebt[this.turnIndex] > 0) this.forcedDrawDebt[this.turnIndex]--;
+
+            if (card.type === CARD_TYPES.NUMBER) {
+                if (activePlayer.hand.some(c => c.type === CARD_TYPES.NUMBER && c.value === card.value)) {
+                    const defenseIndex = activePlayer.hand.findIndex(c => c.type === CARD_TYPES.SECOND_CHANCE);
+                    
+                    if (defenseIndex !== -1) {
+                        cardSavedBy2ndChance = true; 
+                        activePlayer.hand.splice(defenseIndex, 1);
+                        this.animateConsumeSecondChance(activePlayer.id);
+                        this.updateStatus('defense_msg', {p: activePlayer.id, v: card.value});
+                    } else {
+                        isBust = true;
+                    }
+                } else {
+                    activePlayer.hand.push(card);
+                    activePlayer.currentScoreRaw += card.value;
+                }
+            } else if (!isBust) {
+                activePlayer.hand.push(card);
+                if (card.type === CARD_TYPES.FLIP3_ATTACK) {
+                    const opponentIndex = (this.turnIndex + 1) % 2;
+                    if (!this.players[opponentIndex].isDoneForRound) {
+                        this.forcedDrawDebt[opponentIndex] += 3;
+                        this.updateStatus('attack_msg', {p1: activePlayer.id, p2: opponentIndex + 1});
+                    }
+                }
+                if (card.type === CARD_TYPES.BONUS_10) activePlayer.bonusScore += 10;
+                if (card.type === CARD_TYPES.MULTIPLIER_2) activePlayer.scoreMultiplier *= 2;
+            }
+
+            this.renderCard(activePlayer.id, card, cardSavedBy2ndChance);
+
+            if (isBust) {
+                this.handleBust(activePlayer);
+            } else {
+                if (this.checkFlip7Condition(activePlayer)) {
+                    this.handleFlip7Bonus(activePlayer);
+                } else {
+                    this.updateUI();
+                    if (this.forcedDrawDebt[this.turnIndex] === 0) {
+                        this.switchTurn();
+                    } else {
+                        this.updateStatus('locked'); // 这里也可以加参数
+                    }
+                }
+            }
+        }
+
+        handleFlip7Bonus(player) {
+            player.hasFlip7Bonus = true;
+            player.bonusScore += 15;
+            this.updateStatus('flip7_msg', {p: player.id});
+            document.getElementById(`p${player.id}-badge-flip7`).style.display = 'inline-block';
+            this.bankAction(true);
+        }
+
+        animateConsumeSecondChance(playerId) {
+            const handDiv = document.getElementById(`p${playerId}-hand`);
+            const defenseCard = handDiv.querySelector('.card.defense');
+            if (defenseCard) {
+                defenseCard.classList.add('consumed');
+                setTimeout(() => { if(defenseCard.parentNode) defenseCard.remove(); }, 500);
+            }
+        }
+
+        bankAction(isBonus = false) {
+            if (!this.isRoundActive) return;
+            const p = this.players[this.turnIndex];
+            
+            if (!isBonus && this.forcedDrawDebt[this.turnIndex] > 0) return;
+
+            const score = (p.currentScoreRaw * p.scoreMultiplier) + p.bonusScore;
+            p.totalScore += score;
+            p.isDoneForRound = true;
+
+            // 保存状态
+            p.overlayState = { type: 'bank', score: score, isBonus: isBonus };
+            
+            this.renderOverlay(p.id); // 渲染一次
+            
+            if(!isBonus) this.updateStatus('bank_msg', {p: p.id, s: score});
+            
+            this.switchTurn();
+        }
+
+        handleBust(player) {
+            player.isDoneForRound = true;
+            this.forcedDrawDebt[player.id - 1] = 0;
+            const zone = document.getElementById(`p${player.id}-zone`);
+            zone.classList.add('shake');
+            setTimeout(() => zone.classList.remove('shake'), 500);
+
+            // 保存状态
+            player.overlayState = { type: 'bust' };
+
+            this.renderOverlay(player.id); // 渲染一次
+            this.updateStatus('bust_msg', {p: player.id});
+            this.switchTurn();
+        }
+
+        // --- 核心修复：重新渲染遮罩 ---
+        refreshOverlays() {
+            this.players.forEach(p => {
+                if (p.overlayState) {
+                    this.renderOverlay(p.id);
+                }
+            });
+        }
+
+        renderOverlay(playerId) {
+            const p = this.players[playerId - 1];
+            if (!p.overlayState) return;
+
+            let htmlContent = '';
+            if (p.overlayState.type === 'bust') {
+                htmlContent = `<div class="bust-msg">${this.t('bust_overlay')}</div>`;
+            } else if (p.overlayState.type === 'bank') {
+                if (p.overlayState.isBonus) {
+                    htmlContent = `<div class="bank-msg">${this.t('bonus_overlay', {s: p.overlayState.score})}</div>`;
+                } else {
+                    htmlContent = `<div class="bank-msg">${this.t('bank_overlay', {s: p.overlayState.score})}</div>`;
+                }
+            }
+            this.showPlayerOverlay(playerId, htmlContent);
+        }
+
+        switchTurn() {
+            if (this.players[0].isDoneForRound && this.players[1].isDoneForRound) {
+                this.endRound();
+                return;
+            }
+            let nextIndex = (this.turnIndex + 1) % 2;
+
+            if (this.players[this.turnIndex].isDoneForRound) {
+                this.turnIndex = nextIndex;
+            } else if (this.players[nextIndex].isDoneForRound) {
+                this.updateStatus('opponent_gone', {p: this.turnIndex + 1});
+            } else {
+                this.turnIndex = nextIndex;
+            }
+
+            this.highlightActivePlayer();
+            this.updateUI();
+        }
+
+        endRound() {
+            this.isRoundActive = false;
+            this.updateUI();
+
+            const p1Score = this.players[0].totalScore;
+            const p2Score = this.players[1].totalScore;
+            let winner = null;
+            let reason = "";
+
+            const p1Wins = p1Score >= TARGET_SCORE;
+            const p2Wins = p2Score >= TARGET_SCORE;
+
+            if (p1Wins && p2Wins) {
+                if (p1Score > p2Score) {
+                    winner = 1; 
+                    reason = this.t('reason_both', {w: 1});
+                } else if (p2Score > p1Score) {
+                    winner = 2;
+                    reason = this.t('reason_both', {w: 2});
+                } else {
+                    winner = 'draw';
+                    reason = this.t('reason_draw');
+                }
+            } else if (p1Wins) {
+                winner = 1;
+                reason = this.t('reason_first');
+            } else if (p2Wins) {
+                winner = 2;
+                reason = this.t('reason_first');
+            }
+
+            if (winner) {
+                this.showVictoryModal(winner, reason, p1Score, p2Score);
+            } else {
+                this.updateStatus('end_round', {r: this.currentRound});
+                setTimeout(() => {
+                    this.currentRound++;
+                    this.startRound();
+                }, 3000);
+            }
+        }
+
+        showVictoryModal(winner, reason, s1, s2) {
+            const modal = document.getElementById('victoryModal');
+            const title = document.getElementById('victoryTitle');
+            const sub = document.getElementById('victoryReason');
+            const vp1 = document.getElementById('v-score-p1');
+            const vp2 = document.getElementById('v-score-p2');
+
+            if (winner === 'draw') {
+                title.innerText = this.t('win_draw');
+                title.style.color = "white";
+            } else {
+                title.innerText = winner === 1 ? this.t('win_p1') : this.t('win_p2');
+                title.style.color = winner === 1 ? '#3498db' : '#e74c3c';
+            }
+            
+            sub.innerText = reason;
+            vp1.innerText = s1;
+            vp2.innerText = s2;
+
+            vp1.className = 'v-score-val' + (winner === 1 ? ' winner-highlight' : '');
+            vp2.className = 'v-score-val' + (winner === 2 ? ' winner-highlight' : '');
+
+            modal.style.display = 'flex';
+        }
+
+        redrawHands() {
+            document.getElementById('p1-hand').innerHTML = '';
+            document.getElementById('p2-hand').innerHTML = '';
+            this.players[0].hand.forEach(card => this.renderCard(1, card, false));
+            this.players[1].hand.forEach(card => this.renderCard(2, card, false));
+        }
+
+        updateUI() {
+            document.getElementById('roundInfo').innerText = this.t('round_info', {r: this.currentRound});
+            document.getElementById('deckCount').innerText = this.deck.length;
+
+            this.players.forEach(p => {
+                const estScore = (p.currentScoreRaw * p.scoreMultiplier) + p.bonusScore;
+                document.getElementById(`p${p.id}-current-score`).innerText = estScore;
+                document.getElementById(`p${p.id}-total-score`).innerText = p.totalScore;
+                
+                const percent = Math.min((p.totalScore / TARGET_SCORE) * 100, 100);
+                document.getElementById(`p${p.id}-bar`).style.width = `${percent}%`;
+                
+                document.getElementById(`p${p.id}-badge-2nd`).style.display = this.checkHasSecondChance(p) ? 'inline-block' : 'none';
+                document.getElementById(`p${p.id}-badge-flip7`).style.display = p.hasFlip7Bonus ? 'inline-block' : 'none';
+                
+                const badgeForced = document.getElementById(`p${p.id}-badge-forced`);
+                const debt = this.forcedDrawDebt[p.id - 1];
+                if (debt > 0) {
+                    badgeForced.innerText = `${this.t('locked')}: ${debt}`;
+                    badgeForced.style.display = 'inline-block';
+                } else {
+                    badgeForced.style.display = 'none';
+                }
+            });
+
+            const btnFlip = document.getElementById('btnFlip');
+            const btnBank = document.getElementById('btnBank');
+            const currentPlayer = this.players[this.turnIndex];
+            const currentDebt = this.forcedDrawDebt[this.turnIndex];
+            const isInputDisabled = !this.isRoundActive || currentPlayer.isDoneForRound;
+
+            btnFlip.disabled = isInputDisabled;
+            btnBank.disabled = isInputDisabled;
+
+            if (!isInputDisabled) {
+                if (currentDebt > 0) {
+                    btnFlip.innerHTML = `${this.t('btn_must_flip')} (${currentDebt})`;
+                    btnFlip.classList.add('shake');
+                    btnBank.disabled = true;
+                } else {
+                    btnFlip.innerHTML = this.t('btn_flip');
+                    btnFlip.classList.remove('shake');
+                }
+            } else {
+                btnFlip.innerHTML = this.t('btn_flip');
+            }
+            btnBank.innerHTML = this.t('btn_bank');
+        }
+
+        highlightActivePlayer() {
+            const zones = [document.getElementById('p1-zone'), document.getElementById('p2-zone')];
+            const badges = [document.getElementById('p1-badge-turn'), document.getElementById('p2-badge-turn')];
+            
+            zones.forEach(z => { z.classList.remove('active-p1', 'active-p2'); });
+            badges.forEach(b => b.style.display = 'none');
+
+            if (this.isRoundActive && !this.players[this.turnIndex].isDoneForRound) {
+                const activeId = this.players[this.turnIndex].id;
+                zones[activeId - 1].classList.add(activeId === 1 ? 'active-p1' : 'active-p2');
+                badges[activeId - 1].style.display = 'inline-block';
+            }
+        }
+
+        renderCard(playerId, card, isSaved) {
+            const handDiv = document.getElementById(`p${playerId}-hand`);
+            const cardEl = document.createElement('div');
+            
+            let cardClass = card.type;
+            let centerText = card.value;
+            let subText = "";
+
+            if (card.type !== CARD_TYPES.NUMBER) {
+                if (card.type === CARD_TYPES.FLIP3_ATTACK) { centerText = this.t('card_atk'); subText = "Flip 3"; }
+                if (card.type === CARD_TYPES.SECOND_CHANCE) { centerText = "2nd"; subText = this.t('card_def'); }
+                if (card.type === CARD_TYPES.BONUS_10) { centerText = "+10"; subText = this.t('card_bon'); }
+                if (card.type === CARD_TYPES.MULTIPLIER_2) { centerText = "x2"; subText = this.t('card_mul'); }
+            }
+
+            cardEl.className = `card ${cardClass}`;
+            if (isSaved) {
+                cardEl.style.opacity = '0.5';
+                cardEl.style.transform = 'scale(0.8)';
+                handDiv.appendChild(cardEl);
+                setTimeout(() => cardEl.remove(), 1000);
+                return;
+            }
+
+            cardEl.innerHTML = `
+                <div class="card-corner top-left">${card.value}</div>
+                <div class="card-center">${centerText}${subText ? `<span class="card-sub">${subText}</span>` : ''}</div>
+                <div class="card-corner bottom-right">${card.value}</div>
+            `;
+            handDiv.appendChild(cardEl);
+        }
+
+        showPlayerOverlay(playerId, html) {
+            const el = document.getElementById(`p${playerId}-overlay`);
+            el.innerHTML = html;
+            el.style.display = 'flex';
+        }
+        clearPlayerOverlay(playerId) {
+            const el = document.getElementById(`p${playerId}-overlay`);
+            el.style.display = 'none';
+            document.getElementById(`p${playerId}-hand`).innerHTML = '';
+        }
+    }
+
+    const game = new Game();
+</script>
+</body>
+</html>
