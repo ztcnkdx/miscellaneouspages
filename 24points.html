@@ -1,0 +1,781 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>24点求解器</title>
+  <style>
+    :root{
+      --bg1:#0b1220;
+      --bg2:#101a33;
+      --card:#ffffff;
+      --ink:#0b1220;
+      --muted:#5b6474;
+      --line:#e6e9ef;
+      --accent:#2d6cdf;
+      --accent2:#14b8a6;
+      --danger:#b00020;
+      --shadow: 0 10px 30px rgba(0,0,0,.18);
+      --shadow2: 0 6px 16px rgba(0,0,0,.12);
+      --radius: 14px;
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      color:#e8eefc;
+      background:
+        radial-gradient(1200px 600px at 10% 10%, rgba(45,108,223,.35), transparent 60%),
+        radial-gradient(900px 500px at 90% 20%, rgba(20,184,166,.25), transparent 55%),
+        linear-gradient(180deg, var(--bg1), var(--bg2));
+      min-height:100vh;
+      padding:28px 18px 40px;
+    }
+    .wrap{
+      max-width: 980px;
+      margin: 0 auto;
+    }
+    .topbar{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:12px;
+      margin-bottom:14px;
+    }
+    .brand{
+      display:flex;
+      flex-direction:column;
+      gap:6px;
+    }
+    h1{
+      margin:0;
+      font-size: 22px;
+      font-weight: 700;
+      letter-spacing:.2px;
+    }
+    .sub{
+      margin:0;
+      color: rgba(232,238,252,.78);
+      font-size: 13px;
+      line-height:1.35;
+      max-width: 760px;
+    }
+    .btn{
+      border:1px solid rgba(230,233,239,.18);
+      background: rgba(255,255,255,.06);
+      color:#e8eefc;
+      padding:10px 12px;
+      border-radius: 12px;
+      cursor:pointer;
+      font-weight:600;
+      box-shadow: 0 1px 0 rgba(255,255,255,.06) inset;
+      transition: transform .08s ease, background .12s ease, border-color .12s ease;
+      user-select:none;
+      white-space:nowrap;
+    }
+    .btn:hover{ background: rgba(255,255,255,.09); border-color: rgba(230,233,239,.26); }
+    .btn:active{ transform: translateY(1px); }
+    .btn.primary{
+      background: linear-gradient(135deg, rgba(45,108,223,.95), rgba(20,184,166,.75));
+      border: 1px solid rgba(255,255,255,.18);
+      color: #071022;
+      box-shadow: 0 10px 26px rgba(45,108,223,.22);
+    }
+    .btn.primary:hover{ filter: brightness(1.03); }
+    .btn.ghost{
+      background: transparent;
+      border: 1px solid rgba(230,233,239,.22);
+    }
+
+    .panel{
+      background: rgba(255,255,255,.06);
+      border: 1px solid rgba(230,233,239,.14);
+      border-radius: 18px;
+      box-shadow: var(--shadow);
+      padding: 16px;
+    }
+
+    .controls{
+      display:flex;
+      flex-wrap:wrap;
+      gap:10px;
+      align-items:center;
+      justify-content:space-between;
+      margin-bottom: 14px;
+    }
+
+    .targetBox{
+      display:flex;
+      align-items:center;
+      gap:10px;
+      padding: 10px 12px;
+      border-radius: 14px;
+      border: 1px solid rgba(230,233,239,.18);
+      background: rgba(0,0,0,.18);
+    }
+    .targetBox label{
+      font-size: 13px;
+      color: rgba(232,238,252,.78);
+      font-weight: 600;
+      letter-spacing:.2px;
+    }
+    .targetBox input{
+      width: 110px;
+      padding: 8px 10px;
+      border-radius: 12px;
+      border: 1px solid rgba(230,233,239,.2);
+      background: rgba(255,255,255,.06);
+      color:#e8eefc;
+      outline:none;
+      font-size: 15px;
+    }
+    .targetBox input:focus{ border-color: rgba(45,108,223,.65); box-shadow: 0 0 0 3px rgba(45,108,223,.2); }
+
+    .actions{
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
+      justify-content:flex-end;
+    }
+
+    .cards{
+      display:grid;
+      grid-template-columns: repeat(4, minmax(160px, 1fr));
+      gap: 12px;
+      margin-top: 6px;
+    }
+    @media (max-width: 820px){
+      .cards{ grid-template-columns: repeat(2, minmax(160px, 1fr)); }
+    }
+    @media (max-width: 420px){
+      .cards{ grid-template-columns: 1fr; }
+    }
+
+    .cardIn{
+      position:relative;
+      background: rgba(255,255,255,.9);
+      border: 1px solid rgba(230,233,239,.9);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow2);
+      padding: 14px 12px 12px;
+      color: var(--ink);
+      overflow:hidden;
+    }
+    .cardIn::before{
+      content:"";
+      position:absolute;
+      inset:0;
+      background:
+        radial-gradient(180px 90px at 10% 10%, rgba(45,108,223,.14), transparent 55%),
+        radial-gradient(180px 90px at 90% 30%, rgba(20,184,166,.12), transparent 55%);
+      pointer-events:none;
+    }
+    .cardTop{
+      display:flex;
+      align-items:flex-start;
+      justify-content:space-between;
+      gap:12px;
+      position:relative;
+      z-index:1;
+    }
+    .tag{
+      font-size: 12px;
+      color: rgba(11,18,32,.62);
+      font-weight: 700;
+      letter-spacing:.2px;
+      text-transform: uppercase;
+    }
+    .rank{
+      display:flex;
+      flex-direction:column;
+      align-items:flex-end;
+      gap:4px;
+      font-weight: 900;
+      letter-spacing:.4px;
+    }
+    .rank .r{
+      font-size: 22px;
+      line-height: 1;
+    }
+    .rank .s{
+      font-size: 16px;
+      line-height: 1;
+      opacity:.95;
+    }
+
+    .cardMid{
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      padding: 16px 0 10px;
+      position:relative;
+      z-index:1;
+      color: rgba(11,18,32,.75);
+      font-size: 44px;
+      font-weight: 900;
+      letter-spacing: .6px;
+      user-select:none;
+    }
+
+    .cardBot{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+      position:relative;
+      z-index:1;
+    }
+    .cardBot input{
+      flex:1;
+      padding: 10px 10px;
+      border-radius: 12px;
+      border: 1px solid rgba(11,18,32,.12);
+      background: rgba(255,255,255,.88);
+      color: var(--ink);
+      outline:none;
+      font-size: 16px;
+      font-weight: 650;
+    }
+    .cardBot input:focus{
+      border-color: rgba(45,108,223,.55);
+      box-shadow: 0 0 0 3px rgba(45,108,223,.16);
+    }
+    .mini{
+      display:flex;
+      gap:8px;
+      align-items:center;
+      font-size: 12px;
+      color: rgba(11,18,32,.62);
+      font-weight: 700;
+    }
+    .pill{
+      padding: 6px 8px;
+      border-radius: 999px;
+      border: 1px solid rgba(11,18,32,.12);
+      background: rgba(255,255,255,.72);
+      color: rgba(11,18,32,.78);
+      font-weight: 800;
+      letter-spacing:.2px;
+      white-space:nowrap;
+    }
+
+    .msg{
+      margin-top: 14px;
+      padding: 10px 12px;
+      border-radius: 14px;
+      border: 1px solid rgba(230,233,239,.16);
+      background: rgba(0,0,0,.18);
+      color: rgba(232,238,252,.9);
+      font-size: 13px;
+      line-height: 1.45;
+    }
+    .msg.err{
+      border-color: rgba(176,0,32,.35);
+      color: rgba(255,220,228,.95);
+      background: rgba(176,0,32,.16);
+    }
+
+    .out{
+      margin-top: 12px;
+      background: rgba(255,255,255,.96);
+      color: var(--ink);
+      border: 1px solid rgba(230,233,239,.95);
+      border-radius: 16px;
+      padding: 14px 14px;
+      min-height: 100px;
+      box-shadow: var(--shadow2);
+      white-space: pre-wrap;
+      overflow:auto;
+    }
+    .out .dim{ color: rgba(11,18,32,.62); font-weight: 650; }
+    .foot{
+      margin-top: 12px;
+      color: rgba(232,238,252,.65);
+      font-size: 12px;
+      line-height:1.4;
+    }
+    .mono{ font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace; }
+  </style>
+</head>
+
+<body>
+  <div class="wrap">
+    <div class="topbar">
+      <div class="brand">
+        <h1 data-i18n="title">24点求解器</h1>
+        <p class="sub" data-i18n="subtitle">只允许 + − × ÷；每个数字用一次；交换加法/乘法顺序视为同一解。</p>
+      </div>
+      <button id="langBtn" class="btn ghost" aria-label="language toggle">English</button>
+    </div>
+
+    <div class="panel">
+      <div class="controls">
+        <div class="targetBox">
+          <label for="target" data-i18n="targetLabel">目标</label>
+          <input id="target" inputmode="numeric" autocomplete="off" />
+        </div>
+
+        <div class="actions">
+          <button id="genBtn" class="btn" data-i18n="genBtn">随机练习题</button>
+          <button id="solveBtn" class="btn primary" data-i18n="solveBtn">求解</button>
+        </div>
+      </div>
+
+      <div class="cards">
+        <div class="cardIn" data-idx="0">
+          <div class="cardTop">
+            <div class="tag" data-i18n="num1">数字1</div>
+            <div class="rank"><div class="r" id="r0">A</div><div class="s" id="s0">&spades;</div></div>
+          </div>
+          <div class="cardMid" id="mid0">A</div>
+          <div class="cardBot">
+            <input id="n0" inputmode="numeric" autocomplete="off" />
+            <div class="mini"><span class="pill" id="pill0">1</span></div>
+          </div>
+        </div>
+
+        <div class="cardIn" data-idx="1">
+          <div class="cardTop">
+            <div class="tag" data-i18n="num2">数字2</div>
+            <div class="rank"><div class="r" id="r1">2</div><div class="s" id="s1">&spades;</div></div>
+          </div>
+          <div class="cardMid" id="mid1">2</div>
+          <div class="cardBot">
+            <input id="n1" inputmode="numeric" autocomplete="off" />
+            <div class="mini"><span class="pill" id="pill1">2</span></div>
+          </div>
+        </div>
+
+        <div class="cardIn" data-idx="2">
+          <div class="cardTop">
+            <div class="tag" data-i18n="num3">数字3</div>
+            <div class="rank"><div class="r" id="r2">3</div><div class="s" id="s2">&spades;</div></div>
+          </div>
+          <div class="cardMid" id="mid2">3</div>
+          <div class="cardBot">
+            <input id="n2" inputmode="numeric" autocomplete="off" />
+            <div class="mini"><span class="pill" id="pill2">3</span></div>
+          </div>
+        </div>
+
+        <div class="cardIn" data-idx="3">
+          <div class="cardTop">
+            <div class="tag" data-i18n="num4">数字4</div>
+            <div class="rank"><div class="r" id="r3">4</div><div class="s" id="s3">&spades;</div></div>
+          </div>
+          <div class="cardMid" id="mid3">4</div>
+          <div class="cardBot">
+            <input id="n3" inputmode="numeric" autocomplete="off" />
+            <div class="mini"><span class="pill" id="pill3">4</span></div>
+          </div>
+        </div>
+      </div>
+
+      <div id="msg" class="msg" style="display:none;"></div>
+      <div id="out" class="out"></div>
+
+      <div class="foot">
+        <span data-i18n="foot1">提示：</span>
+        <span data-i18n="foot2">输入整数即可。1-13 会按扑克牌点数显示（A, J, Q, K）。</span>
+      </div>
+    </div>
+  </div>
+
+<script>
+(() => {
+  const I18N = {
+    zh: {
+      title: "24点求解器",
+      subtitle: "只允许 + − × ÷；每个数字用一次；交换加法/乘法顺序视为同一解。",
+      targetLabel: "目标",
+      num1: "数字1",
+      num2: "数字2",
+      num3: "数字3",
+      num4: "数字4",
+      solveBtn: "求解",
+      genBtn: "随机练习题",
+      errInput: "输入必须是整数（可带正负号），且四个数字与目标都要填。",
+      errTarget: "目标必须是整数。",
+      noSol: "不存在能算出目标的组合。",
+      found: (k) => `共找到 ${k} 个不重复解：\n\n`,
+      genOk: "已生成可解练习题。现在自己算；需要核对时再点“求解”。",
+      genMaybe: "已生成练习题（可能无解）。现在自己算；需要核对时再点“求解”。",
+      foot1: "提示：",
+      foot2: "输入整数即可。1-13 会按扑克牌点数显示（A, J, Q, K）。"
+    },
+    en: {
+      title: "24 Game Solver",
+      subtitle: "Only + − × ÷; each number used once; reordering +/* is treated as the same solution.",
+      targetLabel: "Target",
+      num1: "Number 1",
+      num2: "Number 2",
+      num3: "Number 3",
+      num4: "Number 4",
+      solveBtn: "Solve",
+      genBtn: "Random Practice",
+      errInput: "Inputs must be integers (optional +/-). Fill all four numbers and the target.",
+      errTarget: "Target must be an integer.",
+      noSol: "No expression reaches the target.",
+      found: (k) => `Found ${k} unique solution(s):\n\n`,
+      genOk: "Generated a solvable practice set. Try it first; click “Solve” to check later.",
+      genMaybe: "Generated a practice set (may be unsolvable). Try it first; click “Solve” to check later.",
+      foot1: "Note:",
+      foot2: "Integers only. 1–13 are displayed as cards (A, J, Q, K)."
+    }
+  };
+
+  let lang = "zh";
+
+  function setText() {
+    document.documentElement.lang = lang === "zh" ? "zh-CN" : "en";
+    document.querySelectorAll("[data-i18n]").forEach(el => {
+      const k = el.getAttribute("data-i18n");
+      const v = I18N[lang][k];
+      if (typeof v === "string") el.textContent = v;
+    });
+    document.getElementById("langBtn").textContent = (lang === "zh") ? "English" : "中文";
+  }
+
+  function absBI(x){ return x < 0n ? -x : x; }
+  function gcdBI(a,b){
+    a = absBI(a); b = absBI(b);
+    while(b !== 0n){ const t = a % b; a = b; b = t; }
+    return a;
+  }
+  class Rat{
+    constructor(num, den){
+      if (den === 0n) throw new Error("division by zero");
+      if (den < 0n){ num = -num; den = -den; }
+      const g = gcdBI(num, den);
+      this.n = num / g;
+      this.d = den / g;
+    }
+    static fromBI(x){ return new Rat(x, 1n); }
+    isZero(){ return this.n === 0n; }
+    add(o){ return new Rat(this.n * o.d + o.n * this.d, this.d * o.d); }
+    sub(o){ return new Rat(this.n * o.d - o.n * this.d, this.d * o.d); }
+    mul(o){ return new Rat(this.n * o.n, this.d * o.d); }
+    div(o){
+      if (o.n === 0n) throw new Error("division by zero");
+      return new Rat(this.n * o.d, this.d * o.n);
+    }
+    equalsInt(k){ return this.n === BigInt(k) * this.d; }
+  }
+
+  function makeLeaf(text, val){
+    return { kind:"leaf", text, val };
+  }
+  function makeAdd(a,b){
+    const kids = [];
+    if (a.kind === "nary" && a.op === "+") kids.push(...a.children); else kids.push(a);
+    if (b.kind === "nary" && b.op === "+") kids.push(...b.children); else kids.push(b);
+    let v = Rat.fromBI(0n);
+    for (const k of kids) v = v.add(k.val);
+    return { kind:"nary", op:"+", children:kids, val:v };
+  }
+  function makeMul(a,b){
+    const kids = [];
+    if (a.kind === "nary" && a.op === "*") kids.push(...a.children); else kids.push(a);
+    if (b.kind === "nary" && b.op === "*") kids.push(...b.children); else kids.push(b);
+    let v = Rat.fromBI(1n);
+    for (const k of kids) v = v.mul(k.val);
+    return { kind:"nary", op:"*", children:kids, val:v };
+  }
+  function makeSub(a,b){
+    const v = a.val.sub(b.val);
+    return { kind:"bin", op:"-", left:a, right:b, val:v };
+  }
+  function makeDiv(a,b){
+    const v = a.val.div(b.val);
+    return { kind:"bin", op:"/", left:a, right:b, val:v };
+  }
+
+  // ----------- stronger canonicalization for dedup ----------
+  function canonAny(node){
+    if (node.kind === "leaf") return canonLeaf(node);
+    if ((node.kind === "nary" && node.op === "+") || (node.kind === "bin" && node.op === "-")) return canonSum(node);
+    if ((node.kind === "nary" && node.op === "*") || (node.kind === "bin" && node.op === "/")) return canonProd(node);
+    throw new Error("unknown node");
+  }
+
+  function canonLeaf(node){
+    return { type:"leaf", key:`L:${node.text}`, expr: node.text };
+  }
+
+  function canonSum(node){
+    const terms = [];
+    const collect = (n, sign) => {
+      if (n.kind === "nary" && n.op === "+"){
+        for (const ch of n.children) collect(ch, sign);
+        return;
+      }
+      if (n.kind === "bin" && n.op === "-"){
+        collect(n.left, sign);
+        collect(n.right, -sign);
+        return;
+      }
+      const t = canonProd(n);
+      terms.push({ sign, term: t });
+    };
+    collect(node, +1);
+
+    terms.sort((a,b) => {
+      const c = a.term.key.localeCompare(b.term.key);
+      if (c !== 0) return c;
+      return (b.sign - a.sign); // + before -
+    });
+
+    const key = "S[" + terms.map(x => (x.sign === 1 ? "+" : "-") + x.term.key).join("|") + "]";
+
+    const wrap = (s) => (s.startsWith("-") ? `(${s})` : s);
+    let expr = "0";
+    if (terms.length > 0){
+      const first = terms[0];
+      expr = (first.sign === 1) ? first.term.expr : ("-" + wrap(first.term.expr));
+      for (let i = 1; i < terms.length; i++){
+        const it = terms[i];
+        if (it.sign === 1) expr += " + " + it.term.expr;
+        else expr += " - " + wrap(it.term.expr);
+      }
+    }
+    return { type:"sum", key, expr };
+  }
+
+  function canonProd(node){
+    const factors = [];
+    const collect = (n, exp) => {
+      if (n.kind === "nary" && n.op === "*"){
+        for (const ch of n.children) collect(ch, exp);
+        return;
+      }
+      if (n.kind === "bin" && n.op === "/"){
+        collect(n.left, exp);
+        collect(n.right, -exp);
+        return;
+      }
+      const f = canonAny(n);
+      factors.push({ exp, factor: f });
+    };
+    collect(node, +1);
+
+    factors.sort((a,b) => {
+      const c = a.factor.key.localeCompare(b.factor.key);
+      if (c !== 0) return c;
+      return (b.exp - a.exp); // numerator (+1) before denominator (-1)
+    });
+
+    const key = "P[" + factors.map(x => (x.exp === 1 ? "+" : "-") + x.factor.key).join("|") + "]";
+
+    const facExpr = (f) => (f.type === "sum" ? `(${f.expr})` : f.expr);
+
+    const num = [];
+    const den = [];
+    for (const it of factors){
+      if (it.exp === 1) num.push(facExpr(it.factor));
+      else den.push(facExpr(it.factor));
+    }
+
+    let numStr = num.length ? num.join(" * ") : "1";
+    if (!den.length) return { type:"prod", key, expr: numStr };
+
+    let denStr = den.join(" * ");
+    if (den.length > 1) denStr = `(${denStr})`;
+    return { type:"prod", key, expr: `${numStr} / ${denStr}` };
+  }
+
+  function solveTarget(nums, targetInt){
+    const nodes = nums.map(x => makeLeaf(String(x), Rat.fromBI(BigInt(x))));
+    const seen = new Map(); // canonKey -> canonExpr
+
+    function rec(list){
+      if (list.length === 1){
+        const t = list[0];
+        if (t.val.equalsInt(targetInt)){
+          const c = canonAny(t);
+          if (!seen.has(c.key)) seen.set(c.key, c.expr);
+        }
+        return;
+      }
+      const n = list.length;
+      for (let i = 0; i < n - 1; i++){
+        for (let j = i + 1; j < n; j++){
+          const a = list[i], b = list[j];
+          const rest = [];
+          for (let k = 0; k < n; k++) if (k !== i && k !== j) rest.push(list[k]);
+
+          rec(rest.concat([makeAdd(a,b)]));
+          rec(rest.concat([makeMul(a,b)]));
+
+          rec(rest.concat([makeSub(a,b)]));
+          rec(rest.concat([makeSub(b,a)]));
+
+          if (!b.val.isZero()) rec(rest.concat([makeDiv(a,b)]));
+          if (!a.val.isZero()) rec(rest.concat([makeDiv(b,a)]));
+        }
+      }
+    }
+
+    rec(nodes);
+
+    const sols = Array.from(seen.values());
+    sols.sort((x,y) => x.localeCompare(y));
+    return sols;
+  }
+
+  function parseIntStrict(s){
+    const t = String(s).trim();
+    if (!/^[+-]?\d+$/.test(t)) return null;
+    try { return t; } catch { return null; }
+  }
+
+  function rankLabel(n){
+    if (n === 1n) return "A";
+    if (n === 11n) return "J";
+    if (n === 12n) return "Q";
+    if (n === 13n) return "K";
+    return n.toString();
+  }
+  function midLabel(n){
+    if (n >= 1n && n <= 13n) return rankLabel(n);
+    return n.toString();
+  }
+  function updateCard(i){
+    const inp = document.getElementById(`n${i}`);
+    const raw = inp.value.trim();
+    const rEl = document.getElementById(`r${i}`);
+    const midEl = document.getElementById(`mid${i}`);
+    const pillEl = document.getElementById(`pill${i}`);
+
+    const parsed = parseIntStrict(raw);
+    if (parsed === null){
+      rEl.textContent = "?";
+      midEl.textContent = "?";
+      pillEl.textContent = raw === "" ? " " : raw;
+      return;
+    }
+    const bi = BigInt(parsed);
+    const showRank = (bi >= 1n && bi <= 13n) ? rankLabel(bi) : bi.toString();
+    rEl.textContent = showRank;
+    midEl.textContent = midLabel(bi);
+    pillEl.textContent = bi.toString();
+  }
+
+  function setMsg(text, isErr){
+    const el = document.getElementById("msg");
+    el.style.display = text ? "block" : "none";
+    el.className = isErr ? "msg err" : "msg";
+    el.textContent = text || "";
+  }
+
+  const outEl = document.getElementById("out");
+  const langBtn = document.getElementById("langBtn");
+  const targetEl = document.getElementById("target");
+
+  function getInputsOrFail(){
+    const targetRaw = parseIntStrict(targetEl.value);
+    if (targetRaw === null) return { ok:false, err:I18N[lang].errTarget };
+
+    const raw = [0,1,2,3].map(i => parseIntStrict(document.getElementById(`n${i}`).value));
+    if (raw.some(x => x === null)) return { ok:false, err:I18N[lang].errInput };
+
+    const nums = raw.map(x => (BigInt(x) === 0n ? "0" : x));
+    const targetInt = BigInt(targetRaw);
+    return { ok:true, nums, targetInt };
+  }
+
+  document.getElementById("solveBtn").addEventListener("click", () => {
+    setMsg("", false);
+    outEl.textContent = "";
+
+    const got = getInputsOrFail();
+    if (!got.ok){
+      setMsg(got.err, true);
+      return;
+    }
+
+    let sols = [];
+    try{
+      sols = solveTarget(got.nums, got.targetInt);
+    }catch(e){
+      setMsg("Error: " + (e && e.message ? e.message : String(e)), true);
+      return;
+    }
+
+    if (sols.length === 0){
+      outEl.textContent = I18N[lang].noSol;
+      return;
+    }
+
+    const header = I18N[lang].found(sols.length);
+    outEl.textContent = header + sols.map((s, idx) => `${idx+1}. ${s}`).join("\n");
+  });
+
+  document.getElementById("genBtn").addEventListener("click", () => {
+    setMsg("", false);
+    outEl.textContent = "";
+
+    const targetRaw = parseIntStrict(targetEl.value);
+    if (targetRaw === null){
+      setMsg(I18N[lang].errTarget, true);
+      return;
+    }
+    const targetInt = BigInt(targetRaw);
+
+    let best = null;
+    let ok = false;
+    const MAX_TRIES = 2500;
+
+    for (let t = 0; t < MAX_TRIES; t++){
+      const a = (1 + Math.floor(Math.random() * 13)).toString();
+      const b = (1 + Math.floor(Math.random() * 13)).toString();
+      const c = (1 + Math.floor(Math.random() * 13)).toString();
+      const d = (1 + Math.floor(Math.random() * 13)).toString();
+      best = [a,b,c,d];
+
+      try{
+        const sols = solveTarget(best, targetInt);
+        if (sols.length > 0){
+          ok = true;
+          break;
+        }
+      }catch(_e){
+      }
+    }
+
+    for (let i = 0; i < 4; i++){
+      const el = document.getElementById(`n${i}`);
+      el.value = best[i];
+      updateCard(i);
+    }
+
+    setMsg(ok ? I18N[lang].genOk : I18N[lang].genMaybe, false);
+  });
+
+  langBtn.addEventListener("click", () => {
+    lang = (lang === "zh") ? "en" : "zh";
+    setText();
+  });
+
+  ["n0","n1","n2","n3","target"].forEach(id => {
+    document.getElementById(id).addEventListener("keydown", (e) => {
+      if (e.key === "Enter") document.getElementById("solveBtn").click();
+    });
+  });
+
+  for (let i = 0; i < 4; i++){
+    const el = document.getElementById(`n${i}`);
+    el.addEventListener("input", () => updateCard(i));
+  }
+
+  targetEl.value = "24";
+  const defaults = ["1","2","3","4"];
+  for (let i = 0; i < 4; i++){
+    document.getElementById(`n${i}`).value = defaults[i];
+    updateCard(i);
+  }
+  outEl.innerHTML = `<span class="dim mono">${lang === "zh" ? "在上方输入数字与目标，然后点击“求解”。" : "Enter numbers and target above, then click “Solve”."}</span>`;
+  setText();
+})();
+</script>
+</body>
+</html>
