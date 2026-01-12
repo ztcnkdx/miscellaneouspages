@@ -11,6 +11,7 @@
             --bg-color: #f6f8fa;
             --card-bg: #ffffff;
             --text-color: #24292e;
+            --border-color: #e1e4e8;
         }
 
         body {
@@ -26,7 +27,7 @@
 
         header {
             text-align: center;
-            margin-bottom: 40px;
+            margin-bottom: 20px;
         }
 
         h1 {
@@ -41,19 +42,37 @@
             margin-top: 10px;
         }
 
+        /* Container for all groups */
+        #content-root {
+            width: 100%;
+            max-width: 1000px;
+        }
+
+        /* Group Sections */
+        .group-section {
+            margin-bottom: 50px;
+        }
+
+        .group-header {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: var(--primary-color);
+            border-bottom: 2px solid var(--border-color);
+            padding-bottom: 10px;
+            margin-bottom: 20px;
+        }
+
         /* Grid Layout */
         .link-grid {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
             gap: 20px;
-            width: 100%;
-            max-width: 1000px;
         }
 
         /* Card Styling */
         .card {
             background-color: var(--card-bg);
-            border: 1px solid #e1e4e8;
+            border: 1px solid var(--border-color);
             border-radius: 6px;
             padding: 24px;
             text-decoration: none;
@@ -99,56 +118,98 @@
         <p class="subtitle">Index of miscellaneous tools and games</p>
     </header>
 
-    <div id="content-area" class="link-grid">
+    <div id="content-root">
         </div>
 
     <script>
-        const pages = [
-            { 
-                title: "24 Points Solver", 
-                url: "24points.html", 
-                desc: "Solver logic for the 24-point arithmetic card game." 
+        /* =================================================================
+           CONFIGURATION AREA
+           Define your groups here. 
+           Each group has a 'category' name and a list of 'pages'.
+           =================================================================
+        */
+        const siteData = [
+            {
+                category: "Games",
+                pages: [
+                    { 
+                        title: "24 Points Solver", 
+                        url: "24points.html", 
+                        desc: "Solver logic for the 24-point arithmetic card game." 
+                    },
+                    { 
+                        title: "Flip 7 Duo", 
+                        url: "flip7duo.html", 
+                        desc: "A web-based implementation of the Flip 7 card game." 
+                    }
+                ]
             },
-            { 
-                title: "Canvas Quiz QTI Converter", 
-                url: "Canvasquiz.html", 
-                desc: "Tool to convert quiz data into Canvas QTI format." 
+            {
+                category: "Course Simulations",
+                pages: [
+                    { 
+                        title: "Newsvendor (Original)", 
+                        url: "newsvendor_starter.html", 
+                        desc: "The standard toy newsvendor game implementation." 
+                    },
+                    { 
+                        title: "Supply Chain Coordination", 
+                        url: "sc_coordination.html", 
+                        desc: "Simulations regarding supply chain coordination problems." 
+                    }
+                ]
             },
-            { 
-                title: "Flip 7 Duo", 
-                url: "flip7duo.html", 
-                desc: "A web-based implementation of the Flip 7 card game." 
-            },
-            { 
-                title: "Supply Chain Coordination", 
-                url: "sc_coordination.html", 
-                desc: "Simulations and logic regarding supply chain coordination problems." 
-            },
-            { 
-                title: "Newsvendor (Starter)", 
-                url: "newsvendor_starter.html", 
-                desc: "The original toy newsvendor game implementation." 
+            {
+                category: "Utilities & Tools",
+                pages: [
+                    { 
+                        title: "Canvas Quiz Converter", 
+                        url: "Canvasquiz.html", 
+                        desc: "Tool to convert quiz data into Canvas QTI format." 
+                    }
+                ]
             }
         ];
 
-        /* Render Logic (No need to touch this)
+        /* =================================================================
+           RENDER LOGIC (Do not modify unless changing layout)
+           =================================================================
         */
-        const container = document.getElementById('content-area');
+        const root = document.getElementById('content-root');
 
-        pages.forEach(page => {
-            const card = document.createElement('a');
-            card.href = page.url;
-            card.className = 'card';
-            
-            card.innerHTML = `
-                <div>
-                    <div class="card-title">${page.title}</div>
-                    <div class="card-desc">${page.desc || 'No description available.'}</div>
-                </div>
-                <div class="card-arrow">&rarr;</div>
-            `;
-            
-            container.appendChild(card);
+        siteData.forEach(group => {
+            // 1. Create Section Container
+            const section = document.createElement('div');
+            section.className = 'group-section';
+
+            // 2. Create Group Header
+            const header = document.createElement('div');
+            header.className = 'group-header';
+            header.textContent = group.category;
+            section.appendChild(header);
+
+            // 3. Create Grid Container
+            const grid = document.createElement('div');
+            grid.className = 'link-grid';
+
+            // 4. Create Cards for this group
+            group.pages.forEach(page => {
+                const card = document.createElement('a');
+                card.href = page.url;
+                card.className = 'card';
+                card.innerHTML = `
+                    <div>
+                        <div class="card-title">${page.title}</div>
+                        <div class="card-desc">${page.desc || 'No description available.'}</div>
+                    </div>
+                    <div class="card-arrow">&rarr;</div>
+                `;
+                grid.appendChild(card);
+            });
+
+            // 5. Assemble
+            section.appendChild(grid);
+            root.appendChild(section);
         });
     </script>
 
