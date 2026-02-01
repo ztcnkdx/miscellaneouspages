@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>P2P Beer Game (Fixed)</title>
+    <title>Beer Game P2P (Enhanced)</title>
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
     <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -16,15 +16,23 @@
         button { background: var(--accent); color: white; border: none; cursor: pointer; transition: 0.3s; }
         button:hover { background: #2980b9; }
         button:disabled { background: #bdc3c7; cursor: not-allowed; }
-        .role-card { border: 1px solid #eee; padding: 15px; margin: 10px 0; border-radius: 8px; background: #fafafa; }
+        
+        /* Instructions Panel */
+        .instructions { background: #f8f9fa; border-left: 5px solid var(--accent); padding: 15px; margin: 20px 0; text-align: left; }
+        .instructions h4 { margin-top: 0; }
+        .instructions li { margin-bottom: 5px; font-size: 14px; }
+
         .game-board { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-top: 20px; }
         .chain-node { background: white; border: 1px solid #ccc; padding: 10px; border-radius: 8px; text-align: center; font-size: 14px; position: relative; }
         .chain-node.active { border-color: var(--accent); box-shadow: 0 0 8px rgba(52, 152, 219, 0.3); }
+        
         .status-bar { display: flex; justify-content: space-between; background: #34495e; color: white; padding: 10px; border-radius: 8px; margin-bottom: 20px; }
         .timer { font-weight: bold; color: #f1c40f; }
         .timer.urgent { color: #e74c3c; animation: pulse 1s infinite; }
+        
         .input-area { text-align: center; margin: 20px 0; padding: 20px; background: #e8f6f3; border-radius: 8px; }
-        .chart-container { margin-top: 30px; }
+        .live-chart-container { margin: 20px 0; padding: 10px; border: 1px solid #eee; border-radius: 8px; }
+        
         .hidden-info { color: #ccc; font-style: italic; }
         .waiting-msg { color: #e67e22; font-weight: bold; }
         
@@ -35,19 +43,38 @@
 <body>
 
 <div id="app" class="container">
-    <h1>🍻 The Beer Game (P2P Fixed)</h1>
+    <h1>🍻 The Beer Game</h1>
 
     <div v-if="state.phase === 'LOBBY'" style="text-align: center;">
-        <p>Serverless Multiplayer. Recommended: Chrome/Edge on PC.</p>
+        
+        <div class="instructions">
+            <h4>📖 How to Play</h4>
+            <ul>
+                <li><strong>Goal:</strong> Minimize total costs by managing inventory efficiently.</li>
+                <li><strong>The Supply Chain:</strong> Factory ➜ Distributor ➜ Wholesaler ➜ Retailer ➜ Customer.</li>
+                <li><strong>Costs:</strong> 
+                    <span style="color: green">Holding Inventory: $0.50</span> / unit / week. 
+                    <span style="color: red">Backlog (Out of Stock): $1.00</span> / unit / week.
+                </li>
+                <li><strong>Delays (Lead Time):</strong>
+                    Orders take <strong>1 week</strong> to reach upstream.
+                    Shipments take <strong>1 week</strong> to reach downstream.
+                    (Total round-trip effect is approx. 2 weeks).
+                </li>
+                <li><strong>Tip:</strong> Don't panic order! There is a delay between ordering and receiving goods.</li>
+            </ul>
+        </div>
+
+        <p>Serverless Multiplayer. No login required.</p>
         <div style="margin: 20px;">
             <input v-model="roomCode" placeholder="Enter Room Code (e.g. Room1)" @keyup.enter="joinRoom">
-            <p style="font-size: 12px; color: #666;">Tip: End with <b>-open</b> for full visibility (e.g., <code>demo-open</code>)</p>
+            <p style="font-size: 12px; color: #666;">Tip: End code with <b>-open</b> for transparent mode (e.g., <code>demo-open</code>)</p>
         </div>
         <div>
             <button @click="createRoom" :disabled="loading">I am Host (Create)</button>
             <button @click="joinRoom" :disabled="loading">I am Player (Join)</button>
         </div>
-        <p v-if="loading">Connecting...</p>
+        <p v-if="loading">Connecting to network...</p>
         <p v-if="error" style="color: var(--danger)">Error: {{ error }}</p>
     </div>
 
@@ -55,7 +82,7 @@
         <h3>Room: {{ roomCode }} | Waiting for Players</h3>
         <p>Connected: {{ connectedPlayers }} / 4</p>
         <div v-if="isHost">
-            <p>Waiting for others. Empty slots will be filled by Bots.</p>
+            <p>Waiting for others. Empty slots will be filled by CPU Bots.</p>
             <button @click="startGame" :disabled="connectedPlayers < 1">Start Game</button>
         </div>
         <div v-else>
@@ -130,17 +157,24 @@
             <button @click="reconnectControl">Reclaim Control</button>
         </div>
 
+        <div v-if="state.phase === 'PLAYING'" class="live-chart-container">
+            <h4>📊 Your Performance Trend</h4>
+            <div style="height: 200px; position: relative;">
+                <canvas id="liveChart"></canvas>
+            </div>
+        </div>
+
         <div v-if="state.phase === 'ENDED'" class="chart-container">
             <h3>Game Results</h3>
             <canvas id="orderChart"></canvas>
-            <canvas id="costChart" style="margin-top:20px"></canvas>
+            <canvas id="costChart" style="margin-top:40px"></canvas>
             <button @click="downloadData" style="margin-top:20px">Download CSV</button>
         </div>
     </div>
 </div>
 
 <script>
-const { createApp, reactive, ref, computed, nextTick } = Vue;
+const { createApp, reactive, ref, computed, nextTick, watch } = Vue;
 
 const ROLES = ['Retailer', 'Wholesaler', 'Distributor', 'Factory'];
 const ROLE_NAMES = { 'Retailer': 'Retailer', 'Wholesaler': 'Wholesaler', 'Distributor': 'Distributor', 'Factory': 'Factory' };
@@ -161,7 +195,6 @@ createApp({
         const timer = ref(ROUND_TIME);
         const isProcessing = ref(false);
 
-        // Game State
         const gameState = reactive({
             week: 1,
             isOpenInfo: false,
@@ -170,7 +203,6 @@ createApp({
             orderStatus: {} 
         });
 
-        // Local UI State
         const inputOrder = ref(0);
         const hasSubmitted = ref(false);
         const myOrderVal = ref(0);
@@ -180,6 +212,7 @@ createApp({
         let conns = [];
         let hostConn = null;
         let timerInterval = null;
+        let liveChartInstance = null; // Store chart instance
 
         const rolesOrder = computed(() => ROLES);
         const roleNames = computed(() => ROLE_NAMES);
@@ -239,7 +272,6 @@ createApp({
             conns.push(conn);
             conn.on('data', (data) => {
                 if (data.type === 'JOIN') {
-                    // Reconnect Logic
                     let existingRole = null;
                     if (data.savedRole && state.phase === 'PLAYING') {
                         if (gameState.players[data.savedRole] && gameState.players[data.savedRole].isBot) {
@@ -259,9 +291,7 @@ createApp({
                         conn.send({ type: 'RECONNECT_SUCCESS', role: existingRole, state: gameState });
                     }
                 }
-                else if (data.type === 'ORDER') {
-                    handleOrderReceived(data.role, data.amount);
-                }
+                else if (data.type === 'ORDER') handleOrderReceived(data.role, data.amount);
                 else if (data.type === 'RECLAIM') {
                      if (gameState.players[data.role]) {
                          gameState.players[data.role].isBot = false;
@@ -292,25 +322,28 @@ createApp({
                 Object.assign(gameState, data.state);
                 state.phase = 'PLAYING';
                 localStorage.setItem(`bg_role_${roomCode.value}`, myRole.value);
+                nextTick(updateLiveChart);
             } else if (data.type === 'STATE_UPDATE') {
-                // IMPORTANT: Only reset UI if Week has increased
-                if (data.state.week > gameState.week) {
+                const weekChanged = data.state.week > gameState.week;
+                if (weekChanged) {
                     hasSubmitted.value = false;
                     inputOrder.value = 0;
                 }
                 Object.assign(gameState, data.state);
-                isProcessing.value = false; // Release lock
+                isProcessing.value = false;
+                if(weekChanged) nextTick(updateLiveChart);
             } else if (data.type === 'TIMER_UPDATE') {
                 timer.value = data.time;
             } else if (data.type === 'GAME_OVER') {
                 Object.assign(gameState, data.state);
                 state.phase = 'ENDED';
-                nextTick(renderCharts);
+                nextTick(renderEndCharts);
             } else if (data.type === 'RECONNECT_SUCCESS') {
                 myRole.value = data.role;
                 Object.assign(gameState, data.state);
                 state.phase = 'PLAYING';
                 imDead.value = false;
+                nextTick(updateLiveChart);
             }
         };
 
@@ -349,6 +382,7 @@ createApp({
                 if (p && p.role) c.send({ type: 'GAME_START', role: p.role, state: gameState });
             });
             state.phase = 'PLAYING';
+            nextTick(updateLiveChart);
             startTimer();
         };
 
@@ -381,7 +415,7 @@ createApp({
         const handleOrderReceived = (role, amount) => {
             if (!isHost.value) return;
             gameState.orderStatus[role] = amount;
-            broadcastState(); // Update others that 'role' has finished
+            broadcastState();
             checkRoundCompletion();
         };
 
@@ -401,7 +435,9 @@ createApp({
             }
         };
 
+        // --- DEMAND LOGIC IS HERE ---
         const getDemand = (week) => (week <= 4 ? 4 : 8);
+
         const getDownstream = (role) => {
             const idx = ROLES.indexOf(role);
             return idx > 0 ? ROLES[idx - 1] : null;
@@ -411,7 +447,6 @@ createApp({
             const currentWeek = gameState.week;
             const orders = {};
 
-            // 1. Determine Orders
             ROLES.forEach(role => {
                 const p = gameState.players[role];
                 let orderQty = 0;
@@ -423,17 +458,13 @@ createApp({
                     if (p.backlog > 0) correction = p.backlog;
                     orderQty = incomingDemand + correction;
                 } else {
-                    if (gameState.orderStatus[role] !== undefined) {
-                        orderQty = gameState.orderStatus[role];
-                    } else {
-                        orderQty = p.lastOrder; // Timeout fallback
-                    }
+                    if (gameState.orderStatus[role] !== undefined) orderQty = gameState.orderStatus[role];
+                    else orderQty = p.lastOrder;
                 }
                 orders[role] = orderQty;
                 p.lastOrder = orderQty;
             });
 
-            // 2. Supply Chain Logic
             const shipmentsSent = {}; 
             ROLES.slice().reverse().forEach(role => {
                 const p = gameState.players[role];
@@ -468,7 +499,6 @@ createApp({
                 });
             });
 
-            // 3. Logistics
             gameState.shipments = gameState.shipments.filter(s => s.weeksLeft > 0);
             gameState.shipments.forEach(s => s.weeksLeft--);
 
@@ -483,11 +513,8 @@ createApp({
                 }
             });
 
-            // 4. Advance Week & RESET HOST STATE
             gameState.week++;
             gameState.orderStatus = {};
-            
-            // IMPORTANT: Reset Host's local UI state
             hasSubmitted.value = false;
             inputOrder.value = 0;
 
@@ -495,6 +522,7 @@ createApp({
                 endGame();
             } else {
                 broadcastState();
+                nextTick(updateLiveChart);
                 startTimer();
             }
         };
@@ -502,7 +530,7 @@ createApp({
         const endGame = () => {
             state.phase = 'ENDED';
             conns.forEach(c => c.send({ type: 'GAME_OVER', state: gameState }));
-            nextTick(renderCharts);
+            nextTick(renderEndCharts);
         };
 
         const reconnectControl = () => {
@@ -522,31 +550,96 @@ createApp({
             return gameState.players[down]?.lastOrder || '???';
         };
 
-        const renderCharts = () => {
+        /* --- Charts --- */
+        
+        // 1. Live Chart (During Game)
+        const updateLiveChart = () => {
+            const ctx = document.getElementById('liveChart');
+            if (!ctx || !myRole.value) return;
+
+            const myData = gameState.players[myRole.value].history;
+            const labels = myData.map(h => 'W' + h.week);
+            
+            // Prepare Data
+            const inventoryData = myData.map(h => h.inventory);
+            const backlogData = myData.map(h => h.backlog); // Show as positive for comparison or neg? Let's keep separate lines
+            const orderData = myData.map(h => h.order);
+
+            if (liveChartInstance) liveChartInstance.destroy();
+
+            liveChartInstance = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        { label: 'My Inventory', data: inventoryData, borderColor: '#2ecc71', tension: 0.1 },
+                        { label: 'My Backlog', data: backlogData, borderColor: '#e74c3c', tension: 0.1 },
+                        { label: 'My Orders', data: orderData, borderColor: '#3498db', borderDash: [5,5], tension: 0.1 }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    animation: false,
+                    plugins: {
+                        legend: { position: 'top' },
+                        title: { display: true, text: `Live Performance: ${ROLE_NAMES[myRole.value]}` }
+                    },
+                    scales: {
+                        y: { beginAtZero: true, title: { display: true, text: 'Units' } },
+                        x: { title: { display: true, text: 'Week' } }
+                    }
+                }
+            });
+        };
+
+        // 2. End Game Charts
+        const renderEndCharts = () => {
             const ctxOrder = document.getElementById('orderChart');
             const ctxCost = document.getElementById('costChart');
             if (!ctxOrder || !ctxCost) return;
 
             const weeks = Array.from({length: TOTAL_WEEKS}, (_, i) => i + 1);
+            
+            // Order Chart
             const datasetsOrder = ROLES.map((role, i) => {
                 return {
                     label: roleNames.value[role],
                     data: gameState.players[role].history.map(h => h.order),
                     borderColor: ['#e74c3c', '#3498db', '#f1c40f', '#2ecc71'][i],
-                    fill: false
+                    fill: false,
+                    tension: 0.2
                 };
             });
+            // Add Demand Reference
             datasetsOrder.push({
                 label: 'Customer Demand',
                 data: weeks.map(w => getDemand(w)),
                 borderColor: '#000',
                 borderDash: [5, 5],
-                fill: false
+                borderWidth: 2,
+                pointRadius: 0
             });
 
+            new Chart(ctxOrder, {
+                type: 'line',
+                data: { labels: weeks, datasets: datasetsOrder },
+                options: { 
+                    responsive: true, 
+                    plugins: {
+                        title: { display: true, text: 'Order Quantity Variation (Bullwhip Effect)', font: {size: 18} }
+                    },
+                    scales: {
+                        x: { title: { display: true, text: 'Week Number' } },
+                        y: { title: { display: true, text: 'Order Quantity (Units)' } }
+                    }
+                }
+            });
+
+            // Cost Chart
             const datasetsCost = ROLES.map((role, i) => {
                 return {
-                    label: roleNames.value[role] + ' Total Cost',
+                    label: roleNames.value[role],
                     data: gameState.players[role].history.reduce((acc, curr, idx) => {
                         const prev = idx > 0 ? acc[idx-1] : 0;
                         acc.push(prev + curr.cost);
@@ -557,8 +650,20 @@ createApp({
                 };
             });
 
-            new Chart(ctxOrder, { type: 'line', data: { labels: weeks, datasets: datasetsOrder } });
-            new Chart(ctxCost, { type: 'line', data: { labels: weeks, datasets: datasetsCost } });
+            new Chart(ctxCost, {
+                type: 'line',
+                data: { labels: weeks, datasets: datasetsCost },
+                options: { 
+                    responsive: true, 
+                    plugins: {
+                        title: { display: true, text: 'Cumulative Supply Chain Costs', font: {size: 18} }
+                    },
+                    scales: {
+                        x: { title: { display: true, text: 'Week Number' } },
+                        y: { title: { display: true, text: 'Total Cost ($)' } }
+                    }
+                }
+            });
         };
 
         const downloadData = () => {
