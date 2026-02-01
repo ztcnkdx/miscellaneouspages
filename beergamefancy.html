@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Beer Game P2P</title>
+    <title>Beer Game 2.4: Logic Patched</title>
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
     <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -80,7 +80,7 @@
 <div id="app" class="container">
     <h1 style="display:flex; align-items:center; justify-content:center; gap:10px;">
         <svg viewBox="0 0 24 24"><path d="M2,19C2,20.66 3.34,22 5,22H15C16.66,22 18,20.66 18,19V11H2V19M18,9H16V5C16,3.34 14.66,2 13,2H9C7.34,2 6,3.34 6,5V9H2V21H20C21.1,21 22,20.1 22,19V11C22,9.89 21.1,9 20,9H18Z" fill="#f39c12"/></svg>
-        Beer Game P2P
+        Beer Game 2.4
     </h1>
 
     <div v-if="state.phase === 'LOBBY'">
@@ -116,6 +116,7 @@
                             <li><strong>Neighbor Visibility ($50):</strong> Reveals Inventory/Backlog of your direct Supplier and Customer for 5 weeks.</li>
                             <li><strong>Global Visibility ($150):</strong> Reveals real-time data for the <strong>entire</strong> supply chain for 5 weeks.</li>
                         </ul>
+                        <p style="margin-top:10px; font-weight:bold; color:var(--accent)">New: "Arriving" stat shows goods arriving next week.</p>
                     </div>
                 </div>
             </div>
@@ -204,7 +205,7 @@
                                 <span class="stat-val backlog-val">{{ gameState.players[role].backlog }}</span>
                                 <span style="font-size:10px; text-transform:uppercase; color:#7f8c8d;">Backlog</span>
                             </div>
-                             <div class="stat-box">
+                            <div class="stat-box">
                                 <span class="stat-val arriving-val">{{ getArrivingNext(role) }}</span>
                                 <span style="font-size:10px; text-transform:uppercase; color:#7f8c8d;">Arriving</span>
                             </div>
@@ -633,12 +634,14 @@ createApp({
                 p.lastOrder = orderQty;
             });
 
+            // LOGIC UPDATE START: Collect Shipments Sent amounts first
             const shipmentsSent = {};
             ROLES.forEach(role => {
                 const p = gameState.players[role];
                 let demand = role === 'Retailer' ? actualDemand : gameState.players[ROLES[ROLES.indexOf(role)+1]].lastOrder;
                 const totalDemand = demand + p.backlog;
 
+                // Create Factory Production here (Before decrement)
                 if (role === 'Factory') {
                     const prod = Math.min(orders['Factory'], prodCap);
                     gameState.shipments.push({ to: 'Factory', amount: prod, weeksLeft: 1 });
@@ -685,14 +688,19 @@ createApp({
                 p.subscriptions = p.subscriptions.filter(s => s.weeksLeft > 0);
             });
 
+            // Remove consumed shipments
             gameState.shipments = gameState.shipments.filter(s => s.weeksLeft > 0);
-            gameState.shipments.forEach(s => s.weeksLeft--);
+
+            // CREATE DOWNSTREAM SHIPMENTS (Moved before decrement)
             ROLES.forEach(role => {
                 if (role !== 'Retailer') {
                     const downstream = ROLES[ROLES.indexOf(role) + 1];
                     gameState.shipments.push({ to: downstream, amount: shipmentsSent[role], weeksLeft: 1 });
                 }
             });
+
+            // DECREMENT ALL (Now affects both Factory and Downstream shipments equally)
+            gameState.shipments.forEach(s => s.weeksLeft--);
 
             gameState.week++;
             gameState.orderStatus = {};
@@ -752,16 +760,12 @@ createApp({
             return '???';
         };
 
-        // NEW HELPER: Calculate what arrives NEXT week
+        // NEW HELPER: Now correctly checks for weeksLeft == 0
         const getArrivingNext = (role) => {
             if (state.phase !== 'PLAYING') return 0;
             if (!canSee(role)) return '???';
-            
-            // Sum all shipments to this role that have weeksLeft == 1
-            // (weeksLeft=1 means they arrive next week).
-            // Also if expedited, weeksLeft becomes 0 and arrives immediately, but here we show what is PENDING arrival for T+1.
             return gameState.shipments
-                .filter(s => s.to === role && s.weeksLeft === 1)
+                .filter(s => s.to === role && s.weeksLeft === 0)
                 .reduce((sum, s) => sum + s.amount, 0);
         };
 
@@ -830,7 +834,7 @@ createApp({
             const blob = new Blob([csv], { type: 'text/csv' });
             const url = window.URL.createObjectURL(blob);
             const a = document.createElement('a');
-            a.href = url; a.download = `beergame_v23_${roomCode.value}.csv`; a.click();
+            a.href = url; a.download = `beergame_v24_${roomCode.value}.csv`; a.click();
         };
 
         return {
