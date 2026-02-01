@@ -53,13 +53,15 @@
                 <li><strong>Goal:</strong> Minimize total costs by managing inventory efficiently.</li>
                 <li><strong>The Supply Chain:</strong> Factory ➜ Distributor ➜ Wholesaler ➜ Retailer ➜ Customer.</li>
                 <li><strong>Costs:</strong> 
-                    <span style="color: green">Holding Inventory: $0.50</span> / unit / week. 
-                    <span style="color: red">Backlog (Out of Stock): $1.00</span> / unit / week.
+                    <span style="color: green"> Holding Inventory: $0.50</span> / unit / week. 
+                    <span style="color: red"> Backlog (Out of Stock): $1.00</span> / unit / week.
                 </li>
                 <li><strong>Delays (Lead Time):</strong>
                     Orders reach upstream immediately.
                     Shipments take <strong>1 week</strong> to reach downstream.
-                    (Total round-trip effect is approx. 2 weeks).
+                </li>
+                <li>
+                    There is a total of <strong> 25 </strong> weeks, each week has a <strong>35</strong> second timer.
                 </li>
             </ul>
         </div>
@@ -695,6 +697,7 @@ createApp({
 </script>
 </body>
 </html>
+
 
 
 
