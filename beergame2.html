@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>P2P Beer Game</title>
+    <title>P2P Beer Game (Fixed)</title>
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
     <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -17,7 +17,6 @@
         button:hover { background: #2980b9; }
         button:disabled { background: #bdc3c7; cursor: not-allowed; }
         .role-card { border: 1px solid #eee; padding: 15px; margin: 10px 0; border-radius: 8px; background: #fafafa; }
-        .my-role { border: 2px solid var(--accent); background: #eef7fb; }
         .game-board { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-top: 20px; }
         .chain-node { background: white; border: 1px solid #ccc; padding: 10px; border-radius: 8px; text-align: center; font-size: 14px; position: relative; }
         .chain-node.active { border-color: var(--accent); box-shadow: 0 0 8px rgba(52, 152, 219, 0.3); }
@@ -36,7 +35,7 @@
 <body>
 
 <div id="app" class="container">
-    <h1>🍻 The Beer Game</h1>
+    <h1>🍻 The Beer Game (P2P Fixed)</h1>
 
     <div v-if="state.phase === 'LOBBY'" style="text-align: center;">
         <p>Serverless Multiplayer. Recommended: Chrome/Edge on PC.</p>
@@ -48,7 +47,7 @@
             <button @click="createRoom" :disabled="loading">I am Host (Create)</button>
             <button @click="joinRoom" :disabled="loading">I am Player (Join)</button>
         </div>
-        <p v-if="loading">Connecting to P2P Network...</p>
+        <p v-if="loading">Connecting...</p>
         <p v-if="error" style="color: var(--danger)">Error: {{ error }}</p>
     </div>
 
@@ -56,14 +55,14 @@
         <h3>Room: {{ roomCode }} | Waiting for Players</h3>
         <p>Connected: {{ connectedPlayers }} / 4</p>
         <div v-if="isHost">
-            <p>Waiting for others. Empty slots will be filled by CPU Bots.</p>
+            <p>Waiting for others. Empty slots will be filled by Bots.</p>
             <button @click="startGame" :disabled="connectedPlayers < 1">Start Game</button>
         </div>
         <div v-else>
             <p>Waiting for host to start...</p>
         </div>
         <div class="role-card">
-            <h4>Players in Lobby:</h4>
+            <h4>Players:</h4>
             <ul>
                 <li v-for="p in playerList" :key="p.id">
                     {{ p.id === myId ? '(You) ' : '' }} 
@@ -103,15 +102,15 @@
                 </div>
                 
                 <div v-if="state.phase === 'PLAYING' && hasPlayerSubmitted(role)" 
-                     style="position:absolute; top:5px; right:5px; color:var(--success)">
-                    ✔
+                     style="position:absolute; top:5px; right:5px; color:var(--success); font-weight:bold;">
+                    ✔ Ready
                 </div>
             </div>
         </div>
 
         <div v-if="state.phase === 'PLAYING' && !imDead" class="input-area">
             <div v-if="isProcessing">
-                <h3>Processing Next Week...</h3>
+                <h3 style="color: var(--accent)">Calculating Next Week...</h3>
             </div>
             <div v-else-if="hasSubmitted">
                 <h3>Order Submitted: {{ myOrderVal }}</h3>
@@ -119,7 +118,7 @@
             </div>
             <div v-else>
                 <h3>Place Your Order</h3>
-                <p>Check your inventory above and decide how much to order.</p>
+                <p>Decide how much to order from your supplier.</p>
                 <input type="number" v-model.number="inputOrder" min="0" placeholder="Qty">
                 <button @click="submitOrder">Submit Order</button>
             </div>
@@ -127,7 +126,7 @@
         
         <div v-if="imDead" class="input-area" style="color: var(--danger)">
             <h3>Connection Lost / Timeout</h3>
-            <p>CPU has taken over your role.</p>
+            <p>CPU has taken over.</p>
             <button @click="reconnectControl">Reclaim Control</button>
         </div>
 
@@ -143,7 +142,6 @@
 <script>
 const { createApp, reactive, ref, computed, nextTick } = Vue;
 
-/* --- Configuration --- */
 const ROLES = ['Retailer', 'Wholesaler', 'Distributor', 'Factory'];
 const ROLE_NAMES = { 'Retailer': 'Retailer', 'Wholesaler': 'Wholesaler', 'Distributor': 'Distributor', 'Factory': 'Factory' };
 const INITIAL_INV = 12;
@@ -161,24 +159,23 @@ createApp({
         const playerList = ref([]); 
         const myRole = ref('');
         const timer = ref(ROUND_TIME);
-        const isProcessing = ref(false); // UI lock during round transition
+        const isProcessing = ref(false);
 
-        // Game Data (Synced)
+        // Game State
         const gameState = reactive({
             week: 1,
             isOpenInfo: false,
             players: {}, 
             shipments: [], 
-            orderStatus: {} // Tracks who submitted current round
+            orderStatus: {} 
         });
 
-        // Local Inputs
+        // Local UI State
         const inputOrder = ref(0);
         const hasSubmitted = ref(false);
         const myOrderVal = ref(0);
         const imDead = ref(false);
 
-        // PeerJS
         let peer = null;
         let conns = [];
         let hostConn = null;
@@ -189,7 +186,7 @@ createApp({
         const connectedPlayers = computed(() => playerList.value.length);
         const myRoleLabel = computed(() => ROLE_NAMES[myRole.value] || 'Spectator');
 
-        // --- P2P Setup ---
+        /* --- P2P Networking --- */
         const initPeer = (id) => {
             return new Promise((resolve, reject) => {
                 const p = new Peer(id);
@@ -202,63 +199,47 @@ createApp({
             if (!roomCode.value) return;
             loading.value = true;
             const roomId = `bg-game-${roomCode.value}`;
-            
             try {
                 peer = await initPeer(roomId);
                 myId.value = roomId;
                 isHost.value = true;
                 state.phase = 'WAITING';
-                playerList.value.push({ id: 'HOST', role: null }); // Host is a player
-
-                peer.on('connection', (conn) => {
-                    handleHostConnection(conn);
-                });
-
+                playerList.value.push({ id: 'HOST', role: null });
+                peer.on('connection', handleHostConnection);
                 if (roomCode.value.endsWith('-open')) gameState.isOpenInfo = true;
-
             } catch (err) {
                 error.value = "Room ID taken or network error.";
                 console.error(err);
-            } finally {
-                loading.value = false;
-            }
+            } finally { loading.value = false; }
         };
 
         const joinRoom = async () => {
             if (!roomCode.value) return;
             loading.value = true;
-            
             try {
                 const clientId = 'bg-player-' + Math.random().toString(36).substr(2, 9);
                 peer = await initPeer(clientId);
                 myId.value = clientId;
-
-                const hostId = `bg-game-${roomCode.value}`;
-                hostConn = peer.connect(hostId);
-
+                hostConn = peer.connect(`bg-game-${roomCode.value}`);
                 hostConn.on('open', () => {
                     isHost.value = false;
                     state.phase = 'WAITING';
                     const savedRole = localStorage.getItem(`bg_role_${roomCode.value}`);
                     hostConn.send({ type: 'JOIN', savedRole: savedRole });
                 });
-
                 hostConn.on('data', handleClientData);
                 hostConn.on('close', () => { error.value = "Disconnected from Host"; });
-
             } catch (err) {
-                error.value = "Could not connect to room.";
-            } finally {
-                loading.value = false;
-            }
+                error.value = "Could not connect.";
+            } finally { loading.value = false; }
         };
 
-        // --- Host Logic ---
+        /* --- Host Logic --- */
         const handleHostConnection = (conn) => {
             conns.push(conn);
             conn.on('data', (data) => {
                 if (data.type === 'JOIN') {
-                    // Reconnect logic
+                    // Reconnect Logic
                     let existingRole = null;
                     if (data.savedRole && state.phase === 'PLAYING') {
                         if (gameState.players[data.savedRole] && gameState.players[data.savedRole].isBot) {
@@ -267,7 +248,6 @@ createApp({
                             gameState.players[existingRole].id = conn.peer;
                         }
                     }
-
                     if (!existingRole) {
                         if (state.phase === 'WAITING') {
                             playerList.value.push({ id: conn.peer, role: null });
@@ -295,19 +275,15 @@ createApp({
                     playerList.value.splice(idx, 1);
                     broadcastLobby();
                 } else if (state.phase === 'PLAYING') {
-                    // Turn player into Bot
                     for (let r in gameState.players) {
-                        if (gameState.players[r].id === conn.peer) {
-                            gameState.players[r].isBot = true;
-                        }
+                        if (gameState.players[r].id === conn.peer) gameState.players[r].isBot = true;
                     }
-                    // If this caused everyone to be finished, trigger check
                     checkRoundCompletion();
                 }
             });
         };
 
-        // --- Client Logic ---
+        /* --- Client Logic --- */
         const handleClientData = (data) => {
             if (data.type === 'LOBBY_UPDATE') {
                 playerList.value = data.players;
@@ -317,10 +293,13 @@ createApp({
                 state.phase = 'PLAYING';
                 localStorage.setItem(`bg_role_${roomCode.value}`, myRole.value);
             } else if (data.type === 'STATE_UPDATE') {
+                // IMPORTANT: Only reset UI if Week has increased
+                if (data.state.week > gameState.week) {
+                    hasSubmitted.value = false;
+                    inputOrder.value = 0;
+                }
                 Object.assign(gameState, data.state);
-                hasSubmitted.value = false;
-                inputOrder.value = 0;
-                isProcessing.value = false;
+                isProcessing.value = false; // Release lock
             } else if (data.type === 'TIMER_UPDATE') {
                 timer.value = data.time;
             } else if (data.type === 'GAME_OVER') {
@@ -335,26 +314,15 @@ createApp({
             }
         };
 
-        const broadcastLobby = () => {
-            conns.forEach(c => c.send({ type: 'LOBBY_UPDATE', players: playerList.value }));
-        };
+        const broadcastLobby = () => conns.forEach(c => c.send({ type: 'LOBBY_UPDATE', players: playerList.value }));
+        const broadcastState = () => conns.forEach(c => c.send({ type: 'STATE_UPDATE', state: gameState }));
 
-        const broadcastState = () => {
-            const data = { type: 'STATE_UPDATE', state: gameState };
-            conns.forEach(c => c.send(data));
-        };
-
-        // --- Game Core (Host) ---
+        /* --- Game Core --- */
         const startGame = () => {
             const shuffledRoles = [...ROLES].sort(() => 0.5 - Math.random());
             const playersMap = {};
-            
-            // Assign roles
-            playerList.value.forEach((p, i) => {
-                if (i < 4) p.role = shuffledRoles[i];
-            });
+            playerList.value.forEach((p, i) => { if (i < 4) p.role = shuffledRoles[i]; });
 
-            // Fill Bots
             for (let i = 0; i < 4; i++) {
                 const role = shuffledRoles[i];
                 const player = playerList.value.find(p => p.role === role);
@@ -390,18 +358,16 @@ createApp({
             
             timerInterval = setInterval(() => {
                 timer.value--;
-                if (isHost.value) {
-                    conns.forEach(c => c.send({ type: 'TIMER_UPDATE', time: timer.value }));
-                }
+                if (isHost.value) conns.forEach(c => c.send({ type: 'TIMER_UPDATE', time: timer.value }));
                 if (timer.value <= 0) {
                     clearInterval(timerInterval);
-                    if (isHost.value) processRound(); // Auto-process on timeout
+                    if (isHost.value) processRound();
                 }
             }, 1000);
         };
 
         const submitOrder = () => {
-            if (inputOrder.value < 0) return;
+            if (inputOrder.value < 0 || inputOrder.value === '') return;
             hasSubmitted.value = true;
             myOrderVal.value = inputOrder.value;
             
@@ -415,25 +381,23 @@ createApp({
         const handleOrderReceived = (role, amount) => {
             if (!isHost.value) return;
             gameState.orderStatus[role] = amount;
-            broadcastState(); // Update checkmarks
+            broadcastState(); // Update others that 'role' has finished
             checkRoundCompletion();
         };
 
         const checkRoundCompletion = () => {
-            // Check if all HUMANS have submitted
             const allHumansDone = ROLES.every(r => {
                 const p = gameState.players[r];
                 return p.isBot || gameState.orderStatus[r] !== undefined;
             });
             
             if (allHumansDone && !isProcessing.value) {
-                // FIXED: Trigger round processing automatically
-                isProcessing.value = true; 
+                isProcessing.value = true;
                 clearInterval(timerInterval);
                 setTimeout(() => {
                     processRound();
-                    isProcessing.value = false;
-                }, 1000); // 1s delay for visual feedback
+                    isProcessing.value = false; 
+                }, 1000);
             }
         };
 
@@ -443,7 +407,6 @@ createApp({
             return idx > 0 ? ROLES[idx - 1] : null;
         };
 
-        // --- Core Calculation (Host) ---
         const processRound = () => {
             const currentWeek = gameState.week;
             const orders = {};
@@ -454,11 +417,7 @@ createApp({
                 let orderQty = 0;
                 
                 if (p.isBot) {
-                    // Bot logic
-                    const incomingDemand = role === 'Retailer' 
-                        ? getDemand(currentWeek) 
-                        : (gameState.players[getDownstream(role)]?.lastOrder || 4);
-                    
+                    const incomingDemand = role === 'Retailer' ? getDemand(currentWeek) : (gameState.players[getDownstream(role)]?.lastOrder || 4);
                     let correction = 0;
                     if (p.inventory < 4) correction = 2;
                     if (p.backlog > 0) correction = p.backlog;
@@ -474,26 +433,13 @@ createApp({
                 p.lastOrder = orderQty;
             });
 
-            // 2. Supply Chain Movements
+            // 2. Supply Chain Logic
             const shipmentsSent = {}; 
-            
-            // Iterate Retailer -> Factory (Customer Pulls) OR Factory -> Retailer (Push)?
-            // Standard: Calculate what can be shipped based on Inv
             ROLES.slice().reverse().forEach(role => {
                 const p = gameState.players[role];
-                let currentDemand = 0;
-                
-                if (role === 'Retailer') {
-                    currentDemand = getDemand(currentWeek);
-                } else {
-                    const down = getDownstream(role);
-                    currentDemand = gameState.players[down].lastOrder;
-                }
-
+                let currentDemand = role === 'Retailer' ? getDemand(currentWeek) : gameState.players[getDownstream(role)].lastOrder;
                 const totalDemand = currentDemand + p.backlog;
                 
-                // Get incoming shipment from previous week's logistics
-                // FIXED: gameState.shipments instead of state.shipments
                 const incoming = gameState.shipments.find(s => s.to === role && s.weeksLeft === 0);
                 const arrivedQty = incoming ? incoming.amount : 0;
                 
@@ -510,7 +456,6 @@ createApp({
                     p.inventory = 0;
                     p.backlog = totalDemand - available;
                 }
-                
                 shipmentsSent[role] = shipped;
 
                 p.history.push({
@@ -523,17 +468,14 @@ createApp({
                 });
             });
 
-            // 3. Move Shipments (Logistics)
-            // Remove arrived
+            // 3. Logistics
             gameState.shipments = gameState.shipments.filter(s => s.weeksLeft > 0);
             gameState.shipments.forEach(s => s.weeksLeft--);
 
-            // Create new shipments
             ROLES.forEach(role => {
                 const amount = shipmentsSent[role];
                 if (role === 'Factory') {
                     gameState.shipments.push({ to: 'Distributor', amount: amount, weeksLeft: 1 });
-                    // Factory self-supply
                     gameState.shipments.push({ to: 'Factory', amount: orders['Factory'], weeksLeft: 1 });
                 } else if (role !== 'Retailer') {
                     const down = getDownstream(role);
@@ -541,9 +483,13 @@ createApp({
                 }
             });
 
-            // 4. Advance
+            // 4. Advance Week & RESET HOST STATE
             gameState.week++;
             gameState.orderStatus = {};
+            
+            // IMPORTANT: Reset Host's local UI state
+            hasSubmitted.value = false;
+            inputOrder.value = 0;
 
             if (gameState.week > TOTAL_WEEKS) {
                 endGame();
@@ -559,7 +505,6 @@ createApp({
             nextTick(renderCharts);
         };
 
-        // --- Helpers ---
         const reconnectControl = () => {
              imDead.value = false;
              if (!isHost.value) hostConn.send({ type: 'RECLAIM', role: myRole.value });
@@ -612,17 +557,8 @@ createApp({
                 };
             });
 
-            new Chart(ctxOrder, {
-                type: 'line',
-                data: { labels: weeks, datasets: datasetsOrder },
-                options: { responsive: true, title: { display: true, text: 'Order Quantity (Bullwhip Effect)' } }
-            });
-
-            new Chart(ctxCost, {
-                type: 'line',
-                data: { labels: weeks, datasets: datasetsCost },
-                options: { responsive: true, title: { display: true, text: 'Cumulative Cost' } }
-            });
+            new Chart(ctxOrder, { type: 'line', data: { labels: weeks, datasets: datasetsOrder } });
+            new Chart(ctxCost, { type: 'line', data: { labels: weeks, datasets: datasetsCost } });
         };
 
         const downloadData = () => {
