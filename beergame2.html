@@ -61,7 +61,6 @@
                     Shipments take <strong>1 week</strong> to reach downstream.
                     (Total round-trip effect is approx. 2 weeks).
                 </li>
-                <li><strong>Tip:</strong> Don't panic order! There is a delay between ordering and receiving goods.</li>
             </ul>
         </div>
 
@@ -159,7 +158,7 @@
 
         <div v-if="state.phase === 'PLAYING'" class="live-chart-container">
             <h4>📊 Your Performance Trend</h4>
-            <div style="height: 200px; position: relative;">
+            <div style="height: 800px; position: relative;">
                 <canvas id="liveChart"></canvas>
             </div>
         </div>
@@ -693,3 +692,4 @@ createApp({
 </script>
 </body>
 </html>
+
