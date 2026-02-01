@@ -1,0 +1,1489 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Beer Game (P2P, single-page)</title>
+  <style>
+    :root{
+      --bg:#0b0f19; --panel:#111a2b; --panel2:#0f1626;
+      --text:#e8eefc; --muted:#a7b4d4; --line:#233152;
+      --good:#5be49b; --bad:#ff6b6b; --warn:#ffd166;
+      --btn:#2d6cdf; --btn2:#1f2f52;
+      --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      --sans: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
+    }
+    html, body { height:100%; }
+    body{
+      margin:0; background:linear-gradient(180deg, #0b0f19 0%, #060911 100%);
+      color:var(--text); font-family:var(--sans);
+    }
+    .wrap{ max-width:1200px; margin:0 auto; padding:18px 18px 28px; }
+    h1{ font-size:18px; margin:0 0 10px; font-weight:700; letter-spacing:.2px; }
+    .note{ color:var(--muted); font-size:12px; line-height:1.35; }
+    .grid{
+      display:grid;
+      grid-template-columns: 360px 1fr;
+      gap:14px;
+      align-items:start;
+    }
+    .card{
+      border:1px solid var(--line);
+      background:linear-gradient(180deg, var(--panel) 0%, var(--panel2) 100%);
+      border-radius:10px;
+      box-shadow:0 10px 30px rgba(0,0,0,.35);
+      overflow:hidden;
+    }
+    .card .hd{
+      padding:12px 12px 10px;
+      border-bottom:1px solid var(--line);
+      display:flex; justify-content:space-between; align-items:center;
+      gap:10px;
+    }
+    .card .hd .t{ font-size:13px; font-weight:700; }
+    .card .bd{ padding:12px; }
+    .row{ display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
+    .col{ display:flex; flex-direction:column; gap:6px; }
+    label{ font-size:12px; color:var(--muted); }
+    input[type="text"], input[type="number"]{
+      width:100%;
+      padding:10px 10px;
+      background:#0a1020;
+      border:1px solid var(--line);
+      color:var(--text);
+      border-radius:8px;
+      outline:none;
+      font-size:14px;
+    }
+    input[type="number"]{ font-family:var(--mono); }
+    button{
+      appearance:none; border:0; border-radius:8px;
+      padding:10px 12px; cursor:pointer;
+      background:var(--btn); color:#fff; font-weight:700; font-size:13px;
+    }
+    button.secondary{ background:var(--btn2); color:var(--text); border:1px solid var(--line); }
+    button.danger{ background:#b32828; }
+    button:disabled{ opacity:.5; cursor:not-allowed; }
+    .pill{
+      font-family:var(--mono); font-size:12px; color:var(--text);
+      background:#0a1020; border:1px solid var(--line);
+      border-radius:999px; padding:6px 10px; display:inline-flex; gap:8px; align-items:center;
+    }
+    .pill b{ font-weight:800; }
+    .kv{
+      display:grid; grid-template-columns: 150px 1fr;
+      gap:8px 10px;
+      font-size:12px;
+      font-family:var(--mono);
+    }
+    .kv .k{ color:var(--muted); }
+    .kv .v{ color:var(--text); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .sep{ height:1px; background:var(--line); margin:10px 0; }
+    .status{
+      font-family:var(--mono);
+      font-size:12px;
+      line-height:1.35;
+      color:var(--muted);
+      white-space:pre-wrap;
+    }
+    .good{ color:var(--good); }
+    .bad{ color:var(--bad); }
+    .warn{ color:var(--warn); }
+    .table{
+      width:100%;
+      border-collapse:collapse;
+      font-size:12px;
+      font-family:var(--mono);
+    }
+    .table th, .table td{
+      border-bottom:1px solid var(--line);
+      padding:8px 8px;
+      text-align:right;
+    }
+    .table th:first-child, .table td:first-child{ text-align:left; }
+    .table th{ color:var(--muted); font-weight:800; }
+    .mini{
+      display:grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap:10px;
+    }
+    .rolebox{
+      border:1px solid var(--line);
+      border-radius:10px;
+      background:#0a1020;
+      padding:10px;
+    }
+    .rolebox .rt{ font-size:12px; font-weight:800; margin:0 0 8px; }
+    .rolebox .rb{ font-family:var(--mono); font-size:12px; color:var(--muted); line-height:1.35; }
+    .rolebox .rb b{ color:var(--text); }
+    .big{
+      font-family:var(--mono);
+      font-size:18px;
+      font-weight:900;
+      letter-spacing:.2px;
+    }
+    .hide{ display:none !important; }
+    .charts{
+      display:grid;
+      grid-template-columns: 1fr;
+      gap:12px;
+    }
+    canvas{ width:100% !important; height:340px !important; background:#0a1020; border:1px solid var(--line); border-radius:10px; }
+    @media (max-width: 980px){
+      .grid{ grid-template-columns: 1fr; }
+      .mini{ grid-template-columns: 1fr 1fr; }
+    }
+    @media (max-width: 640px){
+      .mini{ grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>Beer Game (P2P, single-page)</h1>
+    <div class="note">
+      Requires an HTTP(S) context (not file://) so the module imports can load. Any static host works.
+    </div>
+
+    <div class="grid" style="margin-top:12px;">
+      <div class="card">
+        <div class="hd">
+          <div class="t">Join</div>
+          <div class="pill"><span>Client</span><b id="clientIdShort">...</b></div>
+        </div>
+        <div class="bd">
+          <div class="col">
+            <div class="row">
+              <div class="col" style="flex:1;">
+                <label>Room code</label>
+                <input id="roomCode" type="text" placeholder="e.g., BG01" autocomplete="off" />
+              </div>
+              <div class="col" style="flex:1;">
+                <label>Name</label>
+                <input id="displayName" type="text" placeholder="optional" autocomplete="off" />
+              </div>
+            </div>
+
+            <div class="row" style="margin-top:6px;">
+              <button id="btnJoin">Join room</button>
+              <button id="btnLeave" class="secondary" disabled>Leave</button>
+            </div>
+
+            <div class="sep"></div>
+
+            <div class="kv">
+              <div class="k">Connection</div><div class="v" id="connState">disconnected</div>
+              <div class="k">Peers</div><div class="v" id="peerCount">0</div>
+              <div class="k">Leader</div><div class="v" id="leaderTag">unknown</div>
+              <div class="k">Role</div><div class="v" id="roleTag">unknown</div>
+              <div class="k">Demand version</div><div class="v" id="demandVer">-</div>
+            </div>
+
+            <div class="sep"></div>
+
+            <div id="leaderPanel" class="hide">
+              <div class="row" style="justify-content:space-between; align-items:flex-end;">
+                <div class="col" style="flex:1;">
+                  <label>Game horizon (weeks)</label>
+                  <input id="horizon" type="number" min="8" max="60" step="1" value="30"/>
+                </div>
+                <div class="col" style="flex:1;">
+                  <label>Round time limit (seconds)</label>
+                  <input id="roundSec" type="number" min="10" max="180" step="5" value="45"/>
+                </div>
+              </div>
+              <div class="row" style="margin-top:10px;">
+                <button id="btnStart">Start game</button>
+                <button id="btnReset" class="danger">Reset room (leader)</button>
+              </div>
+              <div class="note" style="margin-top:8px;">
+                If fewer than 4 humans are connected, missing roles will be filled by bots. Reserved roles remain reserved for reconnects (same browser).
+              </div>
+            </div>
+
+            <div class="sep"></div>
+
+            <div class="status" id="log"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="hd">
+          <div class="t">Game</div>
+          <div class="pill"><span>Week</span><b id="weekTag">-</b><span>Time</span><b id="timeLeft">-</b></div>
+        </div>
+        <div class="bd">
+          <div id="preGame">
+            <div class="note">
+              Open this same page in multiple browsers/devices. Everyone enters the same room code.
+              Roles are assigned automatically and reserved by browser identity for reconnect.
+            </div>
+            <div class="sep"></div>
+            <div class="mini" id="miniRoster"></div>
+          </div>
+
+          <div id="inGame" class="hide">
+            <div class="mini" id="miniState"></div>
+
+            <div class="sep"></div>
+
+            <div class="row" style="justify-content:space-between;">
+              <div class="col" style="flex:1;">
+                <div class="note">Your order to upstream (integer, >= 0)</div>
+                <div class="row">
+                  <input id="orderQty" type="number" min="0" step="1" value="4" style="max-width:220px;" />
+                  <button id="btnSubmit">Submit</button>
+                  <div class="pill"><span>Last order</span><b id="lastOrder">4</b></div>
+                  <div class="pill"><span>Status</span><b id="submitStatus">not submitted</b></div>
+                </div>
+              </div>
+
+              <div class="col" style="min-width:240px;">
+                <div class="note">Retail demand this week</div>
+                <div class="big" id="demandNow">-</div>
+              </div>
+            </div>
+
+            <div class="sep"></div>
+
+            <div class="note">History (all roles)</div>
+            <div style="overflow:auto; border:1px solid var(--line); border-radius:10px;">
+              <table class="table" id="histTable"></table>
+            </div>
+          </div>
+
+          <div id="postGame" class="hide">
+            <div class="row" style="justify-content:space-between; align-items:flex-end;">
+              <div class="col">
+                <div class="note">Game finished</div>
+                <div class="big" id="finalCost">-</div>
+                <div class="note">Total cost (lower is better). Profit is defined as -cost.</div>
+              </div>
+              <div class="row">
+                <button id="btnDownload" class="secondary">Download JSON</button>
+              </div>
+            </div>
+
+            <div class="sep"></div>
+
+            <div class="charts">
+              <canvas id="chartOrders"></canvas>
+              <canvas id="chartCost"></canvas>
+              <canvas id="chartInvBack"></canvas>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+
+  <script type="module">
+    // Networking uses Trystero (BitTorrent tracker signaling). No server you maintain.
+    // If some networks block WebRTC, peers may fail to connect without TURN.
+    import { joinRoom } from "https://esm.run/trystero/torrent";
+
+    // -----------------------------
+    // Utilities
+    // -----------------------------
+    function nowMs(){ return Date.now(); }
+    function clampInt(x, lo, hi){
+      x = Number.isFinite(x) ? Math.trunc(x) : lo;
+      return Math.max(lo, Math.min(hi, x));
+    }
+    function normRoom(s){
+      return (s || "").trim().toUpperCase().replace(/\s+/g, "");
+    }
+    function hash32(str){
+      // FNV-1a 32-bit
+      let h = 0x811c9dc5;
+      for (let i=0; i<str.length; i++){
+        h ^= str.charCodeAt(i);
+        h = Math.imul(h, 0x01000193);
+      }
+      return (h >>> 0);
+    }
+    function shortId(s){ return (s || "").slice(0, 8); }
+    function fmt2(x){ return (Math.round(x*100)/100).toFixed(2); }
+
+    function storageGet(k, dflt){
+      try{
+        const v = localStorage.getItem(k);
+        return v === null ? dflt : v;
+      }catch{ return dflt; }
+    }
+    function storageSet(k, v){
+      try{ localStorage.setItem(k, v); }catch{}
+    }
+
+    function genClientId(){
+      // stable per browser
+      const a = crypto.getRandomValues(new Uint8Array(16));
+      return [...a].map(b=>b.toString(16).padStart(2,"0")).join("");
+    }
+
+    // -----------------------------
+    // Demand variants (classic-like)
+    // variant 0: classic step (4 for 4 weeks, then 8 forever)
+    // variant 1: ramp (4 for 4 weeks, then 5/6/7/8, then 8 forever)
+    // -----------------------------
+    function demandAt(week, variant){
+      if (week <= 0) return 4;
+      if (variant === 0){
+        return week <= 4 ? 4 : 8;
+      } else {
+        if (week <= 4) return 4;
+        const ramp = 4 + Math.min(4, week - 4); // 5..8 across weeks 5..8
+        return Math.min(8, ramp);
+      }
+    }
+
+    // -----------------------------
+    // Beer game model (simple standard)
+    // order delay: 1 week (orders arrive upstream next week)
+    // shipping delay: 2 weeks (shipments arrive downstream after 2 weeks)
+    // costs: holding h, backlog b
+    // -----------------------------
+    const ROLES = ["Retailer","Wholesaler","Distributor","Factory"];
+    const ROLE_KEY = {
+      Retailer: "R",
+      Wholesaler: "W",
+      Distributor: "D",
+      Factory: "F"
+    };
+    const ORDER_DELAY = 1;
+    const SHIP_DELAY = 2;
+    const HOLD_COST = 0.5;
+    const BACKLOG_COST = 1.0;
+
+    function initNodeState(){
+      // classic steady state-ish initialization
+      return {
+        inv: 12,
+        back: 0,
+        // shipments scheduled to arrive this week and next week (2 slots)
+        shipInQ: [4, 4],
+        // orders scheduled to arrive this week (1 slot)
+        orderInQ: [4],
+        lastOrder: 4,
+        cumCost: 0
+      };
+    }
+
+    function deepCopy(x){ return JSON.parse(JSON.stringify(x)); }
+
+    function simulateOneWeek(gameState, decisions){
+      // gameState: { week, nodes: {Retailer: nodeState, ...}, demandVariant }
+      // decisions: {Retailer: qR, Wholesaler: qW, Distributor: qD, Factory: qF}
+      const week = gameState.week + 1;
+      const nodes = gameState.nodes;
+
+      // helper references
+      const R = nodes.Retailer, W = nodes.Wholesaler, D = nodes.Distributor, F = nodes.Factory;
+
+      // 1) arrivals: shipments
+      for (const role of ROLES){
+        const n = nodes[role];
+        const arrive = n.shipInQ.shift() ?? 0;
+        n.inv += arrive;
+        n._arriveShip = arrive;
+        n.shipInQ.push(0);
+      }
+
+      // 2) arrivals: orders
+      // retailer demand is exogenous; others read from their queues
+      const dem = demandAt(week, gameState.demandVariant);
+      R._arriveOrder = dem;
+      W._arriveOrder = W.orderInQ.shift() ?? 0;
+      D._arriveOrder = D.orderInQ.shift() ?? 0;
+      F._arriveOrder = F.orderInQ.shift() ?? 0;
+      W.orderInQ.push(0); D.orderInQ.push(0); F.orderInQ.push(0);
+
+      // 3) fulfill: ship to downstream
+      function fulfill(n){
+        const need = (n.back + n._arriveOrder);
+        const ship = Math.min(n.inv, need);
+        n.inv -= ship;
+        n.back = need - ship;
+        n._shipOut = ship;
+      }
+      fulfill(R); fulfill(W); fulfill(D); fulfill(F);
+
+      // 4) schedule shipments to arrive downstream after SHIP_DELAY
+      // R -> customer ignored (still record)
+      // W ships to R, D ships to W, F ships to D
+      function scheduleShipment(fromNode, toNode){
+        const idx = SHIP_DELAY - 1;
+        toNode.shipInQ[idx] += fromNode._shipOut;
+      }
+      scheduleShipment(W, R);
+      scheduleShipment(D, W);
+      scheduleShipment(F, D);
+
+      // 5) costs
+      for (const role of ROLES){
+        const n = nodes[role];
+        const cost = HOLD_COST * n.inv + BACKLOG_COST * n.back;
+        n._cost = cost;
+        n.cumCost += cost;
+      }
+
+      // 6) place orders upstream (decisions)
+      // Orders arrive upstream after ORDER_DELAY (1 week):
+      // R->W, W->D, D->F; F->Supplier (infinite supply) becomes shipment-in for F after SHIP_DELAY.
+      function placeOrder(fromRole, toRole){
+        const q = Math.max(0, Math.trunc(decisions[fromRole] ?? 0));
+        nodes[fromRole]._orderOut = q;
+        nodes[fromRole].lastOrder = q;
+        if (toRole === "Supplier"){
+          // supplier ships after SHIP_DELAY into Factory
+          F.shipInQ[SHIP_DELAY - 1] += q;
+        } else {
+          const to = nodes[toRole];
+          to.orderInQ[ORDER_DELAY - 1] += q;
+        }
+      }
+      placeOrder("Retailer","Wholesaler");
+      placeOrder("Wholesaler","Distributor");
+      placeOrder("Distributor","Factory");
+      placeOrder("Factory","Supplier");
+
+      // record snapshot for this week
+      const weekRec = {
+        week,
+        demand: dem,
+        roles: {}
+      };
+      for (const role of ROLES){
+        const n = nodes[role];
+        weekRec.roles[role] = {
+          arriveShip: n._arriveShip,
+          arriveOrder: n._arriveOrder,
+          shipOut: n._shipOut,
+          orderOut: n._orderOut,
+          invEnd: n.inv,
+          backEnd: n.back,
+          cost: n._cost,
+          cumCost: n.cumCost
+        };
+        delete n._arriveShip; delete n._arriveOrder; delete n._shipOut; delete n._orderOut; delete n._cost;
+      }
+
+      return {
+        week,
+        demand: dem,
+        weekRec
+      };
+    }
+
+    // -----------------------------
+    // Bot policy (simple base-stock)
+    // -----------------------------
+    function botOrder(role, node, week, demand){
+      // Inventory position = inventory - backlog + pipeline shipments
+      const pipeline = (node.shipInQ[0] ?? 0) + (node.shipInQ[1] ?? 0);
+      const ip = node.inv - node.back + pipeline;
+      // crude role-specific target
+      const baseStock = role === "Factory" ? 20 : role === "Distributor" ? 18 : role === "Wholesaler" ? 16 : 14;
+      const q = Math.max(0, Math.trunc(baseStock - ip));
+      return q;
+    }
+
+    // -----------------------------
+    // UI elements
+    // -----------------------------
+    const $ = (id)=>document.getElementById(id);
+
+    const elRoom = $("roomCode");
+    const elName = $("displayName");
+    const elJoin = $("btnJoin");
+    const elLeave = $("btnLeave");
+    const elConn = $("connState");
+    const elPeerCount = $("peerCount");
+    const elLeaderTag = $("leaderTag");
+    const elRoleTag = $("roleTag");
+    const elDemandVer = $("demandVer");
+    const elLog = $("log");
+    const elClientShort = $("clientIdShort");
+
+    const elLeaderPanel = $("leaderPanel");
+    const elStart = $("btnStart");
+    const elReset = $("btnReset");
+    const elHorizon = $("horizon");
+    const elRoundSec = $("roundSec");
+
+    const elWeekTag = $("weekTag");
+    const elTimeLeft = $("timeLeft");
+
+    const preGame = $("preGame");
+    const inGame = $("inGame");
+    const postGame = $("postGame");
+
+    const miniRoster = $("miniRoster");
+    const miniState = $("miniState");
+
+    const elOrderQty = $("orderQty");
+    const elSubmit = $("btnSubmit");
+    const elLastOrder = $("lastOrder");
+    const elSubmitStatus = $("submitStatus");
+    const elDemandNow = $("demandNow");
+
+    const histTable = $("histTable");
+
+    const elFinalCost = $("finalCost");
+    const elDownload = $("btnDownload");
+
+    // -----------------------------
+    // Identity persistence
+    // -----------------------------
+    const CLIENT_ID_KEY = "beergame_client_id_v1";
+    const LAST_ROOM_KEY  = "beergame_last_room_v1";
+    const LAST_NAME_KEY  = "beergame_last_name_v1";
+
+    const myClientId = storageGet(CLIENT_ID_KEY, "");
+    const clientId = myClientId && /^[0-9a-f]{32}$/.test(myClientId) ? myClientId : genClientId();
+    storageSet(CLIENT_ID_KEY, clientId);
+    elClientShort.textContent = shortId(clientId);
+
+    elRoom.value = storageGet(LAST_ROOM_KEY, "");
+    elName.value = storageGet(LAST_NAME_KEY, "");
+
+    // -----------------------------
+    // Room / networking state
+    // -----------------------------
+    let room = null;
+
+    // peerId -> { clientId, name, joinTime, lastSeen }
+    const peers = new Map();
+    // clientId -> { peerId, name, joinTime, online }
+    const clients = new Map();
+
+    // role assignment by clientId (stable across reconnect)
+    // maintained by leader, accepted by everyone
+    let assignedRoleByClientId = {}; // {clientId: "Retailer"|...|"Spectator"}
+    let leaderClientId = null;
+
+    // game snapshot (from leader)
+    let snapshot = null;
+
+    // round state (from leader)
+    let round = {
+      running:false,
+      week:0,
+      deadlineMs:0,
+      submittedRoles:{}, // role->true
+      mySubmitted:false
+    };
+
+    // local join time (used only for leader election before game starts)
+    const myJoinTime = nowMs();
+
+    function log(s){
+      const t = new Date().toLocaleTimeString();
+      elLog.textContent = `[${t}] ${s}\n` + elLog.textContent.slice(0, 2800);
+    }
+
+    function setConnState(s){ elConn.textContent = s; }
+    function setDemandVersion(roomCode){
+      const v = (hash32(roomCode) % 2); // 0 or 1
+      elDemandVer.textContent = v === 0 ? "A (step)" : "B (ramp)";
+      return v;
+    }
+
+    function computeLeaderCandidate(){
+      // best-effort: earliest joinTime among known clients (including self)
+      const all = [];
+      all.push({ clientId, joinTime: myJoinTime });
+      for (const [cid, c] of clients){
+        if (!cid) continue;
+        all.push({ clientId: cid, joinTime: c.joinTime ?? (1e18) });
+      }
+      all.sort((a,b)=>{
+        if (a.joinTime !== b.joinTime) return a.joinTime - b.joinTime;
+        return (a.clientId < b.clientId) ? -1 : 1;
+      });
+      return all.length ? all[0].clientId : clientId;
+    }
+
+    function myRole(){
+      const r = assignedRoleByClientId[clientId];
+      return r || "unknown";
+    }
+
+    function isLeader(){
+      return leaderClientId === clientId;
+    }
+
+    function updateTopTags(){
+      elPeerCount.textContent = String(peers.size);
+      elLeaderTag.innerHTML = leaderClientId
+        ? (leaderClientId === clientId ? `<span class="good">you</span>` : shortId(leaderClientId))
+        : "unknown";
+      elRoleTag.innerHTML = (myRole() === "unknown")
+        ? "unknown"
+        : (myRole() === "Spectator" ? `<span class="warn">Spectator</span>` : `<span class="good">${myRole()}</span>`);
+      elLeaderPanel.classList.toggle("hide", !isLeader() || (snapshot && snapshot.game && snapshot.game.running));
+    }
+
+    function renderRosterBox(){
+      const order = [...Object.entries(assignedRoleByClientId)]
+        .map(([cid, role])=>{
+          const c = clients.get(cid) || (cid===clientId ? {name: elName.value.trim(), joinTime: myJoinTime, online: true} : null);
+          const online = (cid===clientId) ? true : (c ? !!c.online : false);
+          const name = (cid===clientId) ? (elName.value.trim() || "You") : ((c && c.name) ? c.name : shortId(cid));
+          return { cid, role, online, name };
+        });
+
+      // show 4 roles + spectators
+      const byRole = {};
+      for (const r of [...ROLES, "Spectator"]){ byRole[r] = []; }
+      for (const x of order){
+        (byRole[x.role] ??= []).push(x);
+      }
+
+      miniRoster.innerHTML = "";
+      for (const r of ROLES){
+        const items = byRole[r];
+        const x = items.length ? items[0] : null;
+        const online = x ? x.online : false;
+        const who = x ? x.name : "(empty)";
+        const box = document.createElement("div");
+        box.className = "rolebox";
+        box.innerHTML = `
+          <div class="rt">${r}</div>
+          <div class="rb">
+            <div>Assigned: <b>${who}</b></div>
+            <div>Online: <b class="${online ? "good":"warn"}">${online ? "yes":"no"}</b></div>
+          </div>
+        `;
+        miniRoster.appendChild(box);
+      }
+      // spectators
+      const specs = byRole["Spectator"] || [];
+      if (specs.length){
+        const box = document.createElement("div");
+        box.className = "rolebox";
+        box.style.gridColumn = "1 / -1";
+        box.innerHTML = `
+          <div class="rt">Spectators (${specs.length})</div>
+          <div class="rb">${specs.map(s=>`<div>${s.online ? "<span class='good'>online</span>" : "<span class='warn'>offline</span>"} <b>${s.name}</b> <span style="color:var(--muted)">${shortId(s.cid)}</span></div>`).join("")}</div>
+        `;
+        miniRoster.appendChild(box);
+      }
+    }
+
+    function renderMiniState(){
+      miniState.innerHTML = "";
+      if (!snapshot || !snapshot.game || !snapshot.game.running) return;
+
+      const wk = snapshot.game.week;
+      const dem = demandAt(wk + 1, snapshot.game.demandVariant);
+      elDemandNow.textContent = String(dem);
+
+      for (const r of ROLES){
+        const n = snapshot.game.nodes[r];
+        const box = document.createElement("div");
+        box.className = "rolebox";
+        const mine = (myRole() === r);
+        box.innerHTML = `
+          <div class="rt">${mine ? "<span class='good'>You</span> " : ""}${r}</div>
+          <div class="rb">
+            <div>Inv: <b>${n.inv}</b>  Backlog: <b>${n.back}</b></div>
+            <div>Pipeline(ship): <b>${(n.shipInQ?.[0]||0) + (n.shipInQ?.[1]||0)}</b></div>
+            <div>Last order: <b>${n.lastOrder}</b>  Cum cost: <b>${fmt2(n.cumCost)}</b></div>
+          </div>
+        `;
+        miniState.appendChild(box);
+      }
+    }
+
+    function renderHistoryTable(){
+      const hist = snapshot?.game?.history || [];
+      if (!hist.length){
+        histTable.innerHTML = "";
+        return;
+      }
+      const headers = `
+        <tr>
+          <th>Week</th>
+          <th>Demand</th>
+          ${ROLES.map(r=>`<th>${ROLE_KEY[r]}_order</th>`).join("")}
+          ${ROLES.map(r=>`<th>${ROLE_KEY[r]}_cost</th>`).join("")}
+          ${ROLES.map(r=>`<th>${ROLE_KEY[r]}_inv</th>`).join("")}
+          ${ROLES.map(r=>`<th>${ROLE_KEY[r]}_back</th>`).join("")}
+        </tr>`;
+      const rows = hist.map(w=>{
+        const r = w.roles;
+        return `
+          <tr>
+            <td>${w.week}</td>
+            <td>${w.demand}</td>
+            ${ROLES.map(x=>`<td>${r[x].orderOut}</td>`).join("")}
+            ${ROLES.map(x=>`<td>${fmt2(r[x].cost)}</td>`).join("")}
+            ${ROLES.map(x=>`<td>${r[x].invEnd}</td>`).join("")}
+            ${ROLES.map(x=>`<td>${r[x].backEnd}</td>`).join("")}
+          </tr>`;
+      }).join("");
+      histTable.innerHTML = headers + rows;
+    }
+
+    function setView(mode){
+      // mode: "pre" | "game" | "post"
+      preGame.classList.toggle("hide", mode !== "pre");
+      inGame.classList.toggle("hide", mode !== "game");
+      postGame.classList.toggle("hide", mode !== "post");
+    }
+
+    function updateRoundUI(){
+      if (!snapshot?.game?.running){
+        elWeekTag.textContent = "-";
+        elTimeLeft.textContent = "-";
+        elDemandNow.textContent = "-";
+        elSubmit.disabled = true;
+        elOrderQty.disabled = true;
+        elSubmitStatus.textContent = "not submitted";
+        return;
+      }
+      const wk = round.week || (snapshot.game.week + 1);
+      elWeekTag.textContent = String(wk);
+
+      const msLeft = Math.max(0, (round.deadlineMs || 0) - nowMs());
+      elTimeLeft.textContent = (round.deadlineMs ? String(Math.ceil(msLeft/1000)) : "-");
+
+      const role = myRole();
+      const active = (role !== "Spectator" && role !== "unknown");
+      const bots = snapshot.game.bots || {};
+      const iAmBot = !!bots[role];
+
+      const canSubmit = active && !iAmBot && snapshot.game.running && (wk === (snapshot.game.week + 1)) && !round.mySubmitted;
+      elSubmit.disabled = !canSubmit;
+      elOrderQty.disabled = !canSubmit;
+
+      // last order
+      const myNode = snapshot.game.nodes?.[role];
+      const last = myNode ? myNode.lastOrder : 4;
+      elLastOrder.textContent = String(last);
+      if (!round.mySubmitted){
+        // default input to last order
+        elOrderQty.value = String(last);
+      }
+      elSubmitStatus.innerHTML = round.mySubmitted ? "<span class='good'>submitted</span>" : "<span class='warn'>not submitted</span>";
+    }
+
+    // -----------------------------
+    // Charts
+    // -----------------------------
+    let chartOrders = null, chartCost = null, chartInvBack = null;
+
+    function destroyCharts(){
+      if (chartOrders){ chartOrders.destroy(); chartOrders = null; }
+      if (chartCost){ chartCost.destroy(); chartCost = null; }
+      if (chartInvBack){ chartInvBack.destroy(); chartInvBack = null; }
+    }
+
+    function buildCharts(){
+      destroyCharts();
+      const hist = snapshot?.game?.history || [];
+      if (!hist.length) return;
+
+      const labels = hist.map(w => `W${w.week}`);
+
+      const ordersDs = ROLES.map(r => ({
+        label: `${r} order`,
+        data: hist.map(w => w.roles[r].orderOut),
+        tension: 0.2,
+      }));
+
+      const costDs = ROLES.map(r => ({
+        label: `${r} loss (cost)`,
+        data: hist.map(w => w.roles[r].cost),
+        tension: 0.2,
+      }));
+
+      const invBackDs = [];
+      for (const r of ROLES){
+        invBackDs.push({
+          label: `${r} inv`,
+          data: hist.map(w => w.roles[r].invEnd),
+          tension: 0.2,
+        });
+        invBackDs.push({
+          label: `${r} backlog`,
+          data: hist.map(w => w.roles[r].backEnd),
+          tension: 0.2,
+        });
+      }
+
+      chartOrders = new Chart(document.getElementById("chartOrders"), {
+        type: "line",
+        data: { labels, datasets: ordersDs },
+        options: {
+          responsive:true,
+          maintainAspectRatio:false,
+          plugins:{ legend:{ labels:{ color:"#e8eefc" }}, title:{ display:true, text:"Orders over time", color:"#e8eefc" } },
+          scales:{
+            x:{ ticks:{ color:"#a7b4d4" }, grid:{ color:"#233152" }},
+            y:{ ticks:{ color:"#a7b4d4" }, grid:{ color:"#233152" }, beginAtZero:true }
+          }
+        }
+      });
+
+      chartCost = new Chart(document.getElementById("chartCost"), {
+        type: "line",
+        data: { labels, datasets: costDs },
+        options: {
+          responsive:true,
+          maintainAspectRatio:false,
+          plugins:{ legend:{ labels:{ color:"#e8eefc" }}, title:{ display:true, text:"Loss (holding + backlog cost) over time", color:"#e8eefc" } },
+          scales:{
+            x:{ ticks:{ color:"#a7b4d4" }, grid:{ color:"#233152" }},
+            y:{ ticks:{ color:"#a7b4d4" }, grid:{ color:"#233152" }, beginAtZero:true }
+          }
+        }
+      });
+
+      chartInvBack = new Chart(document.getElementById("chartInvBack"), {
+        type: "line",
+        data: { labels, datasets: invBackDs },
+        options: {
+          responsive:true,
+          maintainAspectRatio:false,
+          plugins:{ legend:{ labels:{ color:"#e8eefc" }}, title:{ display:true, text:"Inventory and backlog over time", color:"#e8eefc" } },
+          scales:{
+            x:{ ticks:{ color:"#a7b4d4" }, grid:{ color:"#233152" }},
+            y:{ ticks:{ color:"#a7b4d4" }, grid:{ color:"#233152" }, beginAtZero:true }
+          }
+        }
+      });
+    }
+
+    // -----------------------------
+    // Trystero wiring
+    // -----------------------------
+    let sendHello, onHello;
+    let sendRoster, onRoster;
+    let sendWelcome, onWelcome;
+    let sendStart, onStart;
+    let sendSubmit, onSubmit;
+    let sendRound, onRound;
+    let sendState, onState;
+    let sendReset, onReset;
+
+    function clearRoomState(){
+      peers.clear();
+      clients.clear();
+      assignedRoleByClientId = {};
+      leaderClientId = null;
+      snapshot = null;
+      round = { running:false, week:0, deadlineMs:0, submittedRoles:{}, mySubmitted:false };
+      destroyCharts();
+      setConnState("disconnected");
+      setView("pre");
+      miniRoster.innerHTML = "";
+      miniState.innerHTML = "";
+      histTable.innerHTML = "";
+      elFinalCost.textContent = "-";
+      elDemandNow.textContent = "-";
+      updateTopTags();
+    }
+
+    function upsertClientFromPeer(peerId, payload){
+      const cid = payload?.clientId;
+      if (!cid) return;
+      peers.set(peerId, {
+        clientId: cid,
+        name: payload?.name || "",
+        joinTime: payload?.joinTime || (1e18),
+        lastSeen: nowMs()
+      });
+      clients.set(cid, {
+        peerId,
+        name: payload?.name || "",
+        joinTime: payload?.joinTime || (1e18),
+        online: true
+      });
+    }
+
+    function setOfflinePeer(peerId){
+      const p = peers.get(peerId);
+      if (!p) return;
+      peers.delete(peerId);
+      const c = clients.get(p.clientId);
+      if (c){
+        c.online = false;
+        c.peerId = null;
+        clients.set(p.clientId, c);
+      }
+    }
+
+    function chooseDemandVariant(roomCode){
+      return (hash32(roomCode) % 2);
+    }
+
+    // Leader-side role assignment: deterministic per clientId, stable across reconnect.
+    function leaderAssignRole(roomCode, cid){
+      if (assignedRoleByClientId[cid]) return; // already reserved
+
+      // keep existing reservations; only fill open among 4 roles
+      const reserved = new Set(Object.values(assignedRoleByClientId).filter(x => x && x !== "Spectator"));
+      const open = ROLES.filter(r => !reserved.has(r));
+      if (!open.length){
+        assignedRoleByClientId[cid] = "Spectator";
+        return;
+      }
+      // stable pick among open roles
+      const idx = hash32(roomCode + ":" + cid) % open.length;
+      assignedRoleByClientId[cid] = open[idx];
+    }
+
+    function leaderBroadcastRoster(){
+      sendRoster({
+        leaderClientId,
+        assignedRoleByClientId,
+        snapshot
+      });
+    }
+
+    // -----------------------------
+    // Leader game loop
+    // -----------------------------
+    let leaderTimer = null;
+
+    function leaderStopLoop(){
+      if (leaderTimer){
+        clearInterval(leaderTimer);
+        leaderTimer = null;
+      }
+    }
+
+    function leaderStartGame(roomCode){
+      if (!isLeader()) return;
+
+      const horizon = clampInt(Number(elHorizon.value), 8, 60);
+      const roundSec = clampInt(Number(elRoundSec.value), 10, 180);
+
+      // lock leader at start
+      leaderClientId = clientId;
+
+      // Determine which roles are human-online; fill missing with bots
+      const bots = {};
+      const roleToClient = {}; // invert mapping
+      for (const [cid, r] of Object.entries(assignedRoleByClientId)){
+        if (r && r !== "Spectator" && !roleToClient[r]) roleToClient[r] = cid;
+      }
+      for (const r of ROLES){
+        const cid = roleToClient[r] || null;
+        const isOnline = cid ? (cid === clientId ? true : (clients.get(cid)?.online === true)) : false;
+        bots[r] = !isOnline; // missing role => bot
+        if (!cid){
+          // no reservation exists for this role; create a synthetic reservation so the bot is stable
+          const botCid = `bot_${ROLE_KEY[r]}_${hash32(roomCode).toString(16)}`;
+          assignedRoleByClientId[botCid] = r;
+        }
+      }
+
+      snapshot = {
+        meta: {
+          roomCode,
+          demandVariant: chooseDemandVariant(roomCode),
+          createdAt: nowMs(),
+          holdCost: HOLD_COST,
+          backlogCost: BACKLOG_COST,
+          orderDelay: ORDER_DELAY,
+          shipDelay: SHIP_DELAY
+        },
+        leaderClientId,
+        assignedRoleByClientId,
+        game: {
+          running: true,
+          over: false,
+          week: 0,
+          horizon,
+          roundSec,
+          demandVariant: chooseDemandVariant(roomCode),
+          bots,
+          nodes: {
+            Retailer: initNodeState(),
+            Wholesaler: initNodeState(),
+            Distributor: initNodeState(),
+            Factory: initNodeState()
+          },
+          history: []
+        }
+      };
+
+      leaderBroadcastRoster();
+      leaderStartNextRound();
+      log(`Game started. Horizon=${horizon}, roundSec=${roundSec}. Bots: ${JSON.stringify(bots)}`);
+    }
+
+    function leaderStartNextRound(){
+      if (!isLeader() || !snapshot?.game?.running || snapshot.game.over) return;
+
+      const wk = snapshot.game.week + 1;
+      const deadlineMs = nowMs() + snapshot.game.roundSec * 1000;
+
+      // reset round collection
+      snapshot.game._pending = {
+        week: wk,
+        deadlineMs,
+        decisions: {},
+        submitted: {}
+      };
+
+      // bots decide immediately
+      const dem = demandAt(wk, snapshot.game.demandVariant);
+      for (const r of ROLES){
+        if (snapshot.game.bots?.[r]){
+          const q = botOrder(r, snapshot.game.nodes[r], wk, dem);
+          snapshot.game._pending.decisions[r] = q;
+          snapshot.game._pending.submitted[r] = true;
+        }
+      }
+
+      sendRound({
+        week: wk,
+        deadlineMs,
+        demand: dem,
+        submitted: snapshot.game._pending.submitted,
+        snapshot: minimalSnapshotForClients()
+      });
+
+      leaderStopLoop();
+      leaderTimer = setInterval(()=>{
+        if (!snapshot?.game?.running || snapshot.game.over) return;
+
+        const pend = snapshot.game._pending;
+        if (!pend) return;
+
+        const expired = nowMs() >= pend.deadlineMs;
+        const allDone = ROLES.every(r => !!pend.submitted[r]);
+
+        if (expired || allDone){
+          // fill missing with last order
+          for (const r of ROLES){
+            if (!pend.submitted[r]){
+              pend.decisions[r] = snapshot.game.nodes[r].lastOrder ?? 4;
+              pend.submitted[r] = true;
+            }
+          }
+          leaderAdvanceWeek(pend.decisions);
+        } else {
+          // periodic state ping (optional but keeps UI countdown consistent)
+          sendRound({
+            week: pend.week,
+            deadlineMs: pend.deadlineMs,
+            demand: demandAt(pend.week, snapshot.game.demandVariant),
+            submitted: pend.submitted
+          });
+        }
+      }, 250);
+    }
+
+    function leaderAdvanceWeek(decisions){
+      if (!isLeader() || !snapshot?.game?.running || snapshot.game.over) return;
+
+      const res = simulateOneWeek(snapshot.game, decisions);
+      snapshot.game.week = res.week;
+      snapshot.game.history.push(res.weekRec);
+
+      // clear pending
+      delete snapshot.game._pending;
+
+      // broadcast state
+      sendState({
+        snapshot: minimalSnapshotForClients()
+      });
+
+      // next round or end
+      if (snapshot.game.week >= snapshot.game.horizon){
+        snapshot.game.over = true;
+        snapshot.game.running = false;
+        leaderStopLoop();
+        sendState({ snapshot: minimalSnapshotForClients() });
+        log("Game over.");
+      } else {
+        leaderStartNextRound();
+      }
+    }
+
+    function minimalSnapshotForClients(){
+      // keep payload small but complete enough for reconnection / rendering
+      // store nodes, history, assignments, leader
+      return {
+        meta: snapshot.meta,
+        leaderClientId,
+        assignedRoleByClientId,
+        game: snapshot.game
+      };
+    }
+
+    function leaderHandleSubmit(peerId, payload){
+      if (!isLeader() || !snapshot?.game?.running || snapshot.game.over) return;
+      const pend = snapshot.game._pending;
+      if (!pend) return;
+
+      const cid = payload?.clientId;
+      const qty = Math.max(0, Math.trunc(payload?.qty ?? 0));
+      const week = payload?.week;
+
+      if (!cid || week !== pend.week) return;
+
+      const role = assignedRoleByClientId[cid];
+      if (!role || role === "Spectator") return;
+      if (pend.submitted[role]) return;
+
+      pend.decisions[role] = qty;
+      pend.submitted[role] = true;
+
+      // broadcast update
+      sendRound({
+        week: pend.week,
+        deadlineMs: pend.deadlineMs,
+        submitted: pend.submitted
+      });
+    }
+
+    // -----------------------------
+    // Join / leave handlers
+    // -----------------------------
+    elJoin.onclick = async ()=>{
+      const roomCode = normRoom(elRoom.value);
+      if (!roomCode){
+        log("Room code required.");
+        return;
+      }
+      storageSet(LAST_ROOM_KEY, roomCode);
+      storageSet(LAST_NAME_KEY, (elName.value || "").trim());
+
+      const demandVariant = setDemandVersion(roomCode);
+      elDemandVer.textContent = demandVariant === 0 ? "A (step)" : "B (ramp)";
+
+      clearRoomState();
+      setConnState("connecting...");
+
+      // appId isolates your app from other Trystero users
+      const config = { appId: "beergame_p2p_singlepage_v1" };
+      room = joinRoom(config, roomCode);
+
+      // actions
+      [sendHello, onHello] = room.makeAction("hello");
+      [sendRoster, onRoster] = room.makeAction("roster");
+      [sendWelcome, onWelcome] = room.makeAction("welcome");
+      [sendStart, onStart] = room.makeAction("start");
+      [sendSubmit, onSubmit] = room.makeAction("submit");
+      [sendRound, onRound] = room.makeAction("round");
+      [sendState, onState] = room.makeAction("state");
+      [sendReset, onReset] = room.makeAction("reset");
+
+      setConnState("connected");
+      elJoin.disabled = true;
+      elLeave.disabled = false;
+
+      // peer events
+      room.onPeerJoin((peerId)=>{
+        // send hello directly to new peer
+        sendHello({
+          clientId,
+          name: (elName.value || "").trim(),
+          joinTime: myJoinTime,
+          roomCode,
+          demandVariant
+        }, peerId);
+
+        // if leader, also send full welcome
+        if (isLeader()){
+          sendWelcome({
+            leaderClientId,
+            assignedRoleByClientId,
+            snapshot: minimalSnapshotForClients()
+          }, peerId);
+        }
+      });
+
+      room.onPeerLeave((peerId)=>{
+        setOfflinePeer(peerId);
+        if (isLeader()){
+          leaderBroadcastRoster();
+        }
+        updateTopTags();
+        renderRosterBox();
+      });
+
+      // incoming hello
+      onHello((payload, peerId)=>{
+        upsertClientFromPeer(peerId, payload);
+
+        // leader election (only before game starts)
+        if (!snapshot?.game?.running){
+          const cand = computeLeaderCandidate();
+          if (leaderClientId !== cand){
+            leaderClientId = cand;
+            log(`Leader candidate: ${leaderClientId === clientId ? "you" : shortId(leaderClientId)}`);
+          }
+        }
+
+        // leader assigns role to the new/returning client
+        if (isLeader() && !snapshot?.game?.running){
+          leaderAssignRole(roomCode, payload.clientId);
+          // ensure self also assigned
+          leaderAssignRole(roomCode, clientId);
+          // keep leader id set
+          leaderClientId = clientId;
+          leaderBroadcastRoster();
+        }
+
+        updateTopTags();
+        renderRosterBox();
+      });
+
+      // roster updates from leader
+      onRoster((payload)=>{
+        if (payload?.leaderClientId) leaderClientId = payload.leaderClientId;
+        if (payload?.assignedRoleByClientId) assignedRoleByClientId = payload.assignedRoleByClientId;
+        if (payload?.snapshot) snapshot = payload.snapshot;
+        updateTopTags();
+        renderRosterBox();
+        if (snapshot?.game?.running){
+          setView("game");
+          renderMiniState();
+          renderHistoryTable();
+          updateRoundUI();
+        } else if (snapshot?.game?.over){
+          setView("post");
+        } else {
+          setView("pre");
+        }
+      });
+
+      // welcome (targeted) from leader
+      onWelcome((payload)=>{
+        if (payload?.leaderClientId) leaderClientId = payload.leaderClientId;
+        if (payload?.assignedRoleByClientId) assignedRoleByClientId = payload.assignedRoleByClientId;
+        if (payload?.snapshot) snapshot = payload.snapshot;
+        updateTopTags();
+        renderRosterBox();
+        if (snapshot?.game?.over){
+          setView("post");
+        } else if (snapshot?.game?.running){
+          setView("game");
+          renderMiniState();
+          renderHistoryTable();
+        } else {
+          setView("pre");
+        }
+        updateRoundUI();
+      });
+
+      // start signal from leader
+      onStart((payload)=>{
+        if (payload?.snapshot) snapshot = payload.snapshot;
+        if (payload?.leaderClientId) leaderClientId = payload.leaderClientId;
+        if (payload?.assignedRoleByClientId) assignedRoleByClientId = payload.assignedRoleByClientId;
+        setView("game");
+        renderMiniState();
+        renderHistoryTable();
+        round.mySubmitted = false;
+        updateTopTags();
+        updateRoundUI();
+      });
+
+      // round signal (week + deadline + submitted map)
+      onRound((payload)=>{
+        if (payload?.snapshot){
+          snapshot = payload.snapshot;
+        }
+        if (payload?.week) round.week = payload.week;
+        if (payload?.deadlineMs) round.deadlineMs = payload.deadlineMs;
+        if (payload?.submitted) round.submittedRoles = payload.submitted;
+
+        // detect my submitted state
+        const role = myRole();
+        const mineSubmitted = role && role !== "Spectator" ? !!round.submittedRoles?.[role] : false;
+        round.mySubmitted = mineSubmitted;
+
+        if (snapshot?.game?.running){
+          setView("game");
+          renderMiniState();
+        }
+        updateTopTags();
+        updateRoundUI();
+      });
+
+      // state snapshot updates from leader
+      onState((payload)=>{
+        if (payload?.snapshot){
+          snapshot = payload.snapshot;
+          assignedRoleByClientId = snapshot.assignedRoleByClientId || assignedRoleByClientId;
+          leaderClientId = snapshot.leaderClientId || leaderClientId;
+
+          if (snapshot?.game?.over){
+            setView("post");
+            renderMiniState();
+            renderHistoryTable();
+            showPostGame();
+          } else if (snapshot?.game?.running){
+            setView("game");
+            renderMiniState();
+            renderHistoryTable();
+          }
+          updateTopTags();
+          updateRoundUI();
+        }
+      });
+
+      onReset((payload)=>{
+        // leader announced reset
+        log("Room reset.");
+        snapshot = null;
+        assignedRoleByClientId = {};
+        leaderClientId = null;
+        round = { running:false, week:0, deadlineMs:0, submittedRoles:{}, mySubmitted:false };
+        destroyCharts();
+        setView("pre");
+        updateTopTags();
+        renderRosterBox();
+      });
+
+      // announce yourself (broadcast)
+      sendHello({
+        clientId,
+        name: (elName.value || "").trim(),
+        joinTime: myJoinTime,
+        roomCode,
+        demandVariant
+      });
+
+      // ensure self is in local clients
+      clients.set(clientId, { peerId: "self", name: (elName.value || "").trim(), joinTime: myJoinTime, online: true });
+
+      // pre-leader candidate
+      leaderClientId = computeLeaderCandidate();
+      updateTopTags();
+
+      // If I'm the leader candidate, reserve roles immediately for deterministic assignment.
+      if (isLeader()){
+        leaderAssignRole(roomCode, clientId);
+        leaderBroadcastRoster();
+      }
+
+      setView("pre");
+      renderRosterBox();
+      log(`Joined room ${roomCode}.`);
+    };
+
+    elLeave.onclick = ()=>{
+      if (room){
+        try{ room.leave(); }catch{}
+      }
+      room = null;
+      elJoin.disabled = false;
+      elLeave.disabled = true;
+      leaderStopLoop();
+      clearRoomState();
+      log("Left room.");
+    };
+
+    // Leader buttons
+    elStart.onclick = ()=>{
+      const roomCode = normRoom(elRoom.value);
+      if (!roomCode || !room) return;
+      leaderStartGame(roomCode);
+      sendStart({
+        leaderClientId,
+        assignedRoleByClientId,
+        snapshot: minimalSnapshotForClients()
+      });
+    };
+
+    elReset.onclick = ()=>{
+      if (!isLeader() || !room) return;
+      leaderStopLoop();
+      snapshot = null;
+      assignedRoleByClientId = {};
+      // reserve myself again
+      const roomCode = normRoom(elRoom.value);
+      leaderClientId = clientId;
+      leaderAssignRole(roomCode, clientId);
+      sendReset({ ok:true });
+      leaderBroadcastRoster();
+    };
+
+    // Submit button (client)
+    elSubmit.onclick = ()=>{
+      if (!room || !snapshot?.game?.running) return;
+      const role = myRole();
+      if (!role || role === "Spectator") return;
+      const bots = snapshot.game.bots || {};
+      if (bots[role]) return;
+
+      const wk = snapshot.game.week + 1;
+      const qty = Math.max(0, Math.trunc(Number(elOrderQty.value)));
+      sendSubmit({ clientId, week: wk, qty });
+      round.mySubmitted = true;
+      elSubmitStatus.innerHTML = "<span class='good'>submitted</span>";
+      updateRoundUI();
+    };
+
+    // Receive submits (leader)
+    // The callback signature includes (payload, peerId) in Trystero examples.
+    // If a runtime differs, it will fail fast and you will see it in console.
+    function attachSubmitHandler(){
+      if (!onSubmit) return;
+      onSubmit((payload, peerId)=>{
+        leaderHandleSubmit(peerId, payload);
+      });
+    }
+
+    // periodic UI clock + attach submit handler once
+    let uiClock = setInterval(()=>{
+      updateRoundUI();
+    }, 200);
+
+    // After join sets onSubmit, attach handler
+    const _origJoin = elJoin.onclick;
+    elJoin.onclick = async ()=>{
+      await _origJoin();
+      attachSubmitHandler();
+    };
+
+    // -----------------------------
+    // Post-game rendering
+    // -----------------------------
+    function showPostGame(){
+      const hist = snapshot?.game?.history || [];
+      if (!hist.length){
+        elFinalCost.textContent = "-";
+        return;
+      }
+      const last = hist[hist.length - 1];
+      const totalCost = ROLES.reduce((s,r)=> s + (last.roles[r].cumCost || 0), 0);
+      elFinalCost.textContent = `Total supply-chain cost: ${fmt2(totalCost)}   (profit = ${fmt2(-totalCost)})`;
+      renderHistoryTable();
+      buildCharts();
+    }
+
+    elDownload.onclick = ()=>{
+      if (!snapshot) return;
+      const blob = new Blob([JSON.stringify(snapshot, null, 2)], {type:"application/json"});
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `beergame_${snapshot?.meta?.roomCode || "room"}.json`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(()=>URL.revokeObjectURL(url), 5000);
+    };
+
+    // -----------------------------
+    // Initial tags
+    // -----------------------------
+    updateTopTags();
+    renderRosterBox();
+  </script>
+</body>
+</html>
