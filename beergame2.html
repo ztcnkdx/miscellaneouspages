@@ -1,0 +1,714 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>P2P Beer Game</title>
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root { --primary: #2c3e50; --accent: #3498db; --danger: #e74c3c; --bg: #f4f7f6; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: var(--bg); margin: 0; padding: 20px; color: var(--primary); }
+        .container { max-width: 1000px; margin: 0 auto; background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        h1, h2, h3 { text-align: center; }
+        input, button { padding: 10px; margin: 5px; border-radius: 6px; border: 1px solid #ddd; font-size: 16px; }
+        button { background: var(--accent); color: white; border: none; cursor: pointer; transition: 0.3s; }
+        button:hover { background: #2980b9; }
+        button:disabled { background: #bdc3c7; cursor: not-allowed; }
+        .role-card { border: 1px solid #eee; padding: 15px; margin: 10px 0; border-radius: 8px; background: #fafafa; }
+        .my-role { border: 2px solid var(--accent); background: #eef7fb; }
+        .game-board { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-top: 20px; }
+        .chain-node { background: white; border: 1px solid #ccc; padding: 10px; border-radius: 8px; text-align: center; font-size: 14px; }
+        .chain-node.active { border-color: var(--accent); box-shadow: 0 0 8px rgba(52, 152, 219, 0.3); }
+        .status-bar { display: flex; justify-content: space-between; background: #34495e; color: white; padding: 10px; border-radius: 8px; margin-bottom: 20px; }
+        .timer { font-weight: bold; color: #f1c40f; }
+        .log-area { height: 150px; overflow-y: auto; background: #f8f9fa; border: 1px solid #ddd; padding: 10px; font-size: 12px; margin-top: 20px; }
+        .input-area { text-align: center; margin: 20px 0; padding: 20px; background: #e8f6f3; border-radius: 8px; }
+        .chart-container { margin-top: 30px; }
+        .hidden-info { color: #ccc; font-style: italic; }
+        /* 响应式 */
+        @media (max-width: 768px) { .game-board { grid-template-columns: 1fr; } }
+    </style>
+</head>
+<body>
+
+<div id="app" class="container">
+    <h1>🍻 The Beer Game (P2P版)</h1>
+
+    <div v-if="state.phase === 'LOBBY'" style="text-align: center;">
+        <p>无需服务器，单网页多人联机。推荐使用电脑端 Chrome/Edge 浏览器。</p>
+        <div style="margin: 20px;">
+            <input v-model="roomCode" placeholder="输入房间码 (例如: room1)" @keyup.enter="joinRoom">
+            <p style="font-size: 12px; color: #666;">提示：房间码以 <b>-open</b> 结尾开启全透明模式 (如: <code>test-open</code>)</p>
+        </div>
+        <div>
+            <button @click="createRoom" :disabled="loading">我是组长 (创建房间)</button>
+            <button @click="joinRoom" :disabled="loading">我是组员 (加入房间)</button>
+        </div>
+        <p v-if="loading">正在连接 P2P 网络...</p>
+        <p v-if="error" style="color: var(--danger)">{{ error }}</p>
+    </div>
+
+    <div v-if="state.phase === 'WAITING'">
+        <h3>房间: {{ roomCode }} | 角色分配中...</h3>
+        <p>当前连接人数: {{ connectedPlayers }} / 4</p>
+        <div v-if="isHost">
+            <p>等待其他玩家加入。如果人数不足，剩余位置将由电脑(Bot)代替。</p>
+            <button @click="startGame" :disabled="connectedPlayers < 1">开始游戏</button>
+        </div>
+        <div v-else>
+            <p>等待组长开始游戏...</p>
+        </div>
+        <div class="role-card">
+            <h4>已连接玩家:</h4>
+            <ul>
+                <li v-for="p in playerList" :key="p.id">{{ p.id === myId ? '(我) ' : '' }} {{ p.role || '等待分配...' }}</li>
+            </ul>
+        </div>
+    </div>
+
+    <div v-if="state.phase === 'PLAYING' || state.phase === 'ENDED'">
+        <div class="status-bar">
+            <span>第 {{ gameState.week }} 周</span>
+            <span>角色: {{ myRoleLabel }}</span>
+            <span v-if="state.phase === 'PLAYING'">剩余时间: <span class="timer">{{ timer }}s</span></span>
+            <span v-else style="color: #2ecc71">游戏结束</span>
+        </div>
+
+        <div class="game-board">
+            <div v-for="role in rolesOrder" :key="role" 
+                 class="chain-node" 
+                 :class="{ 'active': role === myRole, 'my-role': role === myRole }">
+                <h3>{{ roleNames[role] }} <span v-if="gameState.players[role].isBot">(Bot)</span></h3>
+                
+                <div v-if="canSee(role)">
+                    <p>库存: <strong>{{ gameState.players[role].inventory }}</strong></p>
+                    <p>欠货: <strong style="color:var(--danger)">{{ gameState.players[role].backlog }}</strong></p>
+                    <p>上周订单: {{ gameState.players[role].lastOrder }}</p>
+                    <hr>
+                    <p>本周需求: {{ getIncomingDemand(role) }}</p>
+                    <p>本周收货: {{ gameState.players[role].incomingShipment }}</p>
+                </div>
+                <div v-else class="hidden-info">
+                    <p>[信息隐藏]</p>
+                    <p>???</p>
+                </div>
+            </div>
+        </div>
+
+        <div v-if="state.phase === 'PLAYING' && !imDead" class="input-area">
+            <div v-if="hasSubmitted">
+                <h3>已提交订单: {{ myOrderVal }}</h3>
+                <p>等待其他玩家...</p>
+            </div>
+            <div v-else>
+                <h3>请下达订单</h3>
+                <p>当前库存情况如上，你需要向你的上游订货。</p>
+                <input type="number" v-model.number="inputOrder" min="0" placeholder="输入订货量">
+                <button @click="submitOrder">提交订单</button>
+            </div>
+        </div>
+        <div v-if="imDead" class="input-area" style="color: red">
+            <h3>你已由电脑接管</h3>
+            <p>检测到掉线或超时，系统已自动托管。</p>
+            <button @click="reconnectControl">重新接管</button>
+        </div>
+
+        <div v-if="state.phase === 'ENDED'" class="chart-container">
+            <h3>游戏统计报表</h3>
+            <canvas id="orderChart"></canvas>
+            <canvas id="costChart" style="margin-top:20px"></canvas>
+            <button @click="downloadData">下载数据(CSV)</button>
+        </div>
+    </div>
+</div>
+
+<script>
+const { createApp, reactive, ref, computed, onMounted, nextTick } = Vue;
+
+/* --- 游戏配置常量 --- */
+const ROLES = ['Retailer', 'Wholesaler', 'Distributor', 'Factory'];
+const ROLE_NAMES = { 'Retailer': '零售商', 'Wholesaler': '批发商', 'Distributor': '分销商', 'Factory': '工厂' };
+const INITIAL_INV = 12;
+const ROUND_TIME = 30; // 每轮秒数
+const TOTAL_WEEKS = 25; // 总周数 (简单起见)
+
+/* --- 应用逻辑 --- */
+createApp({
+    setup() {
+        // --- 响应式状态 ---
+        const state = reactive({
+            phase: 'LOBBY', // LOBBY, WAITING, PLAYING, ENDED
+        });
+        const roomCode = ref('');
+        const myId = ref('');
+        const isHost = ref(false);
+        const loading = ref(false);
+        const error = ref('');
+        const playerList = ref([]); // [{id, role}]
+        const myRole = ref('');
+        const timer = ref(ROUND_TIME);
+        
+        // 游戏核心数据 (Host维护，Client同步)
+        const gameState = reactive({
+            week: 1,
+            isOpenInfo: false, // 是否透明
+            players: {}, // Key: Role, Value: { id, isBot, inventory, backlog, lastOrder, history: [] }
+            shipments: [], // 在途货物 { from, to, amount, weeksLeft } (简化：直接下一轮到货)
+            orderStatus: {} // 记录当轮谁提交了 { Retailer: true/false }
+        });
+
+        // 玩家输入
+        const inputOrder = ref(0);
+        const hasSubmitted = ref(false);
+        const myOrderVal = ref(0);
+        const imDead = ref(false); // 本地标记是否被托管
+
+        // PeerJS 对象
+        let peer = null;
+        let conns = []; // Host 用: 存储所有客户端连接
+        let hostConn = null; // Client 用: 存储与 Host 的连接
+        let timerInterval = null;
+
+        // --- 计算属性 ---
+        const rolesOrder = computed(() => ROLES);
+        const roleNames = computed(() => ROLE_NAMES);
+        const connectedPlayers = computed(() => playerList.value.length);
+        const myRoleLabel = computed(() => ROLE_NAMES[myRole.value] || '观众/未知');
+
+        // --- P2P 网络逻辑 ---
+        
+        // 初始化 Peer
+        const initPeer = (id) => {
+            return new Promise((resolve, reject) => {
+                // 使用默认的 PeerJS Cloud Server
+                const p = new Peer(id, { debug: 1 });
+                p.on('open', (id) => resolve(p));
+                p.on('error', (err) => reject(err));
+            });
+        };
+
+        // 创建房间 (Host)
+        const createRoom = async () => {
+            if (!roomCode.value) return;
+            loading.value = true;
+            const roomId = `bg-game-${roomCode.value}`; // 增加前缀避免冲突
+            
+            try {
+                peer = await initPeer(roomId);
+                myId.value = roomId;
+                isHost.value = true;
+                state.phase = 'WAITING';
+                
+                // 自己也算一个玩家
+                playerList.value.push({ id: 'HOST', role: null });
+
+                // 监听连接
+                peer.on('connection', (conn) => {
+                    handleHostConnection(conn);
+                });
+
+                // 初始化游戏模式
+                if (roomCode.value.endsWith('-open')) {
+                    gameState.isOpenInfo = true;
+                }
+
+            } catch (err) {
+                error.value = "房间号已被占用或网络错误，请换一个。";
+                console.error(err);
+            } finally {
+                loading.value = false;
+            }
+        };
+
+        // 加入房间 (Client)
+        const joinRoom = async () => {
+            if (!roomCode.value) return;
+            loading.value = true;
+            
+            try {
+                // 客户端随机生成ID
+                const clientId = 'bg-player-' + Math.random().toString(36).substr(2, 9);
+                peer = await initPeer(clientId);
+                myId.value = clientId;
+
+                const hostId = `bg-game-${roomCode.value}`;
+                hostConn = peer.connect(hostId);
+
+                hostConn.on('open', () => {
+                    isHost.value = false;
+                    state.phase = 'WAITING';
+                    // 尝试重连逻辑：检查本地存储
+                    const savedRole = localStorage.getItem(`bg_role_${roomCode.value}`);
+                    hostConn.send({ type: 'JOIN', savedRole: savedRole });
+                });
+
+                hostConn.on('data', (data) => {
+                    handleClientData(data);
+                });
+
+                hostConn.on('close', () => {
+                    error.value = "与房主断开连接";
+                });
+
+            } catch (err) {
+                error.value = "无法连接到服务器";
+            } finally {
+                loading.value = false;
+            }
+        };
+
+        // Host 处理连入
+        const handleHostConnection = (conn) => {
+            conns.push(conn);
+            conn.on('data', (data) => {
+                if (data.type === 'JOIN') {
+                    // 处理重连
+                    let existingRole = null;
+                    if (data.savedRole && state.phase === 'PLAYING') {
+                        // 如果游戏正在进行，且该角色目前是 Bot 或掉线状态，允许重连
+                        if (gameState.players[data.savedRole] && gameState.players[data.savedRole].isBot) {
+                            existingRole = data.savedRole;
+                            gameState.players[existingRole].isBot = false;
+                            gameState.players[existingRole].id = conn.peer;
+                        }
+                    }
+
+                    if (!existingRole) {
+                         // 新玩家
+                        if (state.phase === 'WAITING') {
+                            playerList.value.push({ id: conn.peer, role: null });
+                            broadcastLobby();
+                        } else {
+                            // 游戏中新玩家无法加入
+                            conn.send({ type: 'ERROR', msg: '游戏已开始' });
+                        }
+                    } else {
+                        // 重连成功
+                        conn.send({ type: 'RECONNECT_SUCCESS', role: existingRole, state: gameState });
+                    }
+                }
+                else if (data.type === 'ORDER') {
+                    handleOrderReceived(data.role, data.amount);
+                }
+                else if (data.type === 'RECLAIM') {
+                     // 玩家在同一台电脑重连
+                     if (gameState.players[data.role]) {
+                         gameState.players[data.role].isBot = false;
+                         broadcastState();
+                     }
+                }
+            });
+            conn.on('close', () => {
+                // 简单处理：如果是等待阶段，移除；如果是游戏阶段，标记为Bot
+                const idx = playerList.value.findIndex(p => p.id === conn.peer);
+                if (idx !== -1 && state.phase === 'WAITING') {
+                    playerList.value.splice(idx, 1);
+                    broadcastLobby();
+                } else if (state.phase === 'PLAYING') {
+                    // 找到对应的角色，转为 Bot
+                    for (let r in gameState.players) {
+                        if (gameState.players[r].id === conn.peer) {
+                            gameState.players[r].isBot = true;
+                        }
+                    }
+                }
+            });
+        };
+
+        // Client 处理数据
+        const handleClientData = (data) => {
+            if (data.type === 'LOBBY_UPDATE') {
+                playerList.value = data.players;
+            } else if (data.type === 'GAME_START') {
+                myRole.value = data.role;
+                Object.assign(gameState, data.state);
+                state.phase = 'PLAYING';
+                // 保存角色以便重连
+                localStorage.setItem(`bg_role_${roomCode.value}`, myRole.value);
+            } else if (data.type === 'STATE_UPDATE') {
+                Object.assign(gameState, data.state);
+                // 重置每轮状态
+                hasSubmitted.value = false;
+                inputOrder.value = 0;
+            } else if (data.type === 'TIMER_UPDATE') {
+                timer.value = data.time;
+            } else if (data.type === 'GAME_OVER') {
+                Object.assign(gameState, data.state);
+                state.phase = 'ENDED';
+                nextTick(renderCharts);
+            } else if (data.type === 'RECONNECT_SUCCESS') {
+                myRole.value = data.role;
+                Object.assign(gameState, data.state);
+                state.phase = 'PLAYING';
+                imDead.value = false;
+            }
+        };
+
+        const broadcastLobby = () => {
+            const data = { type: 'LOBBY_UPDATE', players: playerList.value };
+            conns.forEach(c => c.send(data));
+        };
+
+        const broadcastState = () => {
+            // 过滤敏感信息? 
+            // 为了简化代码，这里发送完整状态，在 Client 端根据 isOpenInfo 进行显示过滤
+            // 实际上为了防作弊应该在 Server 端过滤，但这里是信任环境的教学游戏
+            const data = { type: 'STATE_UPDATE', state: gameState };
+            conns.forEach(c => c.send(data));
+            // 也要更新 Host 自己的视图
+        };
+
+        // --- 游戏逻辑 (Host执行) ---
+
+        const startGame = () => {
+            // 1. 分配角色
+            const shuffledRoles = [...ROLES].sort(() => 0.5 - Math.random());
+            const playersMap = {};
+            
+            // 填充玩家
+            playerList.value.forEach((p, i) => {
+                if (i < 4) {
+                    p.role = shuffledRoles[i];
+                }
+            });
+
+            // 填充剩余为 Bot
+            for (let i = 0; i < 4; i++) {
+                const role = shuffledRoles[i];
+                const player = playerList.value.find(p => p.role === role);
+                playersMap[role] = {
+                    id: player ? player.id : 'BOT',
+                    isBot: !player, // 如果没玩家就是Bot，或者Host自己如果没分配到? Host肯定在playerList里
+                    role: role,
+                    inventory: INITIAL_INV,
+                    backlog: 0,
+                    lastOrder: 4, // 初始假设
+                    incomingShipment: 0,
+                    history: []
+                };
+                // Host 自己如果是玩家，记录一下
+                if (player && player.id === 'HOST') {
+                    myRole.value = role;
+                }
+            }
+            
+            // 2. 初始化状态
+            gameState.players = playersMap;
+            gameState.week = 1;
+            gameState.orderStatus = {};
+            
+            // 3. 通知所有人
+            conns.forEach(c => {
+                const p = playerList.value.find(pl => pl.id === c.peer);
+                if (p && p.role) {
+                    c.send({ type: 'GAME_START', role: p.role, state: gameState });
+                }
+            });
+            state.phase = 'PLAYING';
+
+            // 4. 启动计时器
+            startTimer();
+        };
+
+        const startTimer = () => {
+            timer.value = ROUND_TIME;
+            clearInterval(timerInterval);
+            timerInterval = setInterval(() => {
+                timer.value--;
+                if (isHost.value) {
+                    conns.forEach(c => c.send({ type: 'TIMER_UPDATE', time: timer.value }));
+                }
+                if (timer.value <= 0) {
+                    clearInterval(timerInterval);
+                    if (isHost.value) processRound();
+                }
+            }, 1000);
+        };
+
+        const getDemand = (week) => {
+            // 经典 Beer Game 需求: 前4周4个，第5周开始8个
+            if (week <= 4) return 4;
+            return 8;
+        };
+
+        const handleOrderReceived = (role, amount) => {
+            if (!isHost.value) return;
+            gameState.orderStatus[role] = amount;
+            // 如果所有人类玩家都提交了 (Bot不算)，可以提前结束
+            const allHumansSubmitted = ROLES.every(r => {
+                const p = gameState.players[r];
+                return p.isBot || gameState.orderStatus[r] !== undefined;
+            });
+            
+            if (allHumansSubmitted) {
+                // 等待一下以防Bot没跑完? 不需要，Bot是瞬时的
+                // 为了体验，还是等时间或者给个快速跳过
+            }
+        };
+
+        // 提交订单 (Client -> Host)
+        const submitOrder = () => {
+            if (inputOrder.value < 0) return;
+            hasSubmitted.value = true;
+            myOrderVal.value = inputOrder.value;
+            
+            if (isHost.value) {
+                handleOrderReceived(myRole.value, inputOrder.value);
+            } else {
+                hostConn.send({ type: 'ORDER', role: myRole.value, amount: inputOrder.value });
+            }
+        };
+
+        const reconnectControl = () => {
+             imDead.value = false;
+             if (!isHost.value) {
+                 hostConn.send({ type: 'RECLAIM', role: myRole.value });
+             } else {
+                 gameState.players[myRole.value].isBot = false;
+             }
+        };
+
+        // 核心回合结算 (Host Only)
+        const processRound = () => {
+            const currentWeek = gameState.week;
+            
+            // 1. 获取各个环节的决策 (没有提交的用上一轮, Bot 自动计算)
+            const orders = {};
+            
+            ROLES.forEach(role => {
+                const p = gameState.players[role];
+                let orderQty = 0;
+                
+                if (p.isBot) {
+                    // Bot 逻辑: 简单的 Base Stock 策略
+                    // 目标库存 = 12. 
+                    // Order = Demand + (Target - (Inv - Backlog))
+                    // 简化版：Order = Incoming Demand (Pass-through) 以保持稳定
+                    const incomingDemand = role === 'Retailer' ? getDemand(currentWeek) : (gameState.players[getDownstream(role)]?.lastOrder || 4);
+                    // 稍微修正：如果库存太低补一点
+                    let correction = 0;
+                    if (p.inventory < 4) correction = 2;
+                    if (p.backlog > 0) correction = p.backlog;
+                    orderQty = incomingDemand + correction;
+                } else {
+                    // 玩家逻辑
+                    if (gameState.orderStatus[role] !== undefined) {
+                        orderQty = gameState.orderStatus[role];
+                    } else {
+                        orderQty = p.lastOrder; // 超时沿用
+                    }
+                }
+                orders[role] = orderQty;
+                p.lastOrder = orderQty; // 更新用于下轮参考
+            });
+
+            // 2. 供应链流动逻辑 (简化版：无运输延迟，订单有延迟效果)
+            // 顺序：收货 -> 满足需求 -> 记录 Backlog -> 发出订单
+            
+            // 这里的 "Incoming Shipment" 其实是上游 *上一轮* 发出的货 (或者本轮如果有延迟)
+            // 经典游戏：2周延迟。这里为了单页 Web 体验，简化为：
+            // Factory 生产无限制，直接发货。
+            // 其他角色：收到的货是上游 *本轮* 能发出的量 (瞬时) 或者 *上一轮* 发出的 (延迟)。
+            // 采用：上游发货 -> 下游下轮收到 (1周延迟)
+            
+            // 先计算本轮每个节点能发多少货 (Shipment Sent)
+            const shipmentsSent = {}; // Key: Role, Val: Amount
+            
+            ROLES.slice().reverse().forEach(role => {
+                const p = gameState.players[role];
+                
+                // 确定该角色的需求来源
+                let currentDemand = 0;
+                if (role === 'Retailer') {
+                    currentDemand = getDemand(currentWeek);
+                } else {
+                    // 下游上周下的订单
+                    const downstream = getDownstream(role);
+                    currentDemand = gameState.players[downstream].lastOrder;
+                }
+
+                // 总需求 = 新订单 + 积压订单
+                const totalDemand = currentDemand + p.backlog;
+                
+                // 可用库存 = 期初库存 + 本周收到的货
+                // 注意：本周收到的货是上游 *上一周* 发出的
+                // 我们需要在 State 里存一个 "incomingShipment" 队列
+                // 简化：使用 state.shipments 查找 to === role 的
+                const incoming = state.shipments.find(s => s.to === role && s.weeksLeft === 0);
+                const arrivedQty = incoming ? incoming.amount : 0;
+                
+                p.incomingShipment = arrivedQty; // 用于UI显示本周到货
+                const available = p.inventory + arrivedQty;
+                
+                // 发货逻辑
+                let shipped = 0;
+                if (available >= totalDemand) {
+                    shipped = totalDemand;
+                    p.inventory = available - totalDemand;
+                    p.backlog = 0;
+                } else {
+                    shipped = available;
+                    p.inventory = 0;
+                    p.backlog = totalDemand - available;
+                }
+                
+                shipmentsSent[role] = shipped;
+
+                // 记录历史
+                p.history.push({
+                    week: currentWeek,
+                    inventory: p.inventory,
+                    backlog: p.backlog,
+                    order: orders[role],
+                    demand: currentDemand,
+                    cost: p.inventory * 0.5 + p.backlog * 1 // 假设库存成本0.5, 缺货成本1
+                });
+            });
+
+            // 3. 处理发货产生的物流 (进入下周的 Incoming)
+            // 清理旧的已到货物流
+            gameState.shipments = state.shipments.filter(s => s.weeksLeft > 0);
+            gameState.shipments.forEach(s => s.weeksLeft--);
+
+            // 产生新物流
+            ROLES.forEach(role => {
+                const amount = shipmentsSent[role];
+                if (role === 'Factory') {
+                    // Factory 生产无限，发给 Distributor
+                    gameState.shipments.push({ to: 'Distributor', amount: amount, weeksLeft: 1 }); // 1周延迟
+                    // Factory 自己也需要进货(原材料)，假设无限且有延迟
+                    gameState.shipments.push({ to: 'Factory', amount: orders['Factory'], weeksLeft: 1 });
+                } else if (role !== 'Retailer') {
+                    // 发给下游
+                    const downstream = getDownstream(role);
+                    gameState.shipments.push({ to: downstream, amount: amount, weeksLeft: 1 });
+                } else {
+                    // Retailer 发给顾客 (消失)
+                }
+            });
+
+            // 4. 进入下一周
+            gameState.week++;
+            gameState.orderStatus = {}; // 重置提交状态
+
+            if (gameState.week > TOTAL_WEEKS) {
+                endGame();
+            } else {
+                broadcastState();
+                startTimer();
+            }
+        };
+
+        const getDownstream = (role) => {
+            const idx = ROLES.indexOf(role);
+            if (idx > 0) return ROLES[idx - 1];
+            return null; // Customer
+        };
+
+        const endGame = () => {
+            state.phase = 'ENDED';
+            conns.forEach(c => c.send({ type: 'GAME_OVER', state: gameState }));
+            nextTick(renderCharts);
+        };
+
+        // --- 辅助功能 ---
+        const canSee = (role) => {
+            if (gameState.isOpenInfo) return true;
+            if (role === myRole.value) return true;
+            return false;
+        };
+
+        const getIncomingDemand = (role) => {
+            if (state.phase !== 'PLAYING') return 0;
+            if (role === 'Retailer') return getDemand(gameState.week);
+            const down = getDownstream(role);
+            // 封闭模式下，你看不到下游这周具体的单子，直到结算？
+            // 经典玩法是：你收到一个信封。
+            // 简化：显示上周下游的订单作为参考，或者实时显示（如果是透明模式）
+            if (gameState.isOpenInfo) return gameState.players[down].lastOrder;
+            // 封闭模式：显示上周的
+            return gameState.players[down]?.lastOrder || 0;
+        };
+
+        // --- 图表 ---
+        const renderCharts = () => {
+            const ctxOrder = document.getElementById('orderChart');
+            const ctxCost = document.getElementById('costChart');
+            if (!ctxOrder || !ctxCost) return;
+
+            const weeks = Array.from({length: TOTAL_WEEKS}, (_, i) => i + 1);
+            const datasetsOrder = ROLES.map((role, i) => {
+                const color = ['#e74c3c', '#3498db', '#f1c40f', '#2ecc71'][i];
+                return {
+                    label: roleNames.value[role],
+                    data: gameState.players[role].history.map(h => h.order),
+                    borderColor: color,
+                    fill: false
+                };
+            });
+
+            // 增加 Demand 线
+            datasetsOrder.push({
+                label: '实际市场需求',
+                data: weeks.map(w => getDemand(w)),
+                borderColor: '#000',
+                borderDash: [5, 5],
+                fill: false
+            });
+
+            const datasetsCost = ROLES.map((role, i) => {
+                const color = ['#e74c3c', '#3498db', '#f1c40f', '#2ecc71'][i];
+                return {
+                    label: roleNames.value[role] + ' 累计成本',
+                    data: gameState.players[role].history.reduce((acc, curr, idx) => {
+                        const prev = idx > 0 ? acc[idx-1] : 0;
+                        acc.push(prev + curr.cost);
+                        return acc;
+                    }, []),
+                    borderColor: color,
+                    fill: false
+                };
+            });
+
+            new Chart(ctxOrder, {
+                type: 'line',
+                data: { labels: weeks, datasets: datasetsOrder },
+                options: { responsive: true, title: { display: true, text: '订货量变化 (牛鞭效应)' } }
+            });
+
+            new Chart(ctxCost, {
+                type: 'line',
+                data: { labels: weeks, datasets: datasetsCost },
+                options: { responsive: true, title: { display: true, text: '累计成本' } }
+            });
+        };
+        
+        const downloadData = () => {
+            let csv = "Week,Role,Inventory,Backlog,Order,Cost\n";
+            ROLES.forEach(role => {
+                gameState.players[role].history.forEach(h => {
+                    csv += `${h.week},${role},${h.inventory},${h.backlog},${h.order},${h.cost}\n`;
+                });
+            });
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `beergame_results_${roomCode.value}.csv`;
+            a.click();
+        };
+
+        return {
+            state, roomCode, myId, isHost, loading, error, playerList, myRole, timer, gameState,
+            inputOrder, hasSubmitted, myOrderVal, imDead,
+            rolesOrder, roleNames, connectedPlayers, myRoleLabel,
+            createRoom, joinRoom, startGame, submitOrder, reconnectControl, canSee, getIncomingDemand,
+            downloadData
+        };
+    }
+}).mount('#app');
+</script>
+</body>
+</html>
