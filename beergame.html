@@ -57,7 +57,7 @@
                     <span style="color: red">Backlog (Out of Stock): $1.00</span> / unit / week.
                 </li>
                 <li><strong>Delays (Lead Time):</strong>
-                    Orders take <strong>1 week</strong> to reach upstream.
+                    Orders reach upstream immediately.
                     Shipments take <strong>1 week</strong> to reach downstream.
                     (Total round-trip effect is approx. 2 weeks).
                 </li>
@@ -357,7 +357,7 @@ createApp({
             const shuffledRoles = [...ROLES].sort(() => 0.5 - Math.random());
             const playersMap = {};
             playerList.value.forEach((p, i) => { if (i < 4) p.role = shuffledRoles[i]; });
-        
+
             for (let i = 0; i < 4; i++) {
                 const role = shuffledRoles[i];
                 const player = playerList.value.find(p => p.role === role);
@@ -377,28 +377,7 @@ createApp({
             gameState.players = playersMap;
             gameState.week = 1;
             gameState.orderStatus = {};
-        
-            // --- FIX: Seed Initial Pipelines ---
-            // Seed shipments so players receive units in Week 1 and Week 2
-            gameState.shipments = [
-                { to: 'Retailer', amount: 4, weeksLeft: 0 },
-                { to: 'Wholesaler', amount: 4, weeksLeft: 0 },
-                { to: 'Distributor', amount: 4, weeksLeft: 0 },
-                { to: 'Factory', amount: 4, weeksLeft: 0 },
-                { to: 'Retailer', amount: 4, weeksLeft: 1 },
-                { to: 'Wholesaler', amount: 4, weeksLeft: 1 },
-                { to: 'Distributor', amount: 4, weeksLeft: 1 },
-                { to: 'Factory', amount: 4, weeksLeft: 1 }
-            ];
-        
-            // Seed "Pending Orders" so Upstream sees demand in Week 1
-            // We'll store these in a new state property: gameState.pendingOrders
-            gameState.pendingOrders = {
-                'Retailer': 4,
-                'Wholesaler': 4,
-                'Distributor': 4,
-                'Factory': 4
-            };
+            gameState.shipments = [];
             
             conns.forEach(c => {
                 const p = playerList.value.find(pl => pl.id === c.peer);
@@ -408,6 +387,7 @@ createApp({
             nextTick(updateLiveChart);
             startTimer();
         };
+
         const startTimer = () => {
             if (timerInterval) clearInterval(timerInterval);
             timer.value = ROUND_TIME;
@@ -467,102 +447,26 @@ createApp({
 
         const processRound = () => {
             const currentWeek = gameState.week;
-            const newOrdersPlacedThisWeek = {};
-        
-            // 1. Capture current week's decisions (what players want to order)
+            const orders = {};
+
             ROLES.forEach(role => {
                 const p = gameState.players[role];
                 let orderQty = 0;
                 
                 if (p.isBot) {
-                    // Simple Bot: Order enough to cover demand + backlog - safety stock
-                    const incomingDemand = role === 'Retailer' ? getDemand(currentWeek) : gameState.pendingOrders[getDownstream(role)];
-                    orderQty = Math.max(0, incomingDemand + p.backlog + (4 - p.inventory));
+                    const incomingDemand = role === 'Retailer' ? getDemand(currentWeek) : (gameState.players[getDownstream(role)]?.lastOrder || 4);
+                    let correction = 0;
+                    if (p.inventory < 4) correction = 2;
+                    if (p.backlog > 0) correction = p.backlog;
+                    orderQty = incomingDemand + correction;
                 } else {
-                    orderQty = (gameState.orderStatus[role] !== undefined) ? gameState.orderStatus[role] : p.lastOrder;
+                    if (gameState.orderStatus[role] !== undefined) orderQty = gameState.orderStatus[role];
+                    else orderQty = p.lastOrder;
                 }
-                newOrdersPlacedThisWeek[role] = orderQty;
+                orders[role] = orderQty;
+                p.lastOrder = orderQty;
             });
-        
-            // 2. Process physical fulfillment (Shipments and Inventory)
-            const shipmentsSentThisWeek = {}; 
-            ROLES.slice().reverse().forEach(role => {
-                const p = gameState.players[role];
-                
-                // Demand logic: Retailer sees External Demand; others see the DELAYED order from downstream
-                const downstream = getDownstream(role);
-                const currentDemand = (role === 'Retailer') ? getDemand(currentWeek) : gameState.pendingOrders[downstream];
-                
-                const totalToFulfill = currentDemand + p.backlog;
-                
-                // Get arrived shipments (weeksLeft === 0)
-                const arrived = gameState.shipments.find(s => s.to === role && s.weeksLeft === 0);
-                const arrivedQty = arrived ? arrived.amount : 0;
-                p.incomingShipment = arrivedQty;
-        
-                const available = p.inventory + arrivedQty;
-                
-                let shipped = 0;
-                if (available >= totalToFulfill) {
-                    shipped = totalToFulfill;
-                    p.inventory = available - totalToFulfill;
-                    p.backlog = 0;
-                } else {
-                    shipped = available;
-                    p.inventory = 0;
-                    p.backlog = totalToFulfill - available;
-                }
-                shipmentsSentThisWeek[role] = shipped;
-        
-                // Record history
-                p.history.push({
-                    week: currentWeek,
-                    inventory: p.inventory,
-                    backlog: p.backlog,
-                    order: newOrdersPlacedThisWeek[role],
-                    demand: currentDemand,
-                    cost: (p.inventory * 0.5) + (p.backlog * 1.0)
-                });
-                p.lastOrder = newOrdersPlacedThisWeek[role];
-            });
-        
-            // 3. Update Pipelines for next week
-            // A. Clear shipments that arrived this week
-            gameState.shipments = gameState.shipments.filter(s => s.weeksLeft > 0);
-            // B. Age shipments still in transit
-            gameState.shipments.forEach(s => s.weeksLeft--);
-        
-            // C. Add new shipments to the pipeline (1-week downstream delay)
-            ROLES.forEach(role => {
-                const amount = shipmentsSentThisWeek[role];
-                if (role === 'Factory') {
-                    gameState.shipments.push({ to: 'Distributor', amount: amount, weeksLeft: 1 });
-                    // Factory "production" creates its own shipment back to itself after delay
-                    gameState.shipments.push({ to: 'Factory', amount: newOrdersPlacedThisWeek['Factory'], weeksLeft: 1 });
-                } else if (role !== 'Retailer') {
-                    const down = getDownstream(role);
-                    gameState.shipments.push({ to: down, amount: amount, weeksLeft: 1 });
-                }
-            });
-        
-            // D. Update Order Pipeline (The "Mail" delay)
-            // The orders placed THIS week become the "pendingOrders" for NEXT week.
-            gameState.pendingOrders = { ...newOrdersPlacedThisWeek };
-        
-            // 4. Advance State
-            gameState.week++;
-            gameState.orderStatus = {};
-            hasSubmitted.value = false;
-            inputOrder.value = 0;
-        
-            if (gameState.week > TOTAL_WEEKS) {
-                endGame();
-            } else {
-                broadcastState();
-                nextTick(updateLiveChart);
-                startTimer();
-            }
-        };
+
             const shipmentsSent = {}; 
             ROLES.slice().reverse().forEach(role => {
                 const p = gameState.players[role];
@@ -791,8 +695,6 @@ createApp({
 </script>
 </body>
 </html>
-
-
 
 
 
