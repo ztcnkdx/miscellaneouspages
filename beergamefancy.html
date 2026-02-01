@@ -1,0 +1,847 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Beer Game P2P</title>
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root { 
+            --primary: #2c3e50; 
+            --accent: #2980b9; 
+            --danger: #c0392b; 
+            --success: #27ae60; 
+            --warning: #f39c12;
+            --bg: #ecf0f1; 
+            --panel-bg: #ffffff;
+            --retailer-color: #27ae60;
+            --wholesaler-color: #8e44ad;
+            --distributor-color: #d35400;
+            --factory-color: #c0392b;
+        }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: var(--bg); margin: 0; padding: 20px; color: var(--primary); }
+        .container { max-width: 1200px; margin: 0 auto; background: var(--panel-bg); padding: 25px; border-radius: 12px; box-shadow: 0 10px 20px rgba(0,0,0,0.1); }
+        
+        h1, h2, h3 { text-align: center; margin-bottom: 10px; }
+        .section-title { border-bottom: 2px solid var(--accent); padding-bottom: 10px; margin-bottom: 20px; color: var(--accent); }
+        
+        input, button, select { padding: 12px; margin: 5px; border-radius: 6px; border: 1px solid #bdc3c7; font-size: 14px; }
+        button { background: var(--accent); color: white; border: none; cursor: pointer; transition: 0.2s; font-weight: 600; }
+        button:hover { background: #3498db; transform: translateY(-1px); }
+        button:disabled { background: #95a5a6; cursor: not-allowed; transform: none; }
+        button.btn-sm { padding: 5px 10px; font-size: 12px; }
+
+        .supply-chain-container { display: flex; flex-direction: column; align-items: center; gap: 15px; margin-top: 30px; position: relative; }
+        .node-row { display: flex; align-items: center; justify-content: center; width: 100%; position: relative; z-index: 2; }
+
+        .role-card {
+            background: white; border: 2px solid #bdc3c7; border-radius: 15px; width: 650px; padding: 15px;
+            display: grid; grid-template-columns: 80px 1fr 100px; gap: 10px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05); transition: 0.3s; position: relative;
+        }
+        .role-card.active-role { border: 3px solid var(--accent); box-shadow: 0 0 15px rgba(41, 128, 185, 0.3); transform: scale(1.02); }
+        
+        .role-icon { display: flex; flex-direction: column; align-items: center; justify-content: center; font-weight: bold; color: white; border-radius: 10px; padding: 5px; }
+        .role-Retailer .role-icon { background: var(--retailer-color); }
+        .role-Wholesaler .role-icon { background: var(--wholesaler-color); }
+        .role-Distributor .role-icon { background: var(--distributor-color); }
+        .role-Factory .role-icon { background: var(--factory-color); }
+
+        .role-stats { display: flex; justify-content: space-between; align-items: center; font-size: 14px; }
+        .stat-box { text-align: center; flex: 1; border-right: 1px solid #eee; }
+        .stat-box:last-child { border-right: none; }
+        .stat-val { font-size: 18px; font-weight: bold; display: block; }
+        .backlog-val { color: var(--danger); }
+        .arriving-val { color: var(--success); }
+        
+        .role-actions { display: flex; flex-direction: column; justify-content: center; align-items: center; border-left: 1px solid #eee; padding-left: 10px; }
+        
+        .flow-arrow { width: 4px; height: 30px; background: #bdc3c7; margin: -5px 0; position: relative; z-index: 1; }
+        .flow-arrow::after { content: ''; position: absolute; left: -4px; border-left: 6px solid transparent; border-right: 6px solid transparent; }
+
+        .game-hud { display: grid; grid-template-columns: 1fr 1fr 1fr; background: var(--primary); color: white; padding: 15px; border-radius: 8px; margin-bottom: 20px; align-items: center; }
+        .ticker { background: black; color: var(--success); font-family: monospace; padding: 5px; grid-column: 1 / -1; margin-top: 10px; white-space: nowrap; overflow: hidden; }
+        .timer { font-size: 24px; font-weight: bold; color: var(--warning); text-align: center; }
+        .timer.urgent { color: var(--danger); animation: pulse 0.5s infinite; }
+
+        .shop-panel { background: #f9f9f9; padding: 15px; border: 1px solid #ddd; border-radius: 8px; margin-top: 10px; }
+        .shop-item { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #eee; padding: 8px 0; }
+        
+        .hidden-data { filter: blur(4px); user-select: none; opacity: 0.5; }
+
+        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
+        svg { width: 30px; height: 30px; fill: currentColor; }
+    </style>
+</head>
+<body>
+
+<div id="app" class="container">
+    <h1 style="display:flex; align-items:center; justify-content:center; gap:10px;">
+        <svg viewBox="0 0 24 24"><path d="M2,19C2,20.66 3.34,22 5,22H15C16.66,22 18,20.66 18,19V11H2V19M18,9H16V5C16,3.34 14.66,2 13,2H9C7.34,2 6,3.34 6,5V9H2V21H20C21.1,21 22,20.1 22,19V11C22,9.89 21.1,9 20,9H18Z" fill="#f39c12"/></svg>
+        Beer Game P2P
+    </h1>
+
+    <div v-if="state.phase === 'LOBBY'">
+        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:20px;">
+            <div class="instructions">
+                <h3 class="section-title">Game Rules & Operational Manual</h3>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; font-size: 13px; text-align: left;">
+                    <div>
+                        <h4>Core Objective</h4>
+                        <p>Minimize your <strong>Total Cumulative Cost</strong> over 25 weeks. The team with the lowest total supply chain cost wins.</p>
+
+                        <h4>Standard Operating Costs</h4>
+                        <ul>
+                            <li><span style="color: green">Holding Inventory:</span> <strong>$0.50</strong> per unit / week.</li>
+                            <li><span style="color: red">Backlog (Out of Stock):</span> <strong>$1.00</strong> per unit / week.</li>
+                        </ul>
+
+                        <h4>Supply Chain Physics</h4>
+                        <ul>
+                            <li><strong>Flow:</strong> Factory ➜ Distributor ➜ Wholesaler ➜ Retailer ➜ Customer.</li>
+                            <li><strong>Orders:</strong> Transmitted upstream immediately (0 delay).</li>
+                            <li><strong>Shipments:</strong> Standard transit time is <strong>1 week</strong> (arrive next turn).</li>
+                            <li><strong>Progression:</strong> The week advances <strong>immediately</strong> once all human players have submitted their orders.</li>
+                        </ul>
+                    </div>
+
+                    <div>
+                        <h4>Strategic Services (The Shop)</h4>
+                        <p>Spend money to save money. Services are added to your weekly cost.</p>
+                        <ul>
+                            <li><strong>Expedite Shipping ($50):</strong> Reduces lead time to <strong>0 weeks</strong>. Incoming shipments arrive <em>this current week</em>. One-time use.</li>
+                            <li><strong>Demand Forecast ($75):</strong> Reveals the exact <strong>Customer Demand</strong> for the next 5 weeks.</li>
+                            <li><strong>Neighbor Visibility ($50):</strong> Reveals Inventory/Backlog of your direct Supplier and Customer for 5 weeks.</li>
+                            <li><strong>Global Visibility ($150):</strong> Reveals real-time data for the <strong>entire</strong> supply chain for 5 weeks.</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            <div>
+                <h3 class="section-title">Join / Create</h3>
+                <div style="margin-bottom:15px;">
+                    <label>Alias:</label>
+                    <input v-model="myAlias" placeholder="Player Name" style="width: 90%;">
+                </div>
+                <div style="margin-bottom:15px;">
+                    <label>Room Code:</label>
+                    <input v-model="roomCode" placeholder="Code (e.g. ROOM1)" @keyup.enter="joinRoom" style="width: 90%; text-transform: uppercase;">
+                </div>
+                <div style="margin-top: 10px; background: #eee; padding: 10px; border-radius: 6px;">
+                    <label style="display:flex; align-items:center; gap:10px; cursor:pointer;">
+                        <input type="checkbox" v-model="settings.competitorMode">
+                        <strong>Competitor Mode</strong> (Retailer loses sales on backlog)
+                    </label>
+                </div>
+                <div style="margin-top: 20px;">
+                    <button @click="createRoom" :disabled="loading || !myAlias">Create Host</button>
+                    <button @click="joinRoom" :disabled="loading || !myAlias">Join Game</button>
+                </div>
+                <p v-if="loading" style="color:var(--accent)">Connecting...</p>
+                <p v-if="error" style="color:var(--danger)">{{ error }}</p>
+            </div>
+        </div>
+    </div>
+
+    <div v-if="state.phase === 'WAITING'">
+        <h3 class="section-title">Lobby: {{ roomCode }}</h3>
+        <p>Connected: {{ playerList.length }} / 4</p>
+        <div style="display:flex; gap:10px; flex-wrap:wrap; justify-content:center;">
+            <div v-for="p in playerList" :key="p.id" style="background:white; padding:10px 20px; border-radius:20px; border:1px solid #ccc;">
+                <strong>{{ p.alias }}</strong> <span v-if="p.role">({{ roleNames[p.role] }})</span>
+            </div>
+        </div>
+        <div v-if="isHost" style="margin-top:30px; text-align:center;">
+            <button @click="startGame" class="btn-success">Start Simulation</button>
+        </div>
+        <div v-else style="margin-top:30px; text-align:center;">
+            <p>Waiting for host...</p>
+        </div>
+    </div>
+
+    <div v-if="state.phase === 'PLAYING' || state.phase === 'ENDED'">
+        
+        <div class="game-hud">
+            <div>
+                <div style="font-size:12px; opacity:0.8;">WEEK</div>
+                <div style="font-size:24px; font-weight:bold;">{{ gameState.week }} / {{ TOTAL_WEEKS }}</div>
+            </div>
+            <div class="timer" :class="{urgent: timer < 10}">
+                <span v-if="state.phase === 'PLAYING'">{{ timer }}s</span>
+                <span v-else>DONE</span>
+            </div>
+            <div style="text-align:right;">
+                <div style="font-size:12px; opacity:0.8;">MY ROLE</div>
+                <div style="font-size:18px; font-weight:bold;">{{ myRole ? roleNames[myRole] : 'Spectator' }}</div>
+            </div>
+            <div class="ticker">
+                <span v-if="activeEventNames.length > 0">⚠ ALERT: {{ activeEventNames.join(' | ') }} ⚠</span>
+                <span v-else>✔ Normal Operations</span>
+            </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 20px;">
+            
+            <div class="supply-chain-container">
+                <div v-for="(role, index) in rolesOrder" :key="role" style="width: 100%; display:flex; flex-direction:column; align-items:center;">
+                    <div v-if="index > 0" class="flow-arrow"></div>
+                    <div class="role-card" :class="['role-' + role, { 'active-role': role === myRole }]">
+                        
+                        <div class="role-icon">
+                            <span style="font-size:20px;">📦</span>
+                            <span style="font-size:11px; margin-top:5px;">{{ roleNames[role] }}</span>
+                            <span style="font-size:10px; font-weight:normal;">{{ getPlayerAlias(role) }}</span>
+                        </div>
+
+                        <div class="role-stats" :class="{ 'hidden-data': !canSee(role) }">
+                            <div class="stat-box">
+                                <span class="stat-val" style="color:var(--primary)">{{ gameState.players[role].inventory }}</span>
+                                <span style="font-size:10px; text-transform:uppercase; color:#7f8c8d;">Inv</span>
+                            </div>
+                            <div class="stat-box">
+                                <span class="stat-val backlog-val">{{ gameState.players[role].backlog }}</span>
+                                <span style="font-size:10px; text-transform:uppercase; color:#7f8c8d;">Backlog</span>
+                            </div>
+                             <div class="stat-box">
+                                <span class="stat-val arriving-val">{{ getArrivingNext(role) }}</span>
+                                <span style="font-size:10px; text-transform:uppercase; color:#7f8c8d;">Arriving</span>
+                            </div>
+                            <div class="stat-box">
+                                <span class="stat-val" style="color:var(--accent)">{{ gameState.players[role].lastOrder }}</span>
+                                <span style="font-size:10px; text-transform:uppercase; color:#7f8c8d;">Order</span>
+                            </div>
+                            <div class="stat-box" style="border-left:1px solid #eee; padding-left:10px;">
+                                <span class="stat-val">{{ getIncomingDemand(role) }}</span>
+                                <span style="font-size:10px; text-transform:uppercase; color:#7f8c8d;">Demand</span>
+                            </div>
+                        </div>
+
+                        <div class="role-actions">
+                            <div v-if="gameState.orderStatus[role] !== undefined">
+                                <span style="font-size:24px; color:var(--success);">✔</span>
+                            </div>
+                            <div v-else>
+                                <span style="font-size:24px; color:#bdc3c7;">⏳</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="flow-arrow"></div>
+                <div style="background: var(--primary); color:white; padding:5px 20px; border-radius:15px; font-size:12px;">End Customer</div>
+            </div>
+
+            <div>
+                <div v-if="state.phase === 'PLAYING' && !imDead" class="role-card" style="width:100%; display:block; text-align:center;">
+                    <div v-if="isProcessing">
+                        <h4 style="color:var(--accent);">Moving to Next Week...</h4>
+                    </div>
+                    <div v-else-if="hasSubmitted">
+                        <h4 style="color:var(--success);">Order Submitted: {{ myOrderVal }}</h4>
+                        <p style="font-size:12px; color:#7f8c8d;">Waiting for others...</p>
+                    </div>
+                    <div v-else>
+                        <h4>Place Order</h4>
+                        <div style="display:flex; justify-content:center; gap:5px;">
+                            <input type="number" v-model.number="inputOrder" min="0" placeholder="Qty" style="width:80px; text-align:center;">
+                            <button @click="submitOrder">Send</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div v-if="imDead" class="role-card" style="width:100%; display:block; border-color:var(--danger); text-align:center;">
+                    <h4 style="color:var(--danger)">Connection Lost</h4>
+                    <button @click="reconnectControl">Reconnect</button>
+                </div>
+
+                <div v-if="state.phase === 'PLAYING'" class="shop-panel">
+                    <h4>🛒 Intelligence Shop</h4>
+                    <div style="font-size:12px; margin-bottom:10px;">Costs are added to your weekly total.</div>
+                    
+                    <div class="shop-item">
+                        <div>
+                            <strong>Expedite Shipment</strong><br>
+                            <span style="font-size:10px; color:#7f8c8d;">Instant Delivery (0 Weeks) ($50)</span>
+                        </div>
+                        <button class="btn-sm" @click="buyService('EXPEDITE')" :disabled="hasExpedited">Buy</button>
+                    </div>
+                    <div class="shop-item">
+                        <div>
+                            <strong>Forecast</strong><br>
+                            <span style="font-size:10px; color:#7f8c8d;">See True Customer Demand (5wks) ($75)</span>
+                        </div>
+                        <button class="btn-sm" @click="buyService('INFO_DEMAND')">Buy</button>
+                    </div>
+                    <div class="shop-item">
+                        <div>
+                            <strong>Neighbor Info</strong><br>
+                            <span style="font-size:10px; color:#7f8c8d;">See Up/Down Stream (5wks) ($50)</span>
+                        </div>
+                        <button class="btn-sm" @click="buyService('INFO_NEIGHBOR')">Buy</button>
+                    </div>
+                    <div class="shop-item">
+                        <div>
+                            <strong>Global Info</strong><br>
+                            <span style="font-size:10px; color:#7f8c8d;">See All Roles (5wks) ($150)</span>
+                        </div>
+                        <button class="btn-sm" @click="buyService('INFO_FULL')">Buy</button>
+                    </div>
+                </div>
+
+                <div style="background:white; padding:10px; border-radius:8px; margin-top:20px; height:300px;">
+                    <canvas id="liveChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <div v-if="state.phase === 'ENDED'" style="margin-top:40px; text-align:center;">
+            <div style="background: var(--primary); color:white; padding:20px; border-radius:8px; margin-bottom:20px;">
+                <h2>Total Supply Chain Cost</h2>
+                <div style="font-size:48px; font-weight:bold; color:var(--warning)">
+                    ${{ totalChainCost.toLocaleString() }}
+                </div>
+            </div>
+            
+            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:20px;">
+                <div style="background:white; padding:10px; border-radius:8px;">
+                    <canvas id="orderChart"></canvas>
+                </div>
+                <div style="background:white; padding:10px; border-radius:8px;">
+                    <canvas id="costChart"></canvas>
+                </div>
+            </div>
+            <button @click="downloadData" style="margin-top:20px;">Download CSV</button>
+        </div>
+    </div>
+</div>
+
+<script>
+const { createApp, reactive, ref, computed, nextTick, watch } = Vue;
+
+const ROLES = ['Factory', 'Distributor', 'Wholesaler', 'Retailer']; 
+const ROLE_NAMES = { 'Retailer': 'Retailer', 'Wholesaler': 'Wholesaler', 'Distributor': 'Distributor', 'Factory': 'Factory' };
+const INITIAL_INV = 12;
+const ROUND_TIME = 45; 
+const TOTAL_WEEKS = 25; 
+
+// SEEDED RANDOM
+function mulberry32(a) {
+    return function() {
+      var t = a += 0x6D2B79F5;
+      t = Math.imul(t ^ (t >>> 15), t | 1);
+      t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    }
+}
+function cyrb128(str) {
+    let h1 = 1779033703, h2 = 3144134277, h3 = 1013904242, h4 = 2773480762;
+    for (let i = 0, k; i < str.length; i++) {
+        k = str.charCodeAt(i);
+        h1 = h2 ^ Math.imul(h1 ^ k, 597399067); h2 = h3 ^ Math.imul(h2 ^ k, 2869860233);
+        h3 = h4 ^ Math.imul(h3 ^ k, 951274213); h4 = h1 ^ Math.imul(h4 ^ k, 2716044179);
+    }
+    h1 = Math.imul(h3 ^ (h1 >>> 18), 597399067); h2 = Math.imul(h4 ^ (h2 >>> 22), 2869860233);
+    h3 = Math.imul(h1 ^ (h3 >>> 17), 951274213); h4 = Math.imul(h2 ^ (h4 >>> 19), 2716044179);
+    return (h1^h2^h3^h4)>>>0;
+}
+
+createApp({
+    setup() {
+        const state = reactive({ phase: 'LOBBY' });
+        const roomCode = ref('');
+        const myAlias = ref('');
+        const myId = ref('');
+        const isHost = ref(false);
+        const loading = ref(false);
+        const error = ref('');
+        const playerList = ref([]); 
+        const myRole = ref('');
+        const timer = ref(ROUND_TIME);
+        const isProcessing = ref(false);
+        const settings = reactive({ competitorMode: false });
+
+        let rng = Math.random;
+
+        const gameState = reactive({
+            week: 1,
+            activeEvents: [],
+            players: {}, 
+            shipments: [], 
+            orderStatus: {},
+            trueCustomerDemand: 0 // Global truth for the week
+        });
+
+        const inputOrder = ref(0);
+        const hasSubmitted = ref(false);
+        const myOrderVal = ref(0);
+        const imDead = ref(false);
+        const hasExpedited = ref(false);
+
+        let peer = null;
+        let conns = [];
+        let hostConn = null;
+        let timerInterval = null;
+        let liveChartInstance = null;
+
+        const rolesOrder = computed(() => ROLES);
+        const roleNames = computed(() => ROLE_NAMES);
+        const activeEventNames = computed(() => gameState.activeEvents.map(e => e.name));
+        const totalChainCost = computed(() => {
+            let sum = 0;
+            ROLES.forEach(r => { if(gameState.players[r]) gameState.players[r].history.forEach(h => sum += h.totalWeekCost); });
+            return sum;
+        });
+
+        /* --- UI Reset Logic --- */
+        watch(() => gameState.week, (newVal, oldVal) => {
+            if (newVal > oldVal) {
+                console.log("Week advanced, resetting UI.");
+                hasSubmitted.value = false;
+                hasExpedited.value = false;
+                inputOrder.value = 0;
+            }
+        });
+
+        const initPeer = (id) => new Promise((resolve, reject) => {
+            const p = new Peer(id);
+            p.on('open', (id) => resolve(p));
+            p.on('error', (err) => reject(err));
+        });
+
+        const createRoom = async () => {
+            if (!roomCode.value || !myAlias.value) return;
+            loading.value = true;
+            try {
+                const roomId = `bg-v21-${roomCode.value.toUpperCase()}`;
+                peer = await initPeer(roomId);
+                myId.value = roomId;
+                isHost.value = true;
+                state.phase = 'WAITING';
+                playerList.value.push({ id: 'HOST', role: null, alias: myAlias.value });
+                peer.on('connection', handleHostConnection);
+                const seed = cyrb128(roomCode.value.toUpperCase());
+                rng = mulberry32(seed);
+            } catch (err) { error.value = "Room code taken/Error."; console.error(err); } 
+            finally { loading.value = false; }
+        };
+
+        const joinRoom = async () => {
+            if (!roomCode.value || !myAlias.value) return;
+            loading.value = true;
+            try {
+                const clientId = 'bg-player-' + Math.random().toString(36).substr(2, 9);
+                peer = await initPeer(clientId);
+                myId.value = clientId;
+                hostConn = peer.connect(`bg-v21-${roomCode.value.toUpperCase()}`);
+                hostConn.on('open', () => {
+                    isHost.value = false;
+                    state.phase = 'WAITING';
+                    hostConn.send({ type: 'JOIN', alias: myAlias.value });
+                });
+                hostConn.on('data', handleClientData);
+                hostConn.on('close', () => { error.value = "Disconnected"; imDead.value = true; });
+            } catch (err) { error.value = "Could not connect."; } 
+            finally { loading.value = false; }
+        };
+
+        const handleHostConnection = (conn) => {
+            conns.push(conn);
+            conn.on('data', (data) => {
+                if (data.type === 'JOIN') {
+                    if (state.phase === 'WAITING') {
+                        playerList.value.push({ id: conn.peer, role: null, alias: data.alias });
+                        broadcastLobby();
+                    }
+                }
+                else if (data.type === 'ORDER') handleOrderReceived(data.role, data.amount);
+                else if (data.type === 'BUY_SERVICE') handleServiceBuy(data.role, data.service);
+                else if (data.type === 'RECLAIM') { /* Reconnect Logic */ }
+            });
+            conn.on('close', () => {
+                const idx = playerList.value.findIndex(p => p.id === conn.peer);
+                if (idx !== -1 && state.phase === 'WAITING') {
+                    playerList.value.splice(idx, 1);
+                    broadcastLobby();
+                } else if (state.phase === 'PLAYING') {
+                    for (let r in gameState.players) { if (gameState.players[r].id === conn.peer) gameState.players[r].isBot = true; }
+                    checkRoundCompletion();
+                }
+            });
+        };
+
+        const handleClientData = (data) => {
+            if (data.type === 'LOBBY_UPDATE') {
+                playerList.value = data.players;
+                settings.competitorMode = data.settings.competitorMode;
+            } else if (data.type === 'GAME_START') {
+                myRole.value = data.role;
+                Object.assign(gameState, data.state);
+                state.phase = 'PLAYING';
+                nextTick(updateLiveChart);
+            } else if (data.type === 'STATE_UPDATE') {
+                Object.assign(gameState, data.state);
+                isProcessing.value = false;
+                nextTick(updateLiveChart);
+            } else if (data.type === 'TIMER_UPDATE') {
+                timer.value = data.time;
+            } else if (data.type === 'GAME_OVER') {
+                Object.assign(gameState, data.state);
+                state.phase = 'ENDED';
+                nextTick(renderEndCharts);
+            }
+        };
+
+        const broadcastLobby = () => conns.forEach(c => c.send({ type: 'LOBBY_UPDATE', players: playerList.value, settings: settings }));
+        const broadcastState = () => conns.forEach(c => c.send({ type: 'STATE_UPDATE', state: gameState }));
+
+        const startGame = () => {
+            const shuffledRoles = [...ROLES].reverse().sort(() => 0.5 - Math.random());
+            const playersMap = {};
+            playerList.value.forEach((p, i) => { if (i < 4) p.role = shuffledRoles[i]; });
+
+            ROLES.forEach(role => {
+                const player = playerList.value.find(p => p.role === role);
+                playersMap[role] = {
+                    id: player ? player.id : 'BOT',
+                    isBot: !player,
+                    alias: player ? player.alias : 'AI Bot',
+                    role: role,
+                    inventory: INITIAL_INV,
+                    backlog: 0,
+                    lastOrder: 4,
+                    incomingShipment: 0,
+                    subscriptions: [],
+                    servicesCost: 0, 
+                    lostSalesCost: 0,
+                    history: []
+                };
+                if (player && player.id === 'HOST') myRole.value = role;
+            });
+            
+            gameState.players = playersMap;
+            gameState.week = 1;
+            
+            conns.forEach(c => {
+                const p = playerList.value.find(pl => pl.id === c.peer);
+                if (p && p.role) c.send({ type: 'GAME_START', role: p.role, state: gameState });
+            });
+            state.phase = 'PLAYING';
+            nextTick(updateLiveChart);
+            startTimer();
+        };
+
+        const startTimer = () => {
+            if (timerInterval) clearInterval(timerInterval);
+            timer.value = ROUND_TIME;
+            
+            timerInterval = setInterval(() => {
+                timer.value--;
+                if (isHost.value) conns.forEach(c => c.send({ type: 'TIMER_UPDATE', time: timer.value }));
+                if (timer.value <= 0) {
+                    clearInterval(timerInterval);
+                    if (isHost.value) processRound();
+                }
+            }, 1000);
+        };
+
+        const submitOrder = () => {
+            if (inputOrder.value < 0 || inputOrder.value === '') return;
+            hasSubmitted.value = true;
+            myOrderVal.value = inputOrder.value;
+            if (isHost.value) handleOrderReceived(myRole.value, inputOrder.value);
+            else hostConn.send({ type: 'ORDER', role: myRole.value, amount: inputOrder.value });
+        };
+
+        const buyService = (serviceType) => {
+            if (isHost.value) handleServiceBuy(myRole.value, serviceType);
+            else hostConn.send({ type: 'BUY_SERVICE', role: myRole.value, service: serviceType });
+        };
+
+        const handleOrderReceived = (role, amount) => {
+            if (!isHost.value) return;
+            gameState.orderStatus[role] = amount;
+            broadcastState();
+            checkRoundCompletion();
+        };
+
+        const handleServiceBuy = (role, service) => {
+            const p = gameState.players[role];
+            if (service === 'EXPEDITE') {
+                gameState.shipments.forEach(s => { if (s.to === role && s.weeksLeft > 0) s.weeksLeft = 0; });
+                p.servicesCost += 50;
+            } else if (service === 'INFO_DEMAND') {
+                p.subscriptions.push({ type: 'INFO_DEMAND', weeksLeft: 5 });
+                p.servicesCost += 75;
+            } else if (service === 'INFO_NEIGHBOR') {
+                p.subscriptions.push({ type: 'INFO_NEIGHBOR', weeksLeft: 5 });
+                p.servicesCost += 50;
+            } else if (service === 'INFO_FULL') {
+                p.subscriptions.push({ type: 'INFO_FULL', weeksLeft: 5 });
+                p.servicesCost += 150;
+            }
+            if(role === myRole.value && service === 'EXPEDITE') hasExpedited.value = true;
+            broadcastState();
+        };
+
+        const checkRoundCompletion = () => {
+            const allHumansDone = ROLES.every(r => {
+                const p = gameState.players[r];
+                return p.isBot || gameState.orderStatus[r] !== undefined;
+            });
+            if (allHumansDone && !isProcessing.value) {
+                isProcessing.value = true;
+                clearInterval(timerInterval); 
+                setTimeout(() => { processRound(); }, 500); 
+            }
+        };
+
+        const processRound = () => {
+            const roll = rng();
+            gameState.activeEvents = [];
+            let demandMult = 1.0; let prodCap = 9999; let costMult = 1.0;
+
+            if (roll < 0.05) gameState.activeEvents.push({ name: "Viral Trend (Demand x3)", type: 'DEMAND', val: 3 });
+            else if (roll < 0.10) gameState.activeEvents.push({ name: "Market Crash (No Demand)", type: 'DEMAND', val: 0 });
+            else if (roll < 0.15) gameState.activeEvents.push({ name: "Factory Fire", type: 'PROD', val: 0 });
+            else if (roll < 0.25) gameState.activeEvents.push({ name: "Inflation (Cost x2)", type: 'COST', val: 2 });
+
+            gameState.activeEvents.forEach(e => {
+                if (e.type === 'DEMAND') demandMult = e.val;
+                if (e.type === 'PROD') prodCap = e.val;
+                if (e.type === 'COST') costMult = e.val;
+            });
+
+            let baseDemand = gameState.week <= 4 ? 4 : 8;
+            let actualDemand = Math.floor(baseDemand * demandMult);
+            gameState.trueCustomerDemand = actualDemand; 
+
+            const orders = {};
+            ROLES.forEach(role => {
+                const p = gameState.players[role];
+                let orderQty = 0;
+                let incoming = role === 'Retailer' ? actualDemand : gameState.players[ROLES[ROLES.indexOf(role)+1]].lastOrder;
+
+                if (p.isBot) {
+                    orderQty = incoming; 
+                    if (p.inventory < 4) orderQty += 2;
+                    if (p.backlog > 0) orderQty += p.backlog;
+                } else {
+                    orderQty = gameState.orderStatus[role] !== undefined ? gameState.orderStatus[role] : p.lastOrder;
+                }
+                orders[role] = orderQty;
+                p.lastOrder = orderQty;
+            });
+
+            const shipmentsSent = {};
+            ROLES.forEach(role => {
+                const p = gameState.players[role];
+                let demand = role === 'Retailer' ? actualDemand : gameState.players[ROLES[ROLES.indexOf(role)+1]].lastOrder;
+                const totalDemand = demand + p.backlog;
+
+                if (role === 'Factory') {
+                    const prod = Math.min(orders['Factory'], prodCap);
+                    gameState.shipments.push({ to: 'Factory', amount: prod, weeksLeft: 1 });
+                }
+
+                const arriving = gameState.shipments.filter(s => s.to === role && s.weeksLeft <= 0);
+                const arrivedQty = arriving.reduce((sum, s) => sum + s.amount, 0);
+                
+                p.incomingShipment = arrivedQty;
+                p.inventory += arrivedQty;
+
+                let shipped = 0;
+                if (p.inventory >= totalDemand) {
+                    shipped = totalDemand;
+                    p.inventory -= totalDemand;
+                    p.backlog = 0;
+                } else {
+                    shipped = p.inventory;
+                    p.inventory = 0;
+                    p.backlog = totalDemand - shipped;
+                }
+                shipmentsSent[role] = shipped;
+
+                if (settings.competitorMode && role === 'Retailer' && p.backlog > 0) {
+                    const lost = Math.ceil(p.backlog * 0.5);
+                    p.backlog -= lost;
+                    p.lostSalesCost += (lost * 2.0);
+                }
+
+                const holdCost = p.inventory * 0.5 * costMult;
+                const backCost = p.backlog * 1.0;
+                const totalWk = holdCost + backCost + p.servicesCost + p.lostSalesCost;
+
+                p.history.push({
+                    week: gameState.week,
+                    inventory: p.inventory, backlog: p.backlog, order: orders[role],
+                    costInv: holdCost, costBack: backCost, costService: p.servicesCost, costLost: p.lostSalesCost,
+                    totalWeekCost: totalWk
+                });
+
+                p.servicesCost = 0; 
+                p.lostSalesCost = 0;
+                p.subscriptions.forEach(s => s.weeksLeft--);
+                p.subscriptions = p.subscriptions.filter(s => s.weeksLeft > 0);
+            });
+
+            gameState.shipments = gameState.shipments.filter(s => s.weeksLeft > 0);
+            gameState.shipments.forEach(s => s.weeksLeft--);
+            ROLES.forEach(role => {
+                if (role !== 'Retailer') {
+                    const downstream = ROLES[ROLES.indexOf(role) + 1];
+                    gameState.shipments.push({ to: downstream, amount: shipmentsSent[role], weeksLeft: 1 });
+                }
+            });
+
+            gameState.week++;
+            gameState.orderStatus = {};
+            isProcessing.value = false;
+
+            if (gameState.week > TOTAL_WEEKS) endGame();
+            else {
+                broadcastState();
+                nextTick(updateLiveChart);
+                startTimer();
+            }
+        };
+
+        const endGame = () => {
+            state.phase = 'ENDED';
+            conns.forEach(c => c.send({ type: 'GAME_OVER', state: gameState }));
+            nextTick(renderEndCharts);
+        };
+
+        const reconnectControl = () => {
+             imDead.value = false;
+             if (!isHost.value) hostConn.send({ type: 'RECLAIM', role: myRole.value });
+        };
+
+        const canSee = (targetRole) => {
+            if (state.phase === 'ENDED') return true;
+            if (targetRole === myRole.value) return true;
+            const me = gameState.players[myRole.value];
+            if (!me) return false;
+            
+            if (me.subscriptions.some(s => s.type === 'INFO_FULL')) return true;
+            
+            if (me.subscriptions.some(s => s.type === 'INFO_NEIGHBOR')) {
+                const myIdx = ROLES.indexOf(myRole.value);
+                const targetIdx = ROLES.indexOf(targetRole);
+                if (Math.abs(myIdx - targetIdx) === 1) return true;
+            }
+            return false;
+        };
+
+        const getIncomingDemand = (role) => {
+            if (state.phase !== 'PLAYING') return 0;
+            if (role === 'Retailer') {
+                const me = gameState.players[myRole.value];
+                if (me && me.subscriptions.some(s => s.type === 'INFO_DEMAND')) {
+                    return gameState.trueCustomerDemand;
+                }
+                return '???';
+            }
+            const downIndex = ROLES.indexOf(role) + 1;
+            if (downIndex >= ROLES.length) return 0;
+            const downRole = ROLES[downIndex];
+            
+            if (canSee(role) || canSee(downRole)) {
+                return gameState.players[downRole].lastOrder;
+            }
+            return '???';
+        };
+
+        // NEW HELPER: Calculate what arrives NEXT week
+        const getArrivingNext = (role) => {
+            if (state.phase !== 'PLAYING') return 0;
+            if (!canSee(role)) return '???';
+            
+            // Sum all shipments to this role that have weeksLeft == 1
+            // (weeksLeft=1 means they arrive next week).
+            // Also if expedited, weeksLeft becomes 0 and arrives immediately, but here we show what is PENDING arrival for T+1.
+            return gameState.shipments
+                .filter(s => s.to === role && s.weeksLeft === 1)
+                .reduce((sum, s) => sum + s.amount, 0);
+        };
+
+        const getPlayerAlias = (role) => gameState.players[role]?.alias || 'Bot';
+
+        const updateLiveChart = () => {
+            const ctx = document.getElementById('liveChart');
+            if (!ctx || !myRole.value) return;
+            const myData = gameState.players[myRole.value].history;
+            const labels = myData.map(h => 'W' + h.week);
+            if (liveChartInstance) liveChartInstance.destroy();
+            liveChartInstance = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        { label: 'Inv', data: myData.map(h => h.inventory), borderColor: '#2ecc71', tension: 0.1 },
+                        { label: 'Back', data: myData.map(h => h.backlog), borderColor: '#c0392b', tension: 0.1 },
+                        { label: 'Cost', data: myData.map(h => h.totalWeekCost), borderColor: '#f1c40f', borderDash: [2,2] }
+                    ]
+                },
+                options: { responsive: true, maintainAspectRatio: false, plugins: { title: { display: true, text: `Stats: ${ROLE_NAMES[myRole.value]}` } } }
+            });
+        };
+
+        const renderEndCharts = () => {
+            const ctxOrder = document.getElementById('orderChart');
+            const ctxCost = document.getElementById('costChart');
+            if (!ctxOrder || !ctxCost) return;
+            const weeks = Array.from({length: TOTAL_WEEKS}, (_, i) => i + 1);
+            
+            const datasetsOrder = ROLES.map((role, i) => ({
+                label: roleNames.value[role],
+                data: gameState.players[role].history.map(h => h.order),
+                borderColor: ['#c0392b', '#d35400', '#8e44ad', '#27ae60'][i], fill: false
+            }));
+
+            new Chart(ctxOrder, {
+                type: 'line', data: { labels: weeks, datasets: datasetsOrder },
+                options: { plugins: { title: { display: true, text: 'Bullwhip Effect (Orders)' } } }
+            });
+
+            const datasetsCost = ROLES.map((role, i) => ({
+                label: roleNames.value[role],
+                data: gameState.players[role].history.reduce((acc, curr, idx) => {
+                    const prev = idx > 0 ? acc[idx-1] : 0;
+                    acc.push(prev + curr.totalWeekCost);
+                    return acc;
+                }, []),
+                borderColor: ['#c0392b', '#d35400', '#8e44ad', '#27ae60'][i], fill: false
+            }));
+
+            new Chart(ctxCost, {
+                type: 'line', data: { labels: weeks, datasets: datasetsCost },
+                options: { plugins: { title: { display: true, text: 'Cumulative Costs' } } }
+            });
+        };
+
+        const downloadData = () => {
+            let csv = "Week,Role,Inventory,Backlog,Order,InvCost,BackCost,ServiceCost,LostSalesCost,TotalCost\n";
+            ROLES.forEach(role => {
+                gameState.players[role].history.forEach(h => {
+                    csv += `${h.week},${role},${h.inventory},${h.backlog},${h.order},${h.costInv},${h.costBack},${h.costService},${h.costLost},${h.totalWeekCost}\n`;
+                });
+            });
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url; a.download = `beergame_v23_${roomCode.value}.csv`; a.click();
+        };
+
+        return {
+            state, roomCode, myAlias, myId, isHost, loading, error, playerList, myRole, timer, gameState,
+            inputOrder, hasSubmitted, myOrderVal, imDead, settings,
+            rolesOrder, roleNames, totalChainCost, activeEventNames, hasExpedited, TOTAL_WEEKS,
+            createRoom, joinRoom, startGame, submitOrder, reconnectControl, canSee, getIncomingDemand,
+            getArrivingNext, getPlayerAlias, buyService, downloadData
+        };
+    }
+}).mount('#app');
+</script>
+</body>
+</html>
