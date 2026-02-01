@@ -113,7 +113,7 @@
                         <ul>
                             <li><strong>Expedite Shipping ($50):</strong> Reduces lead time to <strong>0 weeks</strong>. Incoming shipments arrive <em>this current week</em>. One-time use.</li>
                             <li><strong>Demand Forecast ($75):</strong> Reveals the exact <strong>Customer Demand</strong> for the next 5 weeks.</li>
-                            <li><strong>Neighbor Visibility ($50):</strong> Reveals Inventory/Backlog of your direct Supplier and Customer for 5 weeks.</li>
+                            <li><strong>Neighbor Visibility ($100):</strong> Reveals Inventory/Backlog of your direct Supplier and Customer for 5 weeks.</li>
                             <li><strong>Global Visibility ($150):</strong> Reveals real-time data for the <strong>entire</strong> supply chain for 5 weeks.</li>
                         </ul>
                     </div>
@@ -575,7 +575,7 @@ createApp({
                 p.servicesCost += 75;
             } else if (service === 'INFO_NEIGHBOR') {
                 p.subscriptions.push({ type: 'INFO_NEIGHBOR', weeksLeft: 5 });
-                p.servicesCost += 50;
+                p.servicesCost += 100;
             } else if (service === 'INFO_FULL') {
                 p.subscriptions.push({ type: 'INFO_FULL', weeksLeft: 5 });
                 p.servicesCost += 150;
@@ -848,5 +848,6 @@ createApp({
 </script>
 </body>
 </html>
+
 
 
