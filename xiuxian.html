@@ -1,0 +1,1867 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>道途无悔：万世轮回 (飞升版)</title>
+    <style>
+        :root {
+            --bg-color: #121212;
+            --text-color: #e0e0e0;
+            --accent-color: #a7c957;
+            --highlight-color: #f2e8cf;
+            --danger-color: #bc4749;
+            --panel-bg: #1e1e1e;
+            --border-color: #333;
+            --gold-color: #ffd700;
+        }
+        body {
+            font-family: 'Segoe UI', 'Microsoft YaHei', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            display: flex;
+            height: 100vh;
+            overflow: hidden;
+        }
+        /* Layout */
+        #game-container {
+            display: flex;
+            width: 100%;
+            max-width: 1400px;
+            margin: 0 auto;
+            border-left: 1px solid var(--border-color);
+            border-right: 1px solid var(--border-color);
+        }
+        .panel { padding: 20px; overflow-y: auto; }
+        
+        /* Left: Log */
+        #log-panel {
+            flex: 2;
+            background-color: #181818;
+            display: flex;
+            flex-direction: column;
+            border-right: 1px solid var(--border-color);
+        }
+        #event-log {
+            flex-grow: 1;
+            overflow-y: auto;
+            padding-right: 10px;
+            font-size: 15px;
+            line-height: 1.6;
+        }
+        /* Scrollbar */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #111; }
+        ::-webkit-scrollbar-thumb { background: #444; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #555; }
+
+        .log-entry { margin-bottom: 8px; border-bottom: 1px solid #2a2a2a; padding-bottom: 6px; animation: fadeIn 0.3s; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+        
+        .log-year { color: var(--accent-color); font-weight: bold; margin-right: 5px; font-family: monospace; }
+        .log-event { color: var(--highlight-color); font-weight: bold; }
+        .log-gain { color: #6bff6b; }
+        .log-loss { color: var(--danger-color); }
+        .log-info { color: #888; font-style: italic; }
+        
+        /* Right: Stats */
+        #stats-panel {
+            flex: 1;
+            background-color: var(--panel-bg);
+            min-width: 320px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+        .stat-box { background: #252525; padding: 10px; border-radius: 6px; border: 1px solid #333; }
+        .stat-header { margin: 0 0 10px 0; color: var(--accent-color); font-size: 1.1em; border-bottom: 1px solid #444; padding-bottom: 5px; }
+        .stat-row { display: flex; justify-content: space-between; margin-bottom: 4px; font-size: 0.9em; }
+        .stat-val { font-weight: bold; color: #fff; }
+        
+        /* UI Elements */
+        button {
+            background-color: #3a3a3a;
+            color: white;
+            border: 1px solid #555;
+            padding: 8px 16px;
+            cursor: pointer;
+            transition: all 0.2s;
+            border-radius: 4px;
+            font-size: 0.9em;
+        }
+        button:hover { background-color: #505050; border-color: #777; }
+        button:disabled { opacity: 0.5; cursor: not-allowed; }
+        .btn-action { background-color: #386641; border-color: #6a994e; width: 100%; padding: 12px; font-size: 1em; font-weight: bold; }
+        .btn-action:hover { background-color: #6a994e; }
+        
+        .btn-choice { 
+            display: block; width: 100%; text-align: left; margin-bottom: 10px; padding: 15px; 
+            background: #2a2a2a; border: 1px solid #444; position: relative;
+        }
+        .btn-choice:hover { background: #333; border-color: var(--accent-color); }
+
+        /* Modal */
+        #modal-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.35);
+            display: flex; justify-content: center; align-items: center;
+            z-index: 100;
+            backdrop-filter: none;
+        }
+        #modal-content {
+            background: #222;
+            padding: 30px;
+            border: 1px solid var(--accent-color);
+            max-width: 700px;
+            width: 90%;
+            max-height: 90vh;
+            overflow-y: auto;
+            border-radius: 8px;
+            box-shadow: 0 0 20px rgba(0,0,0,0.5);
+        }
+        
+        /* Ascension Special Styles */
+        .ascension-theme {
+            border: 2px solid var(--gold-color) !important;
+            box-shadow: 0 0 50px rgba(255, 215, 0, 0.3) !important;
+            background: linear-gradient(135deg, #222 0%, #2a2a20 100%) !important;
+        }
+        .ascension-title {
+            color: var(--gold-color) !important;
+            text-align: center;
+            font-size: 2em;
+            margin-bottom: 15px;
+            text-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
+        }
+        .ascension-text {
+            font-family: 'KaiTi', '楷体', serif;
+            font-size: 1.3em;
+            line-height: 1.8;
+            text-align: center;
+            color: #fff;
+            margin: 30px 0;
+            font-style: italic;
+        }
+        .ascension-tag {
+            display: inline-block;
+            padding: 4px 12px;
+            border: 1px solid var(--gold-color);
+            color: var(--gold-color);
+            border-radius: 20px;
+            font-size: 0.9em;
+            margin-bottom: 20px;
+        }
+
+        .hidden { display: none !important; }
+        
+        .item-tag { 
+            display: inline-block; background: #333; padding: 2px 8px; border-radius: 12px; 
+            font-size: 0.8em; margin: 2px; border: 1px solid #555; cursor: help;
+        }
+        .item-tag.rare { border-color: gold; color: gold; }
+
+        /* Item tooltip */
+        #item-tooltip { position: fixed; pointer-events: none; background: rgba(0,0,0,0.85); color: #fff; padding:6px 10px; border-radius:6px; font-size:0.85em; z-index:999; max-width:320px; box-shadow:0 2px 10px rgba(0,0,0,0.6); }
+        #item-tooltip.hidden { display: none; }
+    </style>
+</head>
+<body>
+
+<div id="game-container">
+    <div id="log-panel" class="panel">
+        <div id="event-log"></div>
+        <div style="text-align:center; margin-top:8px;">
+            <button id="btn-scroll-bottom" class="btn-action hidden" style="padding:6px 12px; font-size:0.85em; margin-right:8px;" onclick="game.scrollToBottom()">新消息 <span id="new-count" style="background:#333; padding:2px 6px; border-radius:12px; margin-left:6px; color:#fff; font-weight:bold; display:inline-block;"></span></button>
+            <button id="btn-continue" class="btn-action hidden" style="padding:8px 20px; font-size:0.9em;" onclick="game.continueAfterLog()">继续</button>
+        </div>
+    </div>
+
+    <div id="stats-panel" class="panel">
+        <div class="stat-box">
+            <h3 class="stat-header">境界: <span id="disp-realm">凡人</span></h3>
+            <div class="stat-row"><span>寿命</span> <span><span id="disp-age">16</span> / <span id="disp-maxage">80</span></span></div>
+            <div class="stat-row"><span>灵石</span> <span class="stat-val" id="disp-money" style="color:#f2e8cf">20</span></div>
+            <div class="stat-row"><span>丹药</span> <span class="stat-val" id="disp-pills">0</span></div>
+        </div>
+
+        <div class="stat-box">
+            <h3 class="stat-header">属性</h3>
+            <div class="stat-row"><span>根骨 (血量)</span> <span class="stat-val" id="attr-con">0</span></div>
+            <div class="stat-row"><span>力道 (攻击)</span> <span class="stat-val" id="attr-str">0</span></div>
+            <div class="stat-row"><span>身法 (速度)</span> <span class="stat-val" id="attr-agi">0</span></div>
+            <div class="stat-row"><span>悟性 (成长)</span> <span class="stat-val" id="attr-int">0</span></div>
+            <div class="stat-row"><span>灵根 (法力)</span> <span class="stat-val" id="attr-spi">0</span></div>
+            <div class="stat-row"><span>气运 (机缘)</span> <span class="stat-val" id="attr-luk">0</span></div>
+            <div class="stat-row"><span>神识 (感知)</span> <span class="stat-val" id="attr-per">0</span></div>
+            <div class="stat-row"><span>道心 (意志)</span> <span class="stat-val" id="attr-wil">0</span></div>
+        </div>
+
+        <div class="stat-box" style="flex-grow:1;">
+            <h3 class="stat-header">装备 & 背包</h3>
+            <div id="inventory-list"></div>
+        </div>
+
+        <button id="btn-breakthrough" class="btn-action" onclick="game.attemptBreakthrough()">尝试突破</button>
+        <div id="breakthrough-info" style="font-size: 0.8em; color: #888; text-align: center; margin-top:5px;"></div>
+    </div>
+</div>
+
+<div id="modal-overlay" class="hidden">
+    <div id="modal-content">
+        <h2 id="modal-title" style="color:var(--accent-color); border-bottom:1px solid #444; padding-bottom:10px;">标题</h2>
+        <div id="modal-body" style="font-size:1.1em; line-height:1.6; margin-bottom:20px;">内容</div>
+        <div id="modal-options"></div>
+    </div>
+</div>
+
+<div id="item-tooltip" class="hidden"></div>
+
+<script>
+/* ================= CONFIGURATION ================= */
+const INITIAL_STATE = {
+    year: 0, age: 16, realmIdx: 0,
+    attrs: { con:0, str:0, agi:0, int:0, spi:0, luk:0, per:0, wil:0 },
+    hidden: { kar:0, rep:0 },
+    res: { money:20, pills:0 },
+    items: [], itemPillTimers: [], flags: {}, points: 20, alive: true
+};
+
+/* ================= DATA: REALMS ================= */
+const REALMS = [
+    { name: "凡人", maxAge: 80, threshold: 0, baseGrowth: 1, ageFactor: 0.2, cost: {money:0}, baseRate: 0, penalty: "" },
+    { name: "炼气期", maxAge: 120, threshold: 800, baseGrowth: 5, ageFactor: 0.4, cost: {money:150}, baseRate: 85, penalty: "hp-5" },
+    { name: "筑基期", maxAge: 200, threshold: 3000, baseGrowth: 10, ageFactor: 0.6, cost: {money:500}, baseRate: 75, penalty: "heavy" },
+    { name: "金丹期", maxAge: 400, threshold: 20000, baseGrowth: 20, ageFactor: 0.8, cost: {money:5000, pills:10}, baseRate: 65, penalty: "lifespan" },
+    { name: "元婴期", maxAge: 800, threshold: 50000, baseGrowth: 50, ageFactor: 1.0, cost: {money:30000, pills:30}, baseRate: 55, penalty: "drop" },
+    { name: "化神期", maxAge: 1500, threshold: 250000, baseGrowth: 120, ageFactor: 1.2, cost: {money:150000, pills:50}, baseRate: 45, penalty: "near-death" },
+    { name: "炼虚期", maxAge: 3000, threshold: 1000000, baseGrowth: 300, ageFactor: 1.5, cost: {money:400000, pills:100}, baseRate: 35, penalty: "cripple" },
+    { name: "合体期", maxAge: 6000, threshold: 5000000, baseGrowth: 800, ageFactor: 2.0, cost: {money:1200000, pills:200}, baseRate: 25, penalty: "death" },
+    { name: "大乘期", maxAge: 12000, threshold: 15000000, baseGrowth: 2000, ageFactor: 3.0, cost: {money:8000000, pills:1000}, baseRate: 15, penalty: "obliterate" },
+    { name: "飞升", maxAge: 99999, threshold: 50000000, baseGrowth: 0, ageFactor: 0, cost: {money:0}, baseRate: 0, penalty: "" }
+];
+
+/* ================= DATA: ITEMS (Fixed Stats) ================= */
+const ITEM_DB = {
+    "e01": { name: "锈铁剑", effect: "力道+10", stats: {str:10} },
+    "e02": { name: "泛黄道经", effect: "悟性+5", stats: {int:5} },
+    "e03": { name: "祖传玉佩", effect: "气运+5", stats: {luk:5} },
+    "e04": { name: "一袋灵石", effect: "初始灵石+200", onGet: (s)=>{s.res.money+=200} },
+    "e_tribute_box": { name: "天赐贡盒", effect: "每年获得少量灵石", yearly: { money: 100 } },
+    "e_pill_urn": { name: "隐世丹匣", effect: "每5年产出1丹药", yearly: { pills: 1, pillsInterval: 5 }, rare:true },
+    "e_med_book": { name: "药典", effect: "悟性+10, 炼药知识", type: "book", stats: {int:10} },
+    "e_spirit_garden": { name: "息壤药园", effect: "随身空间，量产丹药", yearly: { pills: 10, pillsInterval: 2 }, rare: true },
+    "e05": { name: "宗门制服", effect: "根骨+100, 每年获得声望和灵石", stats: {con:100}, yearly: {rep:5, money: 100} },
+    "e06": { name: "疾风靴", effect: "身法+150", stats: {agi:150} },
+    "e07": { name: "采药镰", effect: "灵根+100, 采药专用", stats: {spi:100}, yearly:{pills: 1, pillsInterval:20} },
+    "e08": { name: "基础阵盘", effect: "悟性+30, 破阵", stats: {int:30} },
+    "e_cold_armor": { name: "寒铁甲", effect: "根骨+300, 防御up", stats: {con:300} },
+    "e_water": { name: "灵水", effect: "灵根+200", stats: {spi:200} },
+    "e15": { name: "青云剑", effect: "力道+400", stats: {str:400} },
+    "e18": { name: "破妄法目", effect: "神识+600, 识破幻术", stats: {per:600} },
+    "e20": { name: "嗜血幡", effect: "力道+1000, 每年扣除功德", stats: {str:1000}, yearly: {kar:-10} },
+    "e_fox_pill": { name: "灵狐内丹", effect: "全属性+200", stats: {all:200} }, 
+    "e25": { name: "九转金丹", effect: "突破神器，增加成功率", type: "consumable" },
+    "e27": { name: "斩龙剑", effect: "力道+10000", stats: {str:10000} },
+    "e33": { name: "皇极惊世书", effect: "悟性+10000, 帝王气", stats: {int:10000} }, 
+    "e28": { name: "凤凰羽衣", effect: "根骨+20000, 抵挡死劫", stats: {con:20000} },
+    "e34": { name: "杀神骨戒", effect: "力道+40000, 戾气入骨", stats: {str:40000}, onGet:(s)=>{s.hidden.kar-=200} },
+    "e_bead_gold": { name: "金灵珠", effect: "五行之金, 力道+10000", stats: {str:10000}, rare:true },
+    "e_bead_wood": { name: "木灵珠", effect: "五行之木, 根骨+10000", stats: {con:10000}, rare:true },
+    "e_bead_water": { name: "水灵珠", effect: "五行之水, 灵根+10000", stats: {spi:10000}, rare:true },
+    "e_bead_fire": { name: "火灵珠", effect: "五行之火, 悟性+10000", stats: {int:10000}, rare:true },
+    "e_bead_earth": { name: "土灵珠", effect: "五行之土, 根骨+10000", stats: {con:10000}, rare:true },
+    "e_artifact": { name: "上古神器", effect: "全属性+4万", stats: {all:40000}, rare:true },
+    "e36": { name: "昊天塔", effect: "全属性+12万", stats: {all:120000} },
+    "e41": { name: "散仙令", effect: "兵解散仙, 全属性+20万", stats: {all:200000}, type: "token" },
+    "e43": { name: "功德金莲", effect: "功德成圣, 根骨+40万", stats: {con:400000}, type: "flower" },
+    "e50": { name: "天道碎片", effect: "全属性+100万", stats: {all:1000000} }
+};
+
+/* ================= DATA: EVENTS ================= */
+const EVENTS = [
+    {
+        id: "ev_star_refining", title: "摘星炼体", prob: 10, minRealm: 6,
+        desc: "你立于九天之上，试图捕捉划过天际的星辰精粹，将其融入肉身。这需要恐怖的掌控力与肉身强度。",
+        opts: [
+            { 
+                text: "强炼星核", 
+                checkStat: "con", 
+                val: (s) => game.scaleVal(100),
+                win: (s) => { 
+                    const g1 = game.modifyAttr(s, 'con', 500);
+                    const g2 = game.modifyAttr(s, 'str', 300);
+                    return `星核爆裂的能量被你死死压制在体内。根骨 ${g1}，力道 ${g2}。`; 
+                }, 
+                fail: (s) => { 
+                    game.modifyAttr(s, 'con', -250);
+                    return "星辰之力反噬，你的仙躯出现无数裂痕，险些崩碎。根骨大损。"; 
+                } 
+            },
+            { 
+                text: "体悟星轨", 
+                checkStat: "int", 
+                val: (s) => game.scaleVal(180),
+                win: (s) => { 
+                    const gain = game.modifyAttr(s, 'int', 200);
+                    return `你洞察了万星运行的轨迹，神魂进入玄之又玄的境界。悟性 ${gain}。`; 
+                },
+                fail: (s) => { return "星光刺眼，你什么也没悟到，还烧伤了双目。"; }
+            }
+        ]
+    },
+    {
+        id: "ev_karma_river", title: "因果长河", prob: 8, minRealm: 7,
+        desc: "你无意间窥见了流淌在虚空中的因果长河，无数生灵的命运交织其中。你可以尝试截取一段虚无的命运。",
+        opts: [
+            { 
+                text: "斩断杂念", 
+                checkStat: "wil", 
+                val: (s) => game.scaleVal(250),
+                win: (s) => { 
+                    const g1 = game.modifyAttr(s, 'wil', 300);
+                    const g2 = game.modifyAttr(s, 'per', 100);
+                    return `你斩断了万千烦恼丝，道心通明，神识覆盖诸天。道心 ${g1}，神识 ${g2}。`; 
+                },
+                fail: (s) => { 
+                    game.modifyAttr(s, 'wil', -100);
+                    s.hidden.kar -= 100;
+                    return "被无数轮回的记忆冲击，你险些迷失自我。道心受损，因果缠身。"; 
+                }
+            },
+            { 
+                text: "窃取气运", 
+                checkStat: "luk", 
+                val: (s) => game.scaleVal(300),
+                win: (s) => { 
+                    const gain = game.modifyAttr(s, 'luk', 25);
+                    s.hidden.kar -= 100;
+                    return `你从命运中窃取了一丝先机。气运 ${gain}，但这种行为被天道所忌。`; 
+                },
+                fail: (s) => { 
+                    game.die("被因果巨浪吞噬，彻底消失在时空之中");
+                    return "命不够硬，莫动天机。"; 
+                }
+            }
+        ]
+    },
+    {
+        id: "ev_heavenly_tribulation_extra", title: "天劫淬灵", prob: 12, minRealm: 8,
+        desc: "大乘期修士在感应天劫。你决定主动引动一丝紫霄神雷来洗练你的灵根。",
+        opts: [
+            { 
+                text: "雷池洗礼", 
+                checkStat: "spi", 
+                val: (s) => game.scaleVal(300),
+                win: (s) => { 
+                    const gain = game.modifyAttr(s, 'spi', 500);
+                    return `神雷将你体内的杂质焚烧殆尽，灵根几近通神。灵根 ${gain}。`; 
+                },
+                fail: (s) => { 
+                    game.modifyAttr(s, 'spi', -300);
+                    game.modifyAttr(s, 'con', -500);
+                    return "玩火自焚！神雷摧毁了你的经脉。灵根与根骨大损。"; 
+                }
+            },
+            { 
+                text: "雷法捕捉", 
+                checkStat: "agi", 
+                val: (s) => game.scaleVal(350),
+                win: (s) => { 
+                    const gain = game.modifyAttr(s, 'agi', 400);
+                    return `你与雷光共舞，领悟了雷遁之极。身法 ${gain}。`; 
+                },
+                fail: (s) => { return "速度慢了一丝，被雷霆劈得焦黑。"; }
+            }
+        ]
+    },
+    {
+        id: "ev_forbidden_knowledge", title: "禁忌之书", prob: 5, minRealm: 7,
+        desc: "你在虚空废墟中找到一本散发着邪异气息的黑皮书，书中记载了不属于这个世界的禁忌知识。",
+        opts: [
+            { 
+                text: "强行翻阅", 
+                checkStat: "per", 
+                val: (s) => game.scaleVal(400),
+                win: (s) => { 
+                    const gain = game.modifyAttr(s, 'int', 1000);
+                    s.hidden.kar -= 500;
+                    return `你看到了宇宙的真相。悟性 ${gain}，但你的理智（因果）受到了剧烈侵蚀。`; 
+                },
+                fail: (s) => { 
+                    game.modifyAttr(s, 'int', -500);
+                    game.modifyAttr(s, 'wil', -500);
+                    return "书中不可名状的内容让你瞬间发疯，识海受创严重。"; 
+                }
+            },
+            { 
+                text: "封印此书", 
+                effect: (s) => { 
+                    const gain = game.modifyAttr(s, 'wil', 150);
+                    s.hidden.kar += 100;
+                    s.hidden.rep += 200;
+                    return `你克制了贪念，将其彻底封印。道心 ${gain}，获得大量功德与声望。`; 
+                } 
+            }
+        ]
+    },
+    {
+        id: "ev_strange_beggar", title: "街头老乞", prob: 15, maxRealm: 1,
+        desc: "一名满身污垢的乞丐拦住你，神神秘秘地从怀里掏出一本看不清字迹的黄纸。面色严肃地说是祖传仙法，只换一顿酒钱。",
+        opts: [
+            { 
+                text: "爽快买下", 
+                checkStat: "luk", 
+                val: (s) => game.scaleVal(10),
+                win: (s) => { 
+                    const gain = game.modifyAttr(s, 'int', 8); 
+                    return `你从黄纸夹层中发现了一篇残缺的定神咒。悟性 ${gain}。`; 
+                }, 
+                fail: (s) => { 
+                    const loss = game.scaleVal(20);
+                    s.res.money = Math.max(0, s.res.money - loss);
+                    return `翻开一看全是鬼画符。灵石 -${loss}，你感觉自己像个傻子。`; 
+                } 
+            },
+            { 
+                text: "审视真伪", 
+                checkStat: "per", 
+                val: (s) => game.scaleVal(15),
+                win: (s) => { 
+                    const gain = game.modifyAttr(s, 'wil', 10);
+                    return `你一眼识破他眼中潜藏的清明，对方大笑三声飘然而去，你心中若有所悟。道心 ${gain}。`; 
+                },
+                fail: (s) => { return "你看得眼花缭乱，也分不出个所以然来。"; }
+            }
+        ]
+    },
+    {
+        id: "ev_waterfall_tempering", title: "瀑布锻体", prob: 12, minRealm: 1, maxRealm: 2,
+        desc: "你发现一处灵气汇聚的断崖瀑布，水流重逾千钧。在此处修炼或许能磨练筋骨。",
+        opts: [
+            { 
+                text: "肉身抗衡", 
+                checkStat: "con", 
+                val: (s) => game.scaleVal(20),
+                win: (s) => { 
+                    const g1 = game.modifyAttr(s, 'con', 12);
+                    const g2 = game.modifyAttr(s, 'str', 5);
+                    return `在激流的冲刷下，你的皮肉更加坚韧。根骨 ${g1}，力道 ${g2}。`; 
+                },
+                fail: (s) => { 
+                    game.modifyAttr(s, 'con', -10);
+                    return "你被湍急的水流直接冲入了深潭，骨头都要散架了。根骨受损。"; 
+                }
+            },
+            { 
+                text: "静坐悟道", 
+                checkStat: "spi", 
+                val: (s) => game.scaleVal(18),
+                win: (s) => { 
+                    const gain = game.modifyAttr(s, 'spi', 15);
+                    return `你感受到了水流中生生不息的灵力流转。灵根 ${gain}。`; 
+                },
+                fail: (s) => { return "瀑布声太吵，你根本无法静下心来。"; }
+            }
+        ]
+    },
+    {
+        id: "ev_ancient_monument", title: "荒野古碑", prob: 10, maxRealm: 2,
+        desc: "漫山草木之中立着一块半截入土的断碑，碑文虽模糊，却隐隐有剑气透出。",
+        opts: [
+            { 
+                text: "感悟剑意", 
+                checkStat: "int", 
+                val: (s) => game.scaleVal(25),
+                win: (s) => { 
+                    const gain = game.modifyAttr(s, 'str', 20);
+                    return `你闭目凝神，仿佛看到一道银光划过识海。力道 ${gain}。`; 
+                },
+                fail: (s) => { 
+                    game.modifyAttr(s, 'per', -5);
+                    return "过度透支精力导致神识受创，大脑一片空白。神识受损。"; 
+                }
+            },
+            { 
+                text: "搬动断碑", 
+                checkStat: "str", 
+                val: (s) => game.scaleVal(30),
+                win: (s) => { 
+                    const gain = game.modifyAttr(s, 'wil', 15);
+                    return `你硬生生将断碑拔出，发现碑底刻着“不屈”二字。道心 ${gain}。`; 
+                },
+                fail: (s) => { return "断碑纹丝不动，你的腰倒是闪了。"; }
+            }
+        ]
+    },
+    {
+        id: "ev_forest_trial", title: "山林遇袭", prob: 18, maxRealm: 1,
+        desc: "山林中窜出一头受惊的斑斓猛虎，正张牙舞爪地向你扑来！",
+        opts: [
+            { 
+                text: "正面硬撼", 
+                checkStat: "str", 
+                val: (s) => game.scaleVal(12),
+                win: (s) => { 
+                    const gain = game.modifyAttr(s, 'str', 10);
+                    return `你一记重拳将其击退，虎威难犯你的威严。力道 ${gain}。`; 
+                },
+                fail: (s) => { 
+                    game.modifyAttr(s, 'con', -15);
+                    return "你被老虎一掌拍飞，胸口一阵剧痛。根骨受损。"; 
+                }
+            },
+            { 
+                text: "灵巧躲避", 
+                checkStat: "agi", 
+                val: (s) => game.scaleVal(15),
+                win: (s) => { 
+                    const gain = game.modifyAttr(s, 'agi', 15);
+                    return `你身形如燕，在树木间辗转腾挪，老虎连你的衣角都没摸到。身法 ${gain}。`; 
+                },
+                fail: (s) => { 
+                    game.modifyAttr(s, 'agi', -5);
+                    return "你在躲避中扭伤了脚踝。身法受损。"; 
+                }
+            }
+        ]
+    },
+    {
+        id: "ev_ancient_auction_house", title: "远古拍卖盛会", prob: 12, minRealm: 5,
+        desc: "顶级拍卖行正在举行万年一度的盛会，场内宝光十色，但也充满了尔虞我诈。",
+        opts: [
+            { 
+                text: "鉴定漏网之鱼", 
+                checkStat: "per", 
+                val: (s) => game.scaleVal(80), 
+                win: (s) => { 
+                    const gain = game.scaleVal(2000); 
+                    s.res.money += gain; 
+                    return `你凭借强大的神识在一堆废料中发现了上古残片，转手获利巨大。灵石+${gain}。`; 
+                }, 
+                fail: (s) => { 
+                    const loss = game.scaleVal(500);
+                    s.res.money = Math.max(0, s.res.money - loss);
+                    return `看走眼了，买回一堆毫无灵力的顽石。灵石-${loss}。`; 
+                } 
+            },
+            { 
+                text: "强行竞价压制", 
+                checkStat: "str", 
+                val: (s) => game.scaleVal(100),
+                win: (s) => { 
+                    const gain = game.scaleVal(4000);
+                    s.hidden.rep -= 50; 
+                    s.res.money += gain; 
+                    return `你释放恐怖的压迫感，无人敢与你争抢，低价横扫全场。灵石+${gain}，声望受损。`; 
+                },
+                fail: (s) => { 
+                    game.modifyAttr(s, 'wil', -20);
+                    return "被隐藏的大能气息反压，不仅丢了面子，道心也受到震慑。"; 
+                }
+            }
+        ]
+    },
+    {
+        id: "ev_void_fissure_mining", title: "虚空晶石采集", prob: 10, minRealm: 6,
+        desc: "虚空乱流中出现了一片不稳定的极品灵晶簇，稍有不慎便会被空间裂缝吞噬。",
+        opts: [
+            { 
+                text: "极限身法采集", 
+                checkStat: "agi", 
+                val: (s) => game.scaleVal(120),
+                win: (s) => { 
+                    const gain = game.scaleVal(8000);
+                    s.res.money += gain; 
+                    return `你在瞬息万变的虚空缝隙中穿梭自如，满载而归。灵石+${gain}。`; 
+                },
+                fail: (s) => { 
+                    game.modifyAttr(s, 'con', -100); 
+                    return "被空间碎片擦伤，肉身几乎崩溃，勉强逃回。根骨大损。"; 
+                }
+            },
+            { 
+                text: "强力破开禁制", 
+                checkStat: "spi", 
+                val: (s) => game.scaleVal(110),
+                win: (s) => { 
+                    const gain = game.scaleVal(6000);
+                    s.res.money += gain; 
+                    return `以浑厚的灵力强行稳固空间，不急不躁地收走晶石。灵石+${gain}。`; 
+                },
+                fail: (s) => { 
+                    s.res.pills = Math.floor(s.res.pills * 0.8);
+                    return "灵力暴走引发空间坍塌，储物袋中的丹药在混乱中损耗了不少。"; 
+                }
+            }
+        ]
+    },
+    {
+        id: "ev_celestial_tribute", title: "万仙朝贡", prob: 8, minRealm: 7,
+        desc: "作为一方巨擘，麾下附属势力前来献上本年度的供奉。",
+        opts: [
+            { 
+                text: "巡视封地", 
+                checkStat: "luk", 
+                val: (s) => game.scaleVal(50),
+                win: (s) => { 
+                    const gain = game.scaleVal(15000);
+                    s.res.money += gain; 
+                    game.modifyAttr(s, 'luk', 50); 
+                    return `气运亨通，麾下领地竟然挖掘出了极品矿脉，供奉翻倍。灵石+${gain}。`; 
+                },
+                fail: (s) => { 
+                    const gain = game.scaleVal(5000);
+                    s.res.money += gain; 
+                    game.modifyAttr(s, 'luk', -20); 
+                    return `领地遭遇了小规模骚乱，收益不如预期。灵石+${gain}。`; 
+                }
+            },
+            { 
+                text: "讲经布道", 
+                checkStat: "int", 
+                val: (s) => game.scaleVal(150),
+                win: (s) => { 
+                    const gain = game.scaleVal(10000);
+                    s.hidden.rep += 100;
+                    game.modifyAttr(s, 'wil', 50);
+                    s.res.money += gain; 
+                    return `你的感悟让众人如痴如醉，无数散修献上灵石只求听道。灵石+${gain}，声望暴涨。`; 
+                },
+                fail: (s) => { return "内容过于晦涩，众人听得云里雾里，甚至有人怀疑你名不副实。"; }
+            }
+        ]
+    },
+    {
+        id: "ev_immortal_extortion", title: "劫掠跨界商船", prob: 5, minRealm: 8,
+        desc: "一艘满载仙界物资的跨界商船偏离了航道，这是千万年难遇的“横财”机会。",
+        opts: [
+            { 
+                text: "强行洗劫", 
+                type: "battle",
+                diff: (s) => game.scaleVal(800), 
+                win: (s) => { 
+                    const gain = game.scaleVal(50000);
+                    s.hidden.kar -= 500; 
+                    s.res.money += gain; 
+                    return `你一人一剑击溃护航大阵，商船积累亿年的财富尽归于你。灵石+${gain}，孽缘深重。`; 
+                },
+                fail: (s) => { 
+                    game.die("被跨界商船的灭仙炮击中，形神俱灭"); 
+                    return "仙威不可侵犯。"; 
+                }
+            },
+            { 
+                text: "护航索取酬劳", 
+                checkStat: "per", 
+                val: (s) => game.scaleVal(200),
+                win: (s) => { 
+                    const gain = game.scaleVal(20000);
+                    s.hidden.rep += 200;
+                    s.res.money += gain; 
+                    return `你指出了航道的空间陷阱并护送其离去，商会感激不尽。灵石+${gain}，名声大噪。`; 
+                },
+                fail: (s) => { return "对方不需要你的帮助，冷漠地开启跳跃离去。"; }
+            }
+        ]
+    },
+    {
+        id: "ev_mountain_mine", title: "后山矿脉", prob: 18, maxRealm: 2,
+        desc: "你在后山砍柴时，意外发现了一处埋藏较深的灵石矿点。",
+        opts: [
+            { 
+                text: "卖力挖掘", 
+                checkStat: "str", 
+                val: (s) => game.scaleVal(15), // 难度随成长动态缩放
+                win: (s) => { 
+                    const gain = game.scaleVal(120); 
+                    s.res.money += gain; 
+                    return `你凭一身蛮力挖出了成色不错的原石。灵石+${gain}。`; 
+                }, 
+                fail: (s) => { 
+                    game.modifyAttr(s, 'con', -5); 
+                    return "矿石坚硬且深埋土中，你不仅没挖动，还震伤了虎口。根骨受损。"; 
+                } 
+            },
+            { 
+                text: "巧妙探寻", 
+                checkStat: "per", 
+                val: (s) => game.scaleVal(10),
+                win: (s) => { 
+                    const gain = game.scaleVal(40);
+                    s.flags.hasMine = true; 
+                    s.res.money += gain; 
+                    return `你凭借敏锐的感知找到了矿脉支流。灵石+${gain}。`; 
+                },
+                fail: (s) => { return "感知被地底磁场干扰，搜寻无果。"; }
+            }
+        ]
+    },
+    {
+        id: "ev_market_labor", title: "灵药阁短工", prob: 20, maxRealm: 2,
+        desc: "坊市的灵药阁正在招募学徒，协助处理一批对灵力控制有要求的药材。",
+        opts: [
+            { 
+                text: "精细处理", 
+                checkStat: "int", 
+                val: (s) => game.scaleVal(12),
+                win: (s) => { 
+                    const gain = game.scaleVal(50);
+                    s.res.money += gain; 
+                    game.modifyAttr(s, 'int', 5);
+                    return `你处理的药材品相极佳，掌柜多赏了你一些筹劳。灵石+${gain}，悟性提高。`; 
+                },
+                fail: (s) => { 
+                    const gain = game.scaleVal(25);
+                    s.res.money += gain; 
+                    return `虽然损耗了不少药材，但掌柜还是给了你一点苦劳费。灵石+${gain}。`; 
+                }
+            },
+            { 
+                text: "利用药典辅助", 
+                reqItem: "e_med_book", 
+                effect: (s) => { 
+                    const gain = game.scaleVal(80);
+                    game.modifyAttr(s, 'int', 15); 
+                    s.res.pills += 2; 
+                    s.res.money += gain;
+                    return `依照药典手法处理药材事半功倍。灵石+${gain}，丹药+2，悟性提升。`; 
+                } 
+            }
+        ]
+    },
+    {
+        id: "ev_gambling_den", title: "仙客博戏", prob: 15, maxRealm: 3,
+        desc: "路过一家热闹的赌坊，里面正传出阵阵喝彩声，似乎有人在开豪赌。",
+        opts: [
+            { 
+                text: "凭运气压注", 
+                checkStat: "luk", 
+                val: (s) => game.scaleVal(30),
+                win: (s) => { 
+                    const gain = game.scaleVal(200);
+                    s.res.money += gain; 
+                    game.modifyAttr(s, 'luk', 15); 
+                    return `财神附体！你连续猜中三把大小。灵石+${gain}，气运亨通。`; 
+                },
+                fail: (s) => { 
+                    const loss = Math.min(s.res.money, game.scaleVal(50)); 
+                    s.res.money -= loss; 
+                    return `手气不佳，输了不少。灵石-${loss}。`; 
+                }
+            },
+            { 
+                text: "动用神识窥探", 
+                checkStat: "per", 
+                val: (s) => game.scaleVal(60), // 越货出千难度更高
+                win: (s) => { 
+                    const gain = game.scaleVal(500);
+                    s.hidden.kar -= 10; 
+                    s.res.money += gain; 
+                    game.modifyAttr(s, 'per', 15); 
+                    return `神识扫过，色子点数了然于胸。灵石+${gain}，神识提升，因果缠身。`; 
+                },
+                fail: (s) => { 
+                    game.modifyAttr(s, 'con', -30); 
+                    s.res.money = 0; 
+                    return "被看场的高手识破，当场废去修为并搜光全身。灵石归零，根骨大损。"; 
+                }
+            }
+        ]
+    },
+    {
+        id: "ev_herb_delivery", title: "护送任务", prob: 25, minRealm: 1, maxRealm: 4,
+        desc: "商队招募护卫，需穿越一片妖兽出没的偏僻山道。",
+        opts: [
+            { 
+                text: "快速突围", 
+                checkStat: "agi", 
+                val: (s) => game.scaleVal(25),
+                win: (s) => { 
+                    const gain = game.scaleVal(150);
+                    s.res.money += gain; 
+                    game.modifyAttr(s, 'agi', 15); 
+                    return `你身法如电，轻松甩开了游荡的妖兽。身法提升，灵石+${gain}。`; 
+                },
+                fail: (s) => { 
+                    game.modifyAttr(s, 'con', -15); 
+                    return "在突围中被妖兽抓伤，任务失败。根骨受损。"; 
+                }
+            },
+            { 
+                text: "稳健护航", 
+                effect: (s) => { 
+                    const gain = game.scaleVal(60);
+                    s.res.money += gain; 
+                    s.age += 1; 
+                    game.modifyAttr(s, 'wil', 15); 
+                    return `虽然多花了一年时间绕路，但平安送达，道心通达。灵石+${gain}，寿命-1。`; 
+                } 
+            }
+        ]
+    },
+    {
+        id: "lq_herb", title: "山间灵草", prob: 30, maxRealm: 2,
+        desc: "草丛中有一株散发微光的灵草。",
+        opts: [
+            { text: "采摘生吃", checkStat: "luk", val: 50, win: (s)=>{game.modifyAttr(s, 'con', 15); return "味道苦涩，但身体发热。根骨有所提升。";}, fail: (s)=>{game.modifyAttr(s, 'con', -5); return "有毒！呕吐不止，根骨受损。";} },
+            { text: "带回炼药", reqItem: "e_med_book", effect: (s)=>{game.modifyAttr(s, 'spi', 2); s.res.pills+=3; return "依照药典炼制。灵根提升，获得丹药+3。"; } },
+            { text: "视而不见", effect: "多一事不如少一事。" }
+        ]
+    },
+    {
+        id: "ev_pills_bottle", title: "石缝丹瓶", prob: 30, maxRealm: 3,
+        desc: "山路旁的石缝里卡着一只小瓷瓶。",
+        opts: [
+            { text: "捡起查看", effect: (s) => { if (Math.random() < 0.15-s.attrs.per*0.01) { game.modifyAttr(s, 'con', -2); return "毒气入体。根骨受损。"; } const n = 1 + Math.floor(Math.random() * 6); s.res.pills += n; if(Math.random() < 0.3) { game.modifyAttr(s, 'spi', 10); return `分辨出正品。丹药+${n}，灵根提升。`; } return `收入囊中。丹药+${n}。`; } },
+            { text: "丢弃", effect: "宁可错过。" }
+        ]
+    },
+    {
+        id: "ev_med_book_found", title: "旧摊药典", prob: 15, maxRealm: 4,
+        desc: "你路过坊市角落的旧书摊。",
+        opts: [
+            { text: "随手收起", effect: (s) => { if (!game.hasItem("e_med_book")) { game.addItem("e_med_book"); return "获得 [药典]。"; } const p悟 = game.clamp(0.35 + 0.003 * s.attrs.int, 0.35, 0.75); if (Math.random() < p悟) { game.modifyAttr(s, 'int', 2); game.modifyAttr(s, 'spi', 10); return "你在旁注里看到一段新思路。悟性、灵根提升。"; } s.res.money += 200; return "转手换些灵石。灵石+20。"; } },
+            { text: "当场翻阅", effect: (s) => { if (Math.random() < 0.2) { game.modifyAttr(s, 'wil', -1); return "书页破损，心头烦躁。道心微损。"; } if (Math.random() < 0.4) { s.res.pills += 5; game.modifyAttr(s, 'int', 10); return "记下简方。悟性提升，丹药+5。"; } return "内容晦涩，无所得。"; } },
+            { text: "不碰", effect: "离开。" }
+        ]
+    },
+    {
+        id: "ev_heavenly_tower", title: "昊天幻境", prob: 3, minRealm: 7, once: true,
+        desc: "云端之上现出一座金光宝塔。",
+        opts: [
+            { text: "闯塔", type: "battle", diff: (s) => game.scaleVal(800), win: (s) => { game.addItem("e36"); return "通关三十三层天！获得 [昊天塔]。"; }, fail: (s) => { game.modifyAttr(s, 'con', -100); return "在塔中重伤被传送出局。"; } }
+        ]
+    },
+    {
+        id: "ev_dying_immortal", title: "兵解仙人", prob: 5, minRealm: 8, once: true,
+        desc: "一位渡劫失败的散仙奄奄一息。",
+        opts: [
+            { text: "赠予灵药续命", check: (s)=>s.res.pills>=10, effect: (s) => { s.res.pills -= 10; game.addItem("e41"); s.hidden.rep += 100; return "仙人感激涕零，赠你保命之物。获得 [散仙令]。"; } },
+            { text: "趁火打劫", effect: (s) => { s.res.money += 5000; s.hidden.kar -= 100; return "你夺走了他的储物袋。杀孽深重。"; } }
+        ]
+    },
+    {
+        id: "ev_great_merit", title: "天地大劫", prob: 3, minRealm: 7, once: true,
+        desc: "凡间洪水滔天，生灵涂炭。",
+        opts: [
+            { text: "散尽家财救灾", check: (s)=>s.res.money>=5000, effect: (s) => { s.res.money -= 5000; game.addItem("e43"); s.hidden.kar += 200; return "万家生佛，功德金光汇聚。获得 [功德金莲]。"; } },
+            { text: "冷眼旁观", effect: "天道无情，刍狗而已。" }
+        ]
+    },
+    {
+        id: "ev_phoenix_nest", title: "梧桐栖凤", prob: 5, minRealm: 6, once: true,
+        desc: "落凤坡万年梧桐神木燃起涅槃之火。",
+        opts: [
+            { text: "沐火取宝", checkStat: "con", val: 200, win: (s) => { game.addItem("e28"); return "肉身抗住神火洗礼！获得 [凤凰羽衣]。"; }, fail: (s) => { game.modifyAttr(s, 'con', -50); return "被神火灼烧，差点形神俱灭。根骨大损。"; } },
+            { text: "退去", effect: "火势太猛，不可力敌。" }
+        ]
+    },
+    {
+        id: "ev_fallen_dynasty", title: "旧朝遗址", prob: 5, minRealm: 5, once: true,
+        desc: "曾统一凡人界的皇朝遗址。",
+        opts: [
+            { text: "感悟帝王之气", checkStat: "int", val: 150, win: (s) => { game.addItem("e33"); return "你领悟了统御之道。获得 [皇极惊世书]。"; }, fail: (s) => { return "只是一片废墟罢了。"; } }
+        ]
+    },
+    {
+        id: "ev_asura_field", title: "修罗古战场", prob: 5, minRealm: 6, once: true,
+        desc: "这里尸骨成山，戾气冲天。",
+        opts: [
+            { text: "强行收服", checkStat: "wil", val: 120, win: (s) => { game.addItem("e34"); return "你压制住滔天杀意。获得 [杀神骨戒]。"; }, fail: (s) => { s.hidden.kar -= 20; game.modifyAttr(s, 'wil', -20); return "杀意入脑，你变得更加残暴了。道心受损。"; } },
+            { text: "净化超度", reqItem: "e43", effect: (s) => { s.hidden.rep += 50; s.hidden.kar += 50; return "你度化了此地亡魂。功德无量。"; } },
+            { text: "离开", effect: "此地不宜久留。" }
+        ]
+    },
+    {
+        id: "ev_mirage", title: "海市蜃楼", prob: 8, minRealm: 3,
+        desc: "海面上出现巨大的幻境。",
+        opts: [
+            { text: "运用神识窥探", checkStat: "per", val: 60, win: (s) => { game.addItem("e18"); game.modifyAttr(s, 'per', 50); return "看破虚妄，得见真章！获得 [破妄法目]。"; }, fail: (s) => { game.modifyAttr(s, 'wil', -10); return "心神失守，险些走火入魔。道心受损。"; } },
+            { text: "远离", effect: "不立危墙之下。" }
+        ]
+    },
+    {
+        id: "ev_ancient_pill_room", title: "古修丹房", prob: 6, minRealm: 4, once: true,
+        desc: "发现一处尚未坍塌的古修洞府丹房。",
+        opts: [
+            { text: "开炉取丹", checkStat: "luk", val: 600, win: (s) => { game.addItem("e25"); return "炉中竟有一枚成型的神丹！获得 [九转金丹]。"; }, fail: (s) => { s.res.pills += 3; return "神丹已化，只余几枚废丹。丹药+3。"; } }
+        ]
+    },
+    {
+        id: "ev_market_shopping", title: "坊市淘宝", prob: 15, maxRealm: 3,
+        desc: "你来到喧闹的修仙坊市。",
+        opts: [
+            { text: "购买疾风靴 (50灵石)", check: (s) => s.res.money >= 50, effect: (s) => { s.res.money -= 50; game.addItem("e06"); return "穿上后身轻如燕。获得 [疾风靴]。"; } },
+            { text: "购买采药镰 (30灵石)", check: (s) => s.res.money >= 30, effect: (s) => { s.res.money -= 30; game.addItem("e07"); return "工欲善其事。获得 [采药镰]。"; } },
+            { text: "购买丹药 (1000灵石)", check: (s) => s.res.money >= 1000, effect: (s) => { s.res.money -= 1000; s.res.pills += 1; return "获得丹药+1。"; } },
+            { text: "只看不买", effect: "省点灵石吧。" }
+        ]
+    },
+    {
+        id: "ev_sect_competition", title: "宗门大比", prob: 10, minRealm: 1, maxRealm: 4,
+        desc: "宗门举行年度大比。",
+        opts: [
+            { text: "上台比试", type: "battle", diff: (s) => game.scaleVal(50), win: (s) => { game.addItem("e05"); s.hidden.rep += 20; s.res.pills += 3; s.res.money += 2000; return "技压群雄！获得 [宗门制服] ，丹药和灵石，在宗门中的声望提升了。"; }, fail: (s) => { game.modifyAttr(s, 'con', -5); return "技不如人，被打下擂台。"; } },
+            { text: "弃权", effect: "在台下当观众。" }
+        ]
+    },
+    {
+        id: "ev_black_market", title: "鬼市交易", prob: 10, minRealm: 5,
+        desc: "每逢月圆开启的鬼市。",
+        opts: [
+            { text: "大肆收购丹药 (30000灵石)", check: (s) => s.res.money >= 30000, effect: (s) => { s.res.money -= 30000; s.res.pills += 50; return "挥金如土！获得丹药 +50。"; } },
+            { text: "购买情报", effect: (s) => { s.res.money -= 500; game.modifyAttr(s, 'per', 50); return "打听到了许多秘闻。神识提升。"; } },
+            { text: "离开", effect: "囊中羞涩。" }
+        ]
+    },
+    {
+        id: "ev_ancient_garden", title: "虚空药园", prob: 5, minRealm: 6, once: true,
+        desc: "你在虚空乱流中发现一块漂浮的陆地。",
+        opts: [
+            { text: "炼化为随身空间", checkStat: "spi", val: 500000, win: (s) => { game.addItem("e_spirit_garden"); return "你以大神通将其炼化！获得 [息壤药园]。"; }, fail: (s) => { game.modifyAttr(s, 'con', -50); return "灵力不足，遭到反噬。"; } },
+            { text: "采摘离去", effect: (s) => { s.res.pills += 100; return "带走了一批成品丹药 +100。"; } }
+        ]
+    },
+    {
+        id: "ev_alchemy_session", title: "开炉炼丹", prob: 15, minRealm: 4, reqItem: "e_med_book",
+        desc: "准备购入灵草开炉炼丹。",
+        opts: [
+            { text: "小试牛刀", check: (s) => s.res.money >= game.scaleVal(50), effect: (s) => { s.res.money -= game.scaleVal(50); const base = 2 + Math.floor(s.attrs.int / 100); const total = base + ((Math.random() < s.attrs.luk * 0.01) ? 2 : 0); s.res.pills += total; return `炼成丹药 +${total}。`; } },
+            { text: "闭关精炼", check: (s) => s.res.money >= 5*game.scaleVal(50), effect: (s) => { s.res.money -= 5*game.scaleVal(50); const base = 8 + Math.floor(s.attrs.int / 80); s.res.pills += base; return `炼成一炉极品丹药 +${base}。`; } },
+            { text: "暂不炼丹", effect: "灵草太贵了。" }
+        ]
+    },
+    {
+        id: "ev_luck_find", title: "机缘巧合", prob: 12,
+        desc: "路边发现一处奇妙石堆。",
+        opts: [
+            { text: "搜寻", effect: (s)=>{ const luck = s.attrs.luk; const base = game.scaleVal(50); if (Math.random() < 0.1 + luck*0.01) { s.res.money += base * 5; return `挖到意外之财！灵石+${base*5}。`; } else { s.res.money += base; return `找到些零钱。灵石+${base}。`; } } }
+        ]
+    },
+    {
+        id: "ev_tribute_item", title: "神秘贡物", prob: 15,maxRealm: 4,
+        desc: "一位云游道人留下的封蜡匣子。",
+        opts: [
+            { text: "取下", effect: (s)=>{ if (!game.hasItem("e_tribute_box")) { game.addItem("e_tribute_box"); return "获得 [天赐贡盒]。"; } else { s.res.money += 500; return "卖了500灵石。"; } } }
+        ]
+    },
+    {
+        id: "ev_pill_urn", title: "隐世丹匣", prob: 16, minRealm: 3,
+        desc: "隐匣上有古朴铭文，散发淡淡丹香。",
+        opts: [
+            { text: "取下查看", effect: (s)=>{ if (Math.random() < 0.4 + s.attrs.luk*0.01) { if (!game.hasItem("e_pill_urn")) { game.addItem("e_pill_urn"); return "获得 [隐世丹匣]。"; } else { s.res.pills += 1; return "找到残余丹药+1。"; } } else { return "匣中空空如也。"; } } }
+        ]
+    },
+    {
+        id: "lq_fox", title: "受伤的狐狸", prob: 15, maxRealm: 3, once: true,
+        desc: "一只受伤的小狐狸。",
+        opts: [
+            { text: "救治 (消耗1丹药)", check: (s)=>s.res.pills>0, effect: (s)=>{ s.res.pills--; s.hidden.kar+=5; s.flags.foxSaved=true; return "你救下它，心头一轻。"; } },
+            { text: "剥皮卖钱", effect: (s)=>{ s.res.money+=30; s.hidden.kar-=10; s.flags.foxKilled=true; return "灵石+30。"; } },
+            { text: "离开", effect: "无动于衷。" }
+        ]
+    },
+    {
+        id: "lq_well", title: "古井怪声", prob: 10, maxRealm: 3,
+        desc: "枯井下传来风声。",
+        opts: [
+            { text: "跳下去", effect: (s)=>{ const r = Math.random(); if (r < 0.2-s.attrs.agi*0.01) { game.die("摔死在枯井中"); return "井壁湿滑，坠亡。"; } if (r < 0.5) { const loot = ["e_cold_armor","e09","e08","e19"]; const chosen = loot[Math.floor(Math.random()*loot.length)]; if(ITEM_DB[chosen]) game.addItem(chosen); else game.addItem("e04"); game.gainRandomAttr(game.scaleVal(5)); return "井底别有洞天。获得宝物，修为精进。"; } game.modifyAttr(s, 'con', -3); return "摔在乱石上，根骨受损。"; } },
+            { text: "封印井口", check: (s)=>s.attrs.spi>10, effect: (s)=>{s.hidden.rep+=5; return "村民对你更信服。"} }
+        ]
+    },
+    {
+        id: "lq_rival", title: "同门挑衅", prob: 15, minRealm: 1, maxRealm: 2,maxRealm: 4,
+        desc: "嚣张的师兄想要抢夺你的丹药。",
+        opts: [
+            { text: "忍气吞声", effect: (s)=>{game.modifyAttr(s,'wil',-2); game.modifyAttr(s,'con',2); return "道心受损，根骨磨练。"} },
+            { text: "奋起反击", checkStat: "str", val: (s)=>s.realmIdx*10+10, win: (s)=>{s.hidden.rep+=5; return "你把他打得鼻青脸肿，在门内的声望悄然提升。";}, fail: (s)=>{game.modifyAttr(s,'con',-5); return "你被打了一顿。根骨受损。";} }
+        ]
+    },
+    {
+        id: "lq_family", title: "凡尘旧事", prob: 5, minRealm: 1, maxRealm: 3,
+        desc: "家书传来，父母病重。",
+        opts: [
+            { text: "下山探望 (消耗2年)", effect: (s)=>{s.age+=2; game.modifyAttr(s,'wil',5); return "尘缘了却。道心提升。"} },
+            { text: "一心向道", effect: (s)=>{game.modifyAttr(s,'wil',10); s.hidden.kar-=10; return "斩断尘缘。道心大增。";} }
+        ]
+    },
+    {
+        id: "lq_book", title: "神秘残卷", prob: 10, maxRealm: 3,
+        desc: "坊市地摊上有一本破书。",
+        opts: [
+            { text: "研读", checkStat: "int", val: 20, win: (s)=>{game.modifyAttr(s,'spi',5); return "竟然是一本古法！灵根提升。";}, fail: (s)=>{game.modifyAttr(s,'con',-5); return "气血逆流。根骨受损。";} },
+            { text: "丢弃", effect: "骗人的。" }
+        ]
+    },
+    {
+        id: "lq_rain", title: "灵雨降世", prob: 5,maxRealm: 4,
+        desc: "天降甘霖，灵气充盈。",
+        opts: [
+            { text: "沐浴修炼", effect: (s)=>{game.batchAddAttr(game.scaleVal(2)); return "全属性提升。";} },
+            { text: "收集灵水", effect: (s)=>{game.addItem("e_water"); return "获得 [灵水]。";} }
+        ]
+    },
+    {
+        id: "lq_skeleton", title: "山洞避雨", prob: 8,maxRealm: 4,
+        desc: "避雨时发现角落有一具遗骨。",
+        opts: [
+            { text: "搜身", effect: (s)=>{s.res.pills+=3; s.hidden.kar-=2; return "丹药+3。"} },
+            { text: "埋葬", checkStat: "luk", val: 40, win: (s)=>{game.modifyAttr(s,'int',5); return "梦中得前辈点拨。悟性提升。";}, fail: (s)=>{s.hidden.kar+=5; return "入土为安。";} }
+        ]
+    },
+    {
+        id: "zj_secret", title: "秘境开启", prob: 10, minRealm: 2, maxRealm: 5,
+        desc: "一处前人洞府现世。",
+        opts: [
+            { text: "组队前往", effect: (s)=>{s.res.money+=game.scaleVal(50); return "安全探索，分得灵石。";} },
+            { text: "独自前往", checkStat: "str", val: 80, win: (s)=>{s.res.money+=game.scaleVal(300); game.addItem("e02"); return "独吞宝藏！获得大量灵石和 [道经]。";}, fail: (s)=>{game.modifyAttr(s,'con',-20); return "遭遇陷阱，重伤逃遁。";} },
+            { text: "不去", effect: "太危险。" }
+        ]
+    },
+    {
+        id: "zj_auction", title: "拍卖会", prob: 12, minRealm: 3,maxRealm: 4,
+        desc: "黑市拍卖会正在进行。",
+        opts: [
+            { text: "竞拍宝物", check: (s)=>s.res.money>=300, effect: (s)=>{ s.res.money-=300; game.addItem("e15"); return "拍得 [青云剑]。"; } },
+            { text: "杀人夺宝", checkStat: "str", val: 120, win: (s)=>{game.addItem("e15"); s.hidden.kar-=30; return "夺得宝物，因果缠身。";}, fail: (s)=>{game.die("被拍卖行护卫击杀"); return "你死了。";} }
+        ]
+    },
+    {
+        id: "zj_fox_good", title: "狐妖报恩", prob: 15, reqFlag: "foxSaved", once: true,
+        desc: "一名绝美修仙者找上门来。",
+        opts: [
+            { text: "结为道侣", effect: (s)=>{s.flags.foxPartner=true; game.modifyAttr(s,'spi',150); game.modifyAttr(s,'con',150); return "双修速度大增！灵根、根骨大幅提升。";} },
+            { text: "拒绝", effect: (s)=>{game.addItem("e_fox_pill"); return "获赠 [灵狐内丹]。";} }
+        ]
+    },
+    {
+        id: "zj_fox_bad", title: "狐妖复仇", prob: 25, reqFlag: "foxKilled", once: true,
+        desc: "一头化形大妖挡住去路。",
+        opts: [
+            { text: "死战", type: "battle", diff: (s) => game.scaleVal(200), win: (s)=>{game.addItem("e20"); return "斩杀大妖，炼制 [嗜血幡]。";}, fail: (s)=>{game.die("被狐妖撕碎"); return "死无全尸。";} },
+            { text: "逃跑", checkStat: "agi", val: 100, win: (s)=>{s.items=[]; return "丢弃所有装备才勉强逃脱。背包清空。";}, fail: (s)=>{game.die("逃跑失败"); return "被追上杀掉。";} }
+        ]
+    },
+    {
+        id: "zj_align", title: "正邪之争", prob: 10, minRealm: 3,maxRealm: 5,
+        desc: "路遇正道围攻魔修。",
+        opts: [
+            { text: "助正道", effect: (s)=>{s.hidden.rep+=20; s.res.money+=game.scaleVal(100); return "获得感谢费。";} },
+            { text: "助魔修", effect: (s)=>{s.hidden.kar-=20; game.addItem("e20"); return "杀气更重。获得 [嗜血幡]。";} },
+            { text: "两不相帮", effect: "静观其变。" }
+        ]
+    },
+    {
+        id: "zj_sword", title: "上古剑冢", prob: 5, minRealm: 3,maxRealm: 5,
+        desc: "万剑齐鸣。",
+        opts: [
+            { text: "强行取剑", checkStat: "str", val: 150, win: (s)=>{game.addItem("e27"); return "拔出 [斩龙剑]！";}, fail: (s)=>{game.modifyAttr(s,'con',-30); return "被剑气所伤。根骨大损。";} },
+            { text: "感悟剑意", checkStat: "int", val: 50, win: (s)=>{game.modifyAttr(s,'str',10); return "领悟剑意。力道提升。";}, fail: (s)=>{return "什么也没悟到。";} }
+        ]
+    },
+    {
+        id: "yy_sect_doom", title: "宗门覆灭", prob: 5, minRealm: 5,
+        desc: "仇家联合攻打宗门。",
+        opts: [
+            { text: "死战到底", checkStat: "str", val: 500, win: (s)=>{s.hidden.rep+=500; game.modifyAttr(s,'wil',50); return "力挽狂澜。道心大幅提升。";}, fail: (s)=>{game.die("战死沙场"); return "你为宗门流尽了最后一滴血。";} },
+            { text: "逃离", effect: (s)=>{s.res.money+=game.scaleVal(1000); s.hidden.rep-=50; return "携火种遁走。获得大量资源。"} }
+        ]
+    },
+    {
+        id: "yy_possession", title: "夺舍危机", prob: 8, minRealm: 5,
+        desc: "修炼时遭遇大能残魂夺舍！",
+        opts: [
+            { text: "吞噬残魂", checkStat: "per", val: 150, win: (s)=>{game.modifyAttr(s,'per',50); return "反向吞噬！神识暴涨。";}, fail: (s)=>{game.die("被夺舍"); return "意识消散... (结局：夺舍重生)";} },
+            { text: "驱逐", checkStat: "wil", val: 100, win: (s)=>{game.modifyAttr(s,'wil',20); return "道心坚定。道心提升。";}, fail: (s)=>{game.modifyAttr(s,'int',-20); return "灵魂受损。悟性降低。";} }
+        ]
+    },
+    {
+        id: "yy_disciple", title: "收徒机缘", prob: 10, minRealm: 5,
+        desc: "遇到一个天赋异禀的少年。",
+        opts: [
+            { text: "收为徒弟", effect: (s)=>{s.hidden.rep+=20; s.flags.hasDisciple=true; return "结下善缘。每年获得供奉。";} },
+            { text: "夺取体质", effect: (s)=>{s.hidden.kar-=100; game.modifyAttr(s,'con',50); game.modifyAttr(s,'spi',50); return "因果沉重，肉身与灵力暴涨。";} }
+        ]
+    },
+    {
+        id: "lx_rift", title: "时空裂缝", prob: 5, minRealm: 7,
+        desc: "空间破碎，露出时空乱流。",
+        opts: [
+            { text: "进入探索", checkStat: "luk", val: 80, win: (s)=>{s.age+=100; game.addItem("e_artifact"); return "游历百年。获得 [上古神器]，寿命-100。";}, fail: (s)=>{s.age+=200; return "在乱流中迷失了两百年。";} },
+            { text: "封印", effect: (s)=>{s.hidden.kar+=50; return "封印裂缝，冥冥中似有回响。";} }
+        ]
+    },
+    {
+        id: "lx_fox_end", title: "狐妖终局", prob: 50, reqFlag: "foxPartner", minRealm: 6, once: true,
+        desc: "你的道侣大限将至。",
+        opts: [
+            { text: "耗费修为续命", effect: (s)=>{s.attrs.con=Math.floor(s.attrs.con*0.7); s.attrs.spi=Math.floor(s.attrs.spi*0.7); return "自损三成修为，为她逆天改命。";} },
+            { text: "送别", effect: (s)=>{s.flags.foxPartner=false; game.modifyAttr(s,'wil',100); return "大道独行。道心大彻大悟。";} }
+        ]
+    },
+    {
+        id: "lx_heaven", title: "天道问心", prob: 5, minRealm: 7,
+        desc: "天道意志降临。",
+        opts: [
+            { text: "顺应天道", effect: (s)=>{game.batchAddAttr(game.scaleVal(20)); return "全属性提升，稳步飞升。";} },
+            { text: "逆天而行", effect: (s)=>{game.batchAddAttr(game.scaleVal(50)); s.flags.defyHeaven=true; return "战力暴涨！但天劫威力翻倍。";} }
+        ]
+    },
+    {
+        id: "dc_envoy", title: "仙界接引使", prob: 10, minRealm: 8,
+        desc: "接引使者索要好处。",
+        opts: [
+            { text: "贿赂 (10000灵石)", check: (s)=>s.res.money>=10000, effect: (s)=>{s.res.money-=10000; s.flags.easyAscension=true; return "飞升难度降低。";} },
+            { text: "傲慢相对", effect: (s)=>{s.flags.hardAscension=true; return "接引使冷笑一声离开。飞升难度极大提升。";} }
+        ]
+    },
+    {
+        id: "dc_karma", title: "因果清算", prob: 100, minRealm: 8, reqFlag: "triggeredOnce",
+        desc: "早年仇家的后代已成气候，前来寻仇。",
+        opts: [
+            { text: "斩草除根", effect: (s)=>{s.hidden.kar-=50; return "因果已断，但杀孽更重。";} },
+            { text: "化解恩怨 (消耗神器)", reqItem: "e_artifact", effect: (s)=>{s.items = s.items.filter(i=>i!=="e_artifact"); s.hidden.kar+=50; return "以宝物化解恩怨。";} }
+        ]
+    },
+    {
+        id: "ev_find_bead", title: "五行感应", prob: 2,
+        desc: "体内的灵力产生共鸣。",
+        opts: [
+            { text: "搜寻", checkStat: "luk", val: 250, win: (s)=>{ const beads = ["e_bead_gold", "e_bead_wood", "e_bead_water", "e_bead_fire", "e_bead_earth"]; const missing = beads.filter(b => !s.items.includes(b)); if(missing.length > 0) { const get = missing[Math.floor(Math.random()*missing.length)]; game.addItem(get); return `找到了 [${ITEM_DB[get].name}]！`; } return "似乎感应错了。"; }, fail: (s)=>{return "什么也没发现。";} }
+        ]
+    },
+    {
+        id: "ev_five_elements_final", title: "上古仙府", prob: 10, once: true,
+        check: (s)=> ["e_bead_gold", "e_bead_wood", "e_bead_water", "e_bead_fire", "e_bead_earth"].every(i => s.items.includes(i)),
+        desc: "五灵珠共鸣，开启了上古仙府！",
+        opts: [
+            { text: "进入仙府", effect: (s)=>{ game.addItem("e50"); return "获得最终机缘 [天道碎片]！全属性暴涨！"; } }
+        ]
+    }
+];
+
+/* ================= GAME LOGIC (OPTIMIZED) ================= */
+const game = {
+    state: {},
+    waitingForUser: false,
+    unseenLogCount: 0,
+    inherited: {},
+    isFastForwarding: false,
+
+    // UI Utilities
+    showContinueButton: function() { const btn = document.getElementById('btn-continue'); if(btn) btn.classList.remove('hidden'); },
+    hideContinueButton: function() { const btn = document.getElementById('btn-continue'); if(btn) btn.classList.add('hidden'); },
+    continueAfterLog: function() { 
+        if(!this.state.alive) return; 
+        this.waitingForUser = false; 
+        this.hideContinueButton(); 
+        this.resume(); 
+    },
+
+    showItemTooltip: function(e, text) {
+        const t = document.getElementById('item-tooltip'); if(!t) return; t.innerText = text || '';
+        t.classList.remove('hidden');
+        const x = e.pageX + 12; const y = e.pageY + 12; t.style.left = x + 'px'; t.style.top = y + 'px';
+    },
+    moveItemTooltip: function(e) {
+        const t = document.getElementById('item-tooltip'); if(!t || t.classList.contains('hidden')) return; t.style.left = (e.pageX + 12) + 'px'; t.style.top = (e.pageY + 12) + 'px';
+    },
+    hideItemTooltip: function() { const t = document.getElementById('item-tooltip'); if(!t) return; t.classList.add('hidden'); },
+
+    showScrollIndicator: function() { const b = document.getElementById('btn-scroll-bottom'); if(!b) return; b.classList.remove('hidden'); const c = document.getElementById('new-count'); c.innerText = this.unseenLogCount>0?this.unseenLogCount:''; },
+    hideScrollIndicator: function() { const b = document.getElementById('btn-scroll-bottom'); if(!b) return; b.classList.add('hidden'); const c = document.getElementById('new-count'); c.innerText = ''; },
+    scrollToBottom: function() { const el = document.getElementById('event-log'); if(!el) return; el.scrollTop = el.scrollHeight; this.unseenLogCount = 0; this.hideScrollIndicator(); },
+
+    init: function() {
+        this.state = JSON.parse(JSON.stringify(INITIAL_STATE));
+        const savedPts = parseInt(localStorage.getItem("rogue_cultivation_inherit") || "0", 10);
+        const savedMoney = parseInt(localStorage.getItem("rogue_cultivation_inherit_money") || "0", 10);
+        const savedPills = parseInt(localStorage.getItem("rogue_cultivation_inherit_pills") || "0", 10);
+        if (savedPts) this.state.points += savedPts;
+        if (savedMoney) this.state.res.money += savedMoney;
+        if (savedPills) this.state.res.pills += savedPills;
+        this.inherited = { pts: savedPts, money: savedMoney, pills: savedPills };
+
+        this.renderInitScreen();
+        this.hideContinueButton();
+        const logEl = document.getElementById('event-log');
+        if (logEl) {
+            logEl.addEventListener('scroll', () => {
+                const atBottom = (logEl.scrollHeight - logEl.scrollTop - logEl.clientHeight) < 30;
+                if (atBottom) { this.unseenLogCount = 0; this.hideScrollIndicator(); }
+            });
+        }
+        this.hideScrollIndicator();
+    },
+
+    restart: function() {
+        document.getElementById('event-log').innerHTML = '';
+        document.getElementById('inventory-list').innerHTML = '';
+        this.init();
+    },
+
+    renderInitScreen: function() {
+        const modal = document.getElementById('modal-content');
+        document.getElementById('modal-overlay').classList.remove('hidden');
+        // Reset styles from potential ascension
+        modal.className = ''; 
+        
+        let html = `<h2>轮回开启</h2><p>可用点数: <span id="init-points" style="color:var(--accent-color); font-weight:bold;">${this.state.points}</span></p>`;
+        html += `<p style="color:#bbb; font-size:0.95em;">继承：点数 +${this.inherited.pts || 0}，灵石 +${this.inherited.money || 0}，丹药 +${this.inherited.pills || 0}</p>`;
+        const attrs = {con:"根骨", str:"力道", agi:"身法", int:"悟性", spi:"灵根", luk:"气运", per:"神识", wil:"道心"};
+        
+        html += `<div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px; margin-bottom:20px;">`;
+        for(let k in attrs) {
+            const v = this.state.attrs[k] || 0;
+            html += `<div style="display:flex; justify-content:space-between; align-items:center; background:#333; padding:5px 10px; border-radius:4px;">
+                <span>${attrs[k]}</span>
+                <div>
+                    <button onclick="game.adjustInitAttr('${k}', -1)" style="padding:2px 8px;">-</button>
+                    <input type="number" id="input-${k}" value="${v}" min="0" style="width:54px; text-align:center; margin:0 6px;" onchange="game.onInitAttrInput('${k}')">
+                    <button onclick="game.adjustInitAttr('${k}', 1)" style="padding:2px 8px;">+</button>
+                </div>
+            </div>`;
+        }
+        html += `</div>`;
+        
+        html += `<h3>初始机缘</h3>`;
+        html += `<select id="start-item" style="width:100%; padding:10px; background:#333; color:#fff; border:1px solid #555; margin-bottom:20px;">
+            <option value="e01">锈铁剑 (力道+5)</option>
+            <option value="e02">泛黄道经 (悟性+3)</option>
+            <option value="e03">祖传玉佩 (气运+3)</option>
+            <option value="e04">一袋灵石 (灵石+200)</option>
+        </select>`;
+        
+        html += `<button class="btn-action" onclick="game.startGame()">开始修仙</button>`;
+        
+        document.getElementById('modal-body').innerHTML = html;
+        document.getElementById('modal-title').innerText = "创建角色";
+        document.getElementById('modal-options').innerHTML = "";
+    },
+
+    adjustInitAttr: function(attr, delta) {
+        const input = document.getElementById(`input-${attr}`);
+        const current = this.state.attrs[attr];
+        let newVal = current + delta;
+        if (newVal < 0) newVal = 0;
+        if (delta > 0) {
+            const available = this.state.points;
+            if (available <= 0) return;
+            if (delta > available) newVal = current + available;
+        }
+        this.setInitAttr(attr, newVal);
+        if (input) input.value = this.state.attrs[attr];
+    },
+
+    setInitAttr: function(attr, newVal) {
+        newVal = Math.max(0, Math.floor(newVal));
+        const current = this.state.attrs[attr];
+        const delta = newVal - current;
+        if (delta === 0) return;
+        if (delta > 0) {
+            if (this.state.points < delta) return;
+            this.state.attrs[attr] = current + delta;
+            this.state.points -= delta;
+        } else {
+            this.state.attrs[attr] = current + delta;
+            this.state.points -= delta;
+        }
+        const input = document.getElementById(`input-${attr}`);
+        if (input) input.value = this.state.attrs[attr];
+        document.getElementById('init-points').innerText = this.state.points;
+    },
+
+    onInitAttrInput: function(attr) {
+        const input = document.getElementById(`input-${attr}`);
+        if (!input) return;
+        let val = parseInt(input.value || "0", 10);
+        if (isNaN(val) || val < 0) { input.value = this.state.attrs[attr]; return; }
+        this.setInitAttr(attr, val);
+    },
+
+    startGame: function() {
+        const selItem = document.getElementById('start-item').value;
+        this.addItem(selItem);
+        document.getElementById('modal-overlay').classList.add('hidden');
+        this.updateUI();
+        this.log("你怀揣着修仙的梦想，踏上了漫漫长路。");
+        this.resume();
+    },
+
+    getScaleFactor:function() {
+        const r = REALMS[this.state.realmIdx];
+        const ageBonus = this.state.age * (r.ageFactor || 0.1); 
+        const base = r.baseGrowth + ageBonus;
+        const intMult = 1 + (Math.log10(this.state.attrs.int + 1) / 10);
+        return Math.max(1, (base * intMult) / 8);
+    },
+
+    scaleVal: function(baseMultiplier) {
+        const r = REALMS[this.state.realmIdx];
+        const avgAgeInRealm = r.maxAge / 2;
+        const estimatedRate = (r.baseGrowth + avgAgeInRealm * r.ageFactor) * (1 + Math.log10(this.state.attrs.int + 1)/10);
+        return Math.floor(baseMultiplier * (estimatedRate / 8));
+    },
+
+    modifyAttr : function(state, attr, multiplier) {
+        const scale = this.getScaleFactor();
+        let val = Math.floor(scale * multiplier);
+        if (multiplier < 0) val = Math.ceil(scale * multiplier * 0.5);
+        if (val === 0) val = (multiplier > 0) ? 1 : -1;
+        state.attrs[attr] += val;
+        if (state.attrs[attr] < 0) state.attrs[attr] = 0;
+        return (val > 0 ? "+" : "") + val;
+    },
+
+    // --- Optimized Game Loop Logic ---
+
+    resume: function() {
+        if (this.state.alive && !this.waitingForUser) {
+            this.isFastForwarding = true;
+            requestAnimationFrame(() => this.gameLoop());
+        }
+    },
+
+    gameLoop: function() {
+        if (!this.isFastForwarding) return;
+
+        // Process up to 50 years per frame to ensure smooth UI but fast progress
+        let yearsProcessed = 0;
+        const maxYearsPerFrame = 50; 
+
+        while (yearsProcessed < maxYearsPerFrame && this.isFastForwarding) {
+             const status = this.processOneYear(); // Returns 'continue', 'stop'
+
+             if (status === 'stop') {
+                 this.isFastForwarding = false;
+                 this.updateUI(); // Only update UI when we stop
+                 return; 
+             }
+             yearsProcessed++;
+        }
+
+        if (this.isFastForwarding) {
+            requestAnimationFrame(() => this.gameLoop());
+        } else {
+             this.updateUI();
+        }
+    },
+
+    // Processes a single year without updating UI
+    processOneYear: function() {
+        if (!this.state.alive) return 'stop';
+
+        this.state.year++;
+        this.state.age++;
+
+        const currentRealm = REALMS[this.state.realmIdx];
+        
+        // 1. Check Death
+        if (this.state.age > currentRealm.maxAge) {
+            this.endGame(this.getEndingByAge());
+            return 'stop';
+        }
+
+        // 2. Growth
+        this.processGrowth();
+
+        // 3. Check Breakthrough Condition (Auto-Pause)
+        const nextRealm = REALMS[this.state.realmIdx + 1];
+        if (nextRealm) {
+            const totalStats = Object.values(this.state.attrs).reduce((a,b)=>a+b,0);
+            const cost = nextRealm.cost || {};
+            const hasStats = totalStats >= nextRealm.threshold;
+            const hasMoney = (!cost.money) || (this.state.res.money >= cost.money);
+            const hasPills = (!cost.pills) || (this.state.res.pills >= cost.pills);
+
+            if (hasStats && hasMoney && hasPills) {
+                 this.log(`【提示】修为圆满，资源充足，可尝试突破至 [${nextRealm.name}]！`, "log-gain");
+                 this.waitingForUser = true;
+                 this.showContinueButton();
+                 return 'stop';
+            }
+        }
+
+        // 4. Check Event Probability
+        const timeScale = currentRealm.maxAge / REALMS[0].maxAge;
+        let baseProb = 15 / timeScale; 
+        baseProb += (Math.log(this.state.attrs.luk + 1) * 1.3) / timeScale;
+        baseProb = Math.max(0.1, baseProb);
+
+        if (Math.random() * 100 < baseProb) {
+            const event = this.pickEvent();
+            if (event) {
+                this.renderEvent(event);
+                return 'stop';
+            }
+        }
+
+        return 'continue';
+    },
+
+    processGrowth: function() {
+        // Pure data calculation, no UI updates here
+        const r = REALMS[this.state.realmIdx];
+        
+        this.state.items.forEach(id => {
+            const item = ITEM_DB[id];
+            if (item.yearly) {
+                for (let k in item.yearly) {
+                    if (k === 'rep') this.state.hidden.rep += item.yearly[k];
+                    else if (k === 'kar') this.state.hidden.kar += item.yearly[k];
+                    else if (k === 'money') this.state.res.money += item.yearly[k];
+                    else if (this.state.attrs[k] !== undefined) this.state.attrs[k] += item.yearly[k];
+                }
+            }
+        });
+        
+        const salaries = [0, 2, 10, 50, 200, 500, 2000, 5000, 20000, 0];
+        if (salaries[this.state.realmIdx]) {
+            this.state.res.money += salaries[this.state.realmIdx];
+        }
+
+        if (this.state.flags.isElder) this.state.res.money += Math.floor(salaries[this.state.realmIdx] * 0.5); 
+        if (this.state.flags.hasDisciple) this.state.res.money += Math.floor(salaries[this.state.realmIdx] * 0.2);
+
+        const scale = this.getScaleFactor(); 
+        const keys = Object.keys(this.state.attrs);
+        const totalGrowth = scale * 8; 
+        const loops = 8;
+        const baseChunk = Math.floor(totalGrowth / loops);
+        const remainder = Math.floor(totalGrowth % loops);
+
+        for (let i = 0; i < loops; i++) {
+            const target = keys[Math.floor(Math.random() * keys.length)];
+            this.state.attrs[target] += baseChunk;
+        }
+        if (remainder > 0) {
+            this.state.attrs[keys[Math.floor(Math.random() * keys.length)]] += remainder;
+        }
+
+        if (this.state.itemPillTimers && this.state.itemPillTimers.length > 0) {
+            for (let i = this.state.itemPillTimers.length - 1; i >= 0; i--) {
+                const t = this.state.itemPillTimers[i];
+                if (!this.hasItem(t.id)) { this.state.itemPillTimers.splice(i, 1); continue; }
+                while (t.nextAt <= this.state.age) {
+                    this.state.res.pills += t.amount;
+                    t.nextAt += t.interval;
+                }
+            }
+        }
+    },
+
+    pickEvent: function() {
+        const valid = EVENTS.filter(e => {
+            if (e.minRealm && this.state.realmIdx < e.minRealm) return false;
+            if (e.maxRealm && this.state.realmIdx > e.maxRealm) return false;
+            if (e.reqFlag && !this.state.flags[e.reqFlag]) return false;
+            if (e.forbiddenFlag && this.state.flags[e.forbiddenFlag]) return false;
+            if (e.check && !e.check(this.state)) return false;
+            if (e.once && this.state.flags['ev_' + e.id]) return false;
+            return true;
+        });
+        if (valid.length === 0) return null;
+        
+        const shuffled = valid.sort(() => 0.5 - Math.random());
+        for(let e of shuffled) {
+            const adj = this.adjustedEventProb(e);
+            if (Math.random() * 100 < adj) return e;
+        }
+        return null;
+    },
+
+    renderEvent: function(event) {
+        if (event.once) this.state.flags['ev_' + event.id] = true;
+        this.waitingForUser = true; // Pause loop
+        
+        const overlay = document.getElementById('modal-overlay');
+        document.getElementById('modal-title').innerText = `【${this.state.age}岁】${event.title}`;
+        document.getElementById('modal-body').innerText = event.desc;
+        const optsDiv = document.getElementById('modal-options');
+        optsDiv.innerHTML = "";
+        
+        event.opts.forEach(opt => {
+            if (opt.reqItem && !this.hasItem(opt.reqItem)) return;
+            if (opt.check && !opt.check(this.state)) return;
+
+            const btn = document.createElement('button');
+            btn.className = "btn-choice";
+            
+            let info = "";
+            if (opt.checkStat) info = `<small>相关: ${this.getStatName(opt.checkStat)}</small>`;
+            if (opt.type === "battle") info = `<small>交战：看实力与运气</small>`;
+            if (opt.reqItem) info = `<small>需道具: ${ITEM_DB[opt.reqItem].name}</small>`;
+            
+            btn.innerHTML = `${opt.text} ${info}`;
+            btn.onclick = () => this.resolveEventChoice(event, opt);
+            optsDiv.appendChild(btn);
+        });
+        
+        overlay.classList.remove('hidden');
+        this.hideContinueButton();
+    },
+
+    resolveEventChoice: function(event, opt) {
+        document.getElementById('modal-overlay').classList.add('hidden');
+        let resultText = "";
+        let success = true;
+
+        if (opt.type === "battle") {
+            const actualDiff = (typeof opt.diff === 'function') ? opt.diff(this.state) : opt.diff;
+            const p = this.probFromBattle(actualDiff);
+            success = Math.random() < p;
+        } else if (opt.checkStat) {
+            const target = (typeof opt.val === 'function') ? opt.val(this.state) : opt.val;
+            const p = this.probFromStat(opt.checkStat, target);
+            success = Math.random() < p;
+        }
+
+        if (success) {
+            if (opt.win) resultText = opt.win(this.state);
+            else if (opt.effect) resultText = (typeof opt.effect === 'function') ? opt.effect(this.state) : opt.effect;
+        } else {
+            if (opt.fail) resultText = opt.fail(this.state);
+            else resultText = "尝试未果，匆匆退去。";
+        }
+
+        this.log(`<b>${event.title}</b>: ${resultText}`, success ? "log-gain" : "log-loss");
+        this.updateUI(); // Immediate update on event resolution
+        
+        if (this.state.alive) {
+            // Show continue button so user can read result
+            this.waitingForUser = true; 
+            this.showContinueButton();
+        }
+    },
+
+    attemptBreakthrough: function() {
+        const next = REALMS[this.state.realmIdx + 1];
+        if (!next) return;
+
+        const total = Object.values(this.state.attrs).reduce((a,b)=>a+b,0);
+        if (total < next.threshold) { alert("属性不足，难以尝试突破"); return; }
+
+        const cost = next.cost || {};
+        if (cost.money && this.state.res.money < cost.money) { alert("灵石不足"); return; }
+        if (cost.pills && this.state.res.pills < cost.pills) { alert("丹药不足"); return; }
+
+        if (cost.money) this.state.res.money -= cost.money;
+        if (cost.pills) this.state.res.pills -= cost.pills;
+
+        const chance = this.calcBreakthroughChance(next);
+
+        if (Math.random() * 100 < chance) {
+            this.state.realmIdx++;
+            this.log(`======== 突破成功！晋升为 [${next.name}] ========`, "log-gain");
+            
+            // Check for Ascension Win Condition
+            if (this.state.realmIdx === 9) {
+                this.triggerAscension();
+                return;
+            }
+
+            this.batchAddAttr(1);
+            this.gainRandomAttr(Math.max(3, Math.round(next.baseGrowth * 3)));
+            if (this.state.realmIdx >= 8) this.state.flags.triggeredOnce = true;
+        } else {
+            this.log(`突破失败！遭受反噬。`, "log-loss");
+            this.handleBreakthroughFail(next.penalty);
+        }
+        this.updateUI();
+        this.waitingForUser = true; 
+        this.showContinueButton();
+    },
+
+    triggerAscension: function() {
+        this.state.alive = false;
+        this.isFastForwarding = false;
+        
+        const ending = this.getAscensionEndingText();
+        this.endGame({title: ending.title, desc: ending.text, factor: 2.5, special: true, tags: ending.tags});
+    },
+
+    getAscensionEndingText: function() {
+        const kar = this.state.hidden.kar;
+        const rep = this.state.hidden.rep;
+        const defied = this.state.flags.defyHeaven;
+
+        if (defied) {
+            return {
+                title: "力破虚空",
+                tags: ["逆天改命", "武神"],
+                text: "天道不仁，你便踏碎这天道！雷劫亿万重，皆被你一拳轰碎。你拒绝了仙界的招安，以肉身之力强行撕开虚空。此去仙界，诸神皆要为你让路。"
+            };
+        }
+        if (kar < -100) {
+            return {
+                title: "魔临九天",
+                tags: ["万古魔帝", "杀伐果断"],
+                text: "脚下枯骨成山，掌中日月旋转。你回首凡尘，血流成河，无一人敢直视你的背影。你不需要怜悯，不需要同伴。既然世人称你为魔，那你便做这九天之上的魔主。"
+            };
+        }
+        if (rep > 500 || kar > 200) {
+            return {
+                title: "无量功德仙",
+                tags: ["功德成圣", "万家生佛"],
+                text: "金光铺路，仙乐齐鸣。凡间无数生灵跪地叩拜，感念你留下的恩泽。你不仅修成了正果，更将仁爱洒满了人间。此去仙界，必是福德真仙，受万世香火。"
+            };
+        }
+        return {
+            title: "逍遥金仙",
+            tags: ["大道独行", "超脱"],
+            text: "大道三千，你独取一瓢。回首向来萧瑟处，归去，也无风雨也无晴。你化作清风一缕，飘然飞升。世间少了一个修仙者，天外多了一位逍遥仙。"
+        };
+    },
+
+    handleBreakthroughFail: function(type) {
+        if (type === "death" || type === "obliterate") {
+            if (this.hasItem("e41")) this.endGame({title:"兵解散仙", desc:"肉身虽毁，转修散仙。", factor:1.2});
+            else if (this.hasItem("e28")) {
+                this.log("凤凰羽衣燃烧，为你抵挡了死劫！");
+                this.state.items = this.state.items.filter(i=>i!=="e28");
+            } else this.die("突破失败，身死道消");
+        } else {
+            this.state.attrs.con = Math.max(1, Math.floor(this.state.attrs.con * 0.8));
+            this.log("根骨受损，修为倒退。");
+        }
+    },
+
+    die: function(reason) {
+        this.endGame({title: "半途陨落", desc: reason, factor: 0.3});
+    },
+
+    getEndingByAge: function() {
+        const r = this.state.realmIdx;
+        // Logic handled in triggerAscension for index 9, this is mostly for age death
+        if (this.state.flags.defyHeaven) return {title: "逆天战死", desc: "不为天道所容，虽死犹荣。", factor: 1.0};
+        if (r < 3) return {title: "寿终正寝(凡)", desc: "尘归尘，土归土。", factor: 0.5};
+        if (this.state.hidden.rep > 500) return {title: "宗门老祖", desc: "受万人敬仰，含笑而终。", factor: 1.2};
+        if (this.state.hidden.kar < -100) return {title: "魔道巨擘", desc: "恶名遗臭万年。", factor: 0.8};
+        return {title: "仙途未竞", desc: "倒在了求道的路上。", factor: 0.6};
+    },
+
+    endGame: function(ending) {
+        this.state.alive = false;
+        this.waitingForUser = false;
+        this.isFastForwarding = false;
+        this.hideContinueButton();
+        
+        let totalStats = Object.values(this.state.attrs).reduce((a,b)=>a+b,0);
+        const inheritPts = Math.max(1, Math.floor((totalStats / 80) * ending.factor));
+        
+        let prevInherited = parseInt(localStorage.getItem("rogue_cultivation_inherit") || "0", 10);
+        const newInherited = prevInherited + inheritPts;
+        localStorage.setItem("rogue_cultivation_inherit", newInherited);
+
+        const inheritMoney = Math.floor(this.state.res.money * 0.10);
+        const inheritPills = Math.floor(this.state.res.pills * 0.20);
+        const prevMoney = parseInt(localStorage.getItem("rogue_cultivation_inherit_money") || "0", 10);
+        const prevPills = parseInt(localStorage.getItem("rogue_cultivation_inherit_pills") || "0", 10);
+        const newMoney = prevMoney + inheritMoney;
+        const newPills = prevPills + inheritPills;
+        localStorage.setItem("rogue_cultivation_inherit_money", newMoney);
+        localStorage.setItem("rogue_cultivation_inherit_pills", newPills);
+
+        const overlay = document.getElementById('modal-overlay');
+        const content = document.getElementById('modal-content');
+        overlay.classList.remove('hidden');
+
+        // Apply special theme if triggered via ascension
+        if (ending.special) {
+            content.classList.add('ascension-theme');
+            document.getElementById('modal-title').className = 'ascension-title';
+            
+            let tagsHtml = "";
+            if (ending.tags) {
+                tagsHtml = ending.tags.map(t => `<span class="ascension-tag">${t}</span>`).join(" ");
+            }
+
+            document.getElementById('modal-title').innerText = ending.title;
+            document.getElementById('modal-body').innerHTML = `
+                <div style="text-align:center;">${tagsHtml}</div>
+                <div class="ascension-text">${ending.desc}</div>
+                <div style="background:rgba(0,0,0,0.3); padding:10px; border-radius:8px;">
+                    <p>最终境界: ${REALMS[this.state.realmIdx].name}</p>
+                    <p>最终属性总和: ${totalStats}</p>
+                </div>
+                <hr style="border:0; border-top:1px solid #d4af37; margin:20px 0;">
+                <p style="color:gold; font-size:1.4em;">获得传承点数: +${inheritPts}</p>
+                <div style="display:flex; justify-content:space-around; color:#aaa; font-size:0.9em;">
+                    <span>传承灵石 +${inheritMoney}</span>
+                    <span>传承丹药 +${inheritPills}</span>
+                </div>
+            `;
+        } else {
+            // Standard ending
+            content.className = '';
+            document.getElementById('modal-title').className = ''; // reset
+            document.getElementById('modal-title').style = "color:var(--accent-color); border-bottom:1px solid #444; padding-bottom:10px;";
+            
+            document.getElementById('modal-title').innerText = ending.title;
+            document.getElementById('modal-body').innerHTML = `
+                <p>${ending.desc}</p>
+                <p>最终境界: ${REALMS[this.state.realmIdx].name}</p>
+                <p>最终属性总和: ${totalStats}</p>
+                <hr style="border:0; border-top:1px solid #444; margin:10px 0;">
+                <p style="color:gold; font-size:1.4em;">获得传承点数: +${inheritPts} （累计: ${newInherited}）</p>
+                <p style="color:gold; font-size:1.0em;">获得传承灵石: +${inheritMoney} （累计: ${newMoney}）</p>
+                <p style="color:gold; font-size:1.0em;">获得传承丹药: +${inheritPills} （累计: ${newPills}）</p>
+            `;
+        }
+
+        document.getElementById('modal-options').innerHTML = `<button class="btn-action" onclick="game.restart()">下一世轮回</button>`;
+    },
+
+    addItem: function(id) {
+        if(!ITEM_DB[id]) return;
+        this.state.items.push(id);
+        const item = ITEM_DB[id];
+        if (item.stats) {
+            for(let k in item.stats) {
+                if(k === 'all') this.batchAddAttr(item.stats[k]);
+                else this.state.attrs[k] += item.stats[k];
+            }
+        }
+        if (item.onGet) item.onGet(this.state);
+        if (item.yearly && item.yearly.pills) {
+            if (!this.state.itemPillTimers) this.state.itemPillTimers = [];
+            const interval = item.yearly.pillsInterval || 1;
+            const amount = item.yearly.pills || 1;
+            this.state.itemPillTimers.push({ id, nextAt: this.state.age + interval, interval, amount });
+        }
+        this.log(`获得: [${item.name}]`, "log-gain");
+    },
+    hasItem: function(id) { return this.state.items.includes(id); },
+    batchAddAttr: function(years) {
+        const scale = this.getScaleFactor();
+        const finalVal = Math.max(1, Math.floor(scale * years));
+        for(let k in this.state.attrs) this.state.attrs[k] += finalVal;
+    },
+    getStatName: function(key) {
+        const map = {con:"根骨", str:"力道", agi:"身法", int:"悟性", spi:"灵根", luk:"气运", per:"神识", wil:"道心"};
+        return map[key] || key;
+    },
+    clamp: function(x, a, b) { return Math.max(a, Math.min(b, x)); },
+    sigmoid: function(x) { return 1 / (1 + Math.exp(-x)); },
+    gainRandomAttr: function(points) {
+        const keys = Object.keys(this.state.attrs);
+        for (let i = 0; i < points; i++) {
+            this.state.attrs[keys[Math.floor(Math.random() * keys.length)]]++;
+        }
+    },
+    calcBattlePower: function() {
+        const a = this.state.attrs;
+        return a.str + a.agi + a.con + a.spi + (a.per * 0.5);
+    },
+    probFromStat: function(statKey, target) {
+        const v = this.state.attrs[statKey] || 0;
+        const spread = 12 + target * 0.12;
+        let p = this.sigmoid((v - target) / spread);
+        const lukBoost = (statKey === "luk") ? 0.0012 : 0.0018;
+        p = p + (this.state.attrs.luk * lukBoost);
+        return this.clamp(p, 0.03, 0.97);
+    },
+    probFromBattle: function(diff) {
+        const power = this.calcBattlePower();
+        const spread = Math.max(25, diff * 0.12);
+        let p = this.sigmoid((power - diff) / spread);
+        p = p + (this.state.attrs.luk * 0.0015);
+        return this.clamp(p, 0.02, 0.98);
+    },
+    calcBreakthroughChance: function(nextRealm) {
+        let chance = nextRealm.baseRate + (this.state.attrs.int * 0.12) + (this.state.attrs.luk * 0.08);
+        if (this.hasItem("e25")) chance += 20;
+        return this.clamp(chance, 1, 99);
+    },
+
+    evaluateEventPolarity: function(event) {
+        let pos = 0, neg = 0;
+        const checkText = (txt) => {
+            if (!txt) return;
+            const s = String(txt);
+            if (/\bres\.money\b|灵石\+|丹药\+|addItem\(|res\.pills|attrs\.[a-z]+\+\=|\+=/.test(s)) pos++;
+            if (/game\.die\b|死|根骨-\d+|悟性-\d+|被|失败|失败|损|重伤|杀|死亡/.test(s)) neg++;
+        };
+        (event.opts || []).forEach(opt => {
+            if (typeof opt.effect === 'string') checkText(opt.effect);
+            else if (typeof opt.effect === 'function') checkText(opt.effect.toString());
+            if (typeof opt.win === 'string') checkText(opt.win);
+            else if (typeof opt.win === 'function') checkText(opt.win.toString());
+            if (typeof opt.fail === 'string') checkText(opt.fail);
+            else if (typeof opt.fail === 'function') checkText(opt.fail.toString());
+        });
+        if (pos > neg) return 1;
+        if (neg > pos) return -1;
+        return 0;
+    },
+
+    adjustedEventProb: function(event) {
+        const base = event.prob || 0;
+        const polarity = this.evaluateEventPolarity(event);
+        if (polarity === 0) return base;
+        const luk = this.state.attrs.luk || 0;
+        const rep = this.state.hidden.rep || 0;
+        const kar = this.state.hidden.kar || 0;
+        let factor = (luk * 0.01) + (rep * 0.02) + (kar * 0.02);
+        factor = Math.max(-0.5, Math.min(0.5, factor));
+        const adjusted = base * (1 + polarity * factor);
+        return this.clamp(adjusted, 1, 99);
+    },
+    log: function(msg, type) {
+        const el = document.getElementById('event-log');
+        if (!el) return;
+        const entry = document.createElement('div');
+        entry.className = `log-entry ${type||''}`;
+        entry.innerHTML = `<span class="log-year">${this.state.age}岁:</span> ${msg}`;
+        el.appendChild(entry);
+        el.scrollTop = el.scrollHeight;
+        this.unseenLogCount = 0;
+        this.hideScrollIndicator();
+    },
+    updateUI: function() {
+        const s = this.state;
+        document.getElementById('disp-age').innerText = s.age;
+        document.getElementById('disp-maxage').innerText = REALMS[s.realmIdx].maxAge;
+        document.getElementById('disp-realm').innerText = REALMS[s.realmIdx].name;
+        document.getElementById('disp-money').innerText = s.res.money;
+        document.getElementById('disp-pills').innerText = s.res.pills;
+        for (let k in s.attrs) document.getElementById(`attr-${k}`).innerText = s.attrs[k];
+        const invEl = document.getElementById('inventory-list');
+        invEl.innerHTML = s.items.map(id => {
+            let item = ITEM_DB[id];
+            return `<span class="item-tag ${item.rare?'rare':''}" data-item-id="${id}" title="${item.effect}">${item.name}</span>`;
+        }).join('');
+        const tags = invEl.querySelectorAll('.item-tag');
+        tags.forEach((tag) => {
+            const id = tag.dataset.itemId;
+            const effect = (ITEM_DB[id] && ITEM_DB[id].effect) ? ITEM_DB[id].effect : '';
+            tag.addEventListener('mouseenter', (e) => { this.showItemTooltip(e, effect); });
+            tag.addEventListener('mousemove', (e) => { this.moveItemTooltip(e); });
+            tag.addEventListener('mouseleave', () => { this.hideItemTooltip(); });
+        });
+        const next = REALMS[s.realmIdx + 1];
+        const btn = document.getElementById('btn-breakthrough');
+        const infoEl = document.getElementById('breakthrough-info');
+        if (!next) {
+            btn.style.display = 'none';
+            infoEl.innerText = "";
+        } else {
+            btn.style.display = '';
+            const total = Object.values(s.attrs).reduce((a,b)=>a+b,0);
+            const cost = next.cost || {};
+            const costParts = [];
+            if (cost.money) costParts.push(`灵石${cost.money}`);
+            if (cost.pills) costParts.push(`丹药${cost.pills}`);
+            const chance = this.calcBreakthroughChance(next);
+            const lacksCost = (cost.money && s.res.money < cost.money) || (cost.pills && s.res.pills < cost.pills);
+            btn.disabled = (total < next.threshold) || lacksCost;
+            infoEl.innerText = `需属性${next.threshold} (当前${total}) | 成功率${chance}% | 代价${costParts.length?costParts.join("，"):"无"}`;
+        }
+    }
+};
+
+game.init();
+</script>
+</body>
+</html>
