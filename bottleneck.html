@@ -1,0 +1,1349 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Bottleneck & Process Flow Simulator</title>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #f0ede6;
+  --surface: #ffffff;
+  --surface2: #e8e4dc;
+  --surface3: #f7f5f0;
+  --border: #d0cbc0;
+  --text: #1c1a16;
+  --muted: #8a8070;
+  --accent: #1a1a1a;
+  --running: #2d6a4f;
+  --running-light: #d8f3dc;
+  --bottleneck: #c0392b;
+  --bottleneck-light: #fdecea;
+  --warning: #d97706;
+  --warning-light: #fef3c7;
+  --idle: #9b8ea0;
+  --idle-light: #f3f0f5;
+  --unit-color: #2563eb;
+  --queue-color: #f59e0b;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Outfit', sans-serif;
+  min-height: 100vh;
+  padding: 1.5rem;
+  font-size: 13px;
+}
+
+/* HEADER */
+header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  margin-bottom: 1.5rem;
+  padding-bottom: 1rem;
+  border-bottom: 2px solid var(--text);
+}
+
+.header-left h1 {
+  font-family: 'Outfit', sans-serif;
+  font-weight: 800;
+  font-size: 1.9rem;
+  letter-spacing: -0.03em;
+  line-height: 1;
+  color: var(--text);
+}
+
+.header-left p {
+  color: var(--muted);
+  font-size: 0.72rem;
+  margin-top: 0.3rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.header-controls {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.btn {
+  font-family: 'Outfit', sans-serif;
+  font-size: 0.72rem;
+  padding: 0.45rem 1rem;
+  border-radius: 3px;
+  border: 1.5px solid var(--text);
+  cursor: pointer;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  transition: background 0.15s, color 0.15s;
+  background: transparent;
+  color: var(--text);
+}
+
+.btn:hover { background: var(--text); color: var(--bg); }
+
+.btn.primary {
+  background: var(--text);
+  color: var(--bg);
+}
+.btn.primary:hover { background: #444; }
+
+.btn.danger {
+  border-color: var(--bottleneck);
+  color: var(--bottleneck);
+}
+.btn.danger:hover { background: var(--bottleneck); color: white; }
+
+/* SPEED CONTROL */
+.speed-row {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  font-size: 0.7rem;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.speed-row input[type="range"] {
+  width: 80px;
+  height: 3px;
+  -webkit-appearance: none;
+  appearance: none;
+  background: var(--border);
+  border-radius: 2px;
+  outline: none;
+  cursor: pointer;
+}
+
+.speed-row input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--text);
+  cursor: pointer;
+  margin-top: -4.5px;
+}
+
+.speed-row input[type="range"]::-webkit-slider-runnable-track {
+  height: 3px;
+  border-radius: 2px;
+}
+
+/* MAIN LAYOUT */
+.main {
+  display: grid;
+  grid-template-rows: auto auto auto;
+  gap: 1.25rem;
+}
+
+/* CONTROLS ROW */
+.controls-row {
+  display: flex;
+  gap: 1rem;
+  align-items: stretch;
+}
+
+.control-card {
+  background: var(--surface);
+  border: 1.5px solid var(--border);
+  border-radius: 6px;
+  padding: 1rem 1.25rem;
+  flex: 1;
+}
+
+.control-card h3 {
+  font-family: 'Outfit', sans-serif;
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+  margin-bottom: 0.75rem;
+}
+
+.slider-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.slider-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.slider-label {
+  font-size: 0.68rem;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  min-width: 90px;
+}
+
+.slider-row input[type="range"] {
+  flex: 1;
+  height: 4px;
+  -webkit-appearance: none;
+  appearance: none;
+  border-radius: 2px;
+  outline: none;
+  cursor: pointer;
+  background: var(--border);
+}
+
+.slider-row input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--text);
+  cursor: pointer;
+  margin-top: -5px;
+  transition: transform 0.1s;
+}
+
+.slider-row input[type="range"]::-webkit-slider-thumb:hover { transform: scale(1.25); }
+
+.slider-row input[type="range"]::-webkit-slider-runnable-track {
+  height: 4px;
+  border-radius: 2px;
+}
+
+.slider-val {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--text);
+  min-width: 38px;
+  text-align: right;
+}
+
+/* RANDOMNESS MARKERS */
+.rand-markers {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.6rem;
+  color: var(--muted);
+  margin-top: 0.15rem;
+  padding: 0 0;
+}
+
+/* PROCESS FLOW */
+.flow-section {
+  background: var(--surface);
+  border: 1.5px solid var(--border);
+  border-radius: 6px;
+  padding: 1.25rem;
+  overflow-x: auto;
+}
+
+.flow-section h3 {
+  font-family: 'Outfit', sans-serif;
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+  margin-bottom: 1rem;
+}
+
+.flow-canvas-wrap {
+  position: relative;
+  min-width: 700px;
+}
+
+canvas#flowCanvas {
+  width: 100%;
+  display: block;
+}
+
+/* WORKER ASSIGNMENT */
+.worker-section {
+  background: var(--surface);
+  border: 1.5px solid var(--border);
+  border-radius: 6px;
+  padding: 1.25rem;
+}
+
+.worker-section h3 {
+  font-family: 'Outfit', sans-serif;
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+  margin-bottom: 1rem;
+}
+
+.worker-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 0.75rem;
+}
+
+.step-worker-card {
+  border: 1.5px solid var(--border);
+  border-radius: 6px;
+  padding: 0.85rem 0.75rem;
+  text-align: center;
+  transition: border-color 0.2s, background 0.2s;
+  position: relative;
+}
+
+.step-worker-card.bottleneck {
+  border-color: var(--bottleneck);
+  background: var(--bottleneck-light);
+}
+
+.step-worker-card.running {
+  border-color: var(--running);
+  background: var(--running-light);
+}
+
+.step-worker-card.idle {
+  border-color: var(--idle);
+  background: var(--idle-light);
+}
+
+.step-name {
+  font-family: 'Outfit', sans-serif;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  margin-bottom: 0.5rem;
+  color: var(--text);
+}
+
+.step-base-time {
+  font-size: 0.62rem;
+  color: var(--muted);
+  margin-bottom: 0.6rem;
+}
+
+.worker-counter {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.wc-btn {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 1.5px solid var(--text);
+  background: transparent;
+  color: var(--text);
+  font-size: 1rem;
+  line-height: 1;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'Outfit', sans-serif;
+  transition: background 0.12s, color 0.12s;
+}
+
+.wc-btn:hover { background: var(--text); color: var(--bg); }
+.wc-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+.wc-btn:disabled:hover { background: transparent; color: var(--text); }
+
+.wc-count {
+  font-family: 'Outfit', sans-serif;
+  font-size: 1.4rem;
+  font-weight: 800;
+  color: var(--text);
+  min-width: 1.5rem;
+}
+
+.worker-icons {
+  display: flex;
+  justify-content: center;
+  gap: 3px;
+  flex-wrap: wrap;
+  min-height: 16px;
+  margin-bottom: 0.4rem;
+}
+
+.worker-icon {
+  font-size: 0.85rem;
+  line-height: 1;
+}
+
+.step-eff-time {
+  font-size: 0.68rem;
+  color: var(--muted);
+}
+
+.step-eff-time strong {
+  color: var(--text);
+}
+
+.bottleneck-badge {
+  position: absolute;
+  top: -8px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--bottleneck);
+  color: white;
+  font-size: 0.55rem;
+  font-family: 'Outfit', sans-serif;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  padding: 2px 6px;
+  border-radius: 3px;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.total-workers-display {
+  text-align: right;
+  font-size: 0.68rem;
+  color: var(--muted);
+  margin-bottom: 0.75rem;
+}
+
+.total-workers-display strong {
+  color: var(--text);
+}
+
+/* METRICS */
+.metrics-row {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 0.75rem;
+}
+
+.metric-card {
+  background: var(--surface);
+  border: 1.5px solid var(--border);
+  border-radius: 6px;
+  padding: 0.85rem 1rem;
+}
+
+.metric-label {
+  font-size: 0.62rem;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-bottom: 0.35rem;
+}
+
+.metric-value {
+  font-family: 'Outfit', sans-serif;
+  font-size: 1.35rem;
+  font-weight: 800;
+  color: var(--text);
+  line-height: 1;
+}
+
+.metric-sub {
+  font-size: 0.6rem;
+  color: var(--muted);
+  margin-top: 0.2rem;
+}
+
+/* INSIGHT */
+.insight-bar {
+  background: var(--surface);
+  border: 1.5px solid var(--border);
+  border-radius: 6px;
+  padding: 0.85rem 1.25rem;
+  font-size: 0.75rem;
+  color: var(--muted);
+  line-height: 1.6;
+  min-height: 3rem;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.insight-bar .icon {
+  font-size: 1.1rem;
+  flex-shrink: 0;
+}
+
+.insight-bar strong {
+  color: var(--text);
+}
+
+/* STATUS PILL */
+.status-pill {
+  display: inline-block;
+  font-size: 0.62rem;
+  font-family: 'Outfit', sans-serif;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  padding: 2px 7px;
+  border-radius: 10px;
+  text-transform: uppercase;
+}
+
+.pill-running { background: var(--running-light); color: var(--running); }
+.pill-paused { background: var(--warning-light); color: var(--warning); }
+
+/* CHART */
+.charts-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+}
+
+.chart-card {
+  background: var(--surface);
+  border: 1.5px solid var(--border);
+  border-radius: 6px;
+  padding: 1rem 1.25rem 0.75rem;
+}
+
+.chart-card h4 {
+  font-family: 'Outfit', sans-serif;
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--muted);
+  margin-bottom: 0.6rem;
+}
+
+canvas.mini-chart {
+  width: 100%;
+  display: block;
+}
+
+/* FOOTER */
+footer {
+  margin-top: 2rem;
+  padding-top: 1rem;
+  border-top: 1.5px solid var(--border);
+  font-size: 0.68rem;
+  color: var(--muted);
+  letter-spacing: 0.04em;
+  text-align: center;
+}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-left">
+    <h1>Bottleneck & Process Flow</h1>
+    <p>Capacity Simulation — Allocate Workers · Identify Constraints · Observe Variability</p>
+  </div>
+  <div class="header-controls">
+    <div class="speed-row">
+      <span>Speed</span>
+      <input type="range" id="speedSlider" min="1" max="5" step="1" value="3">
+      <span id="speedLabel">3×</span>
+    </div>
+    <button class="btn primary" id="startBtn" onclick="toggleSim()">▶ Start</button>
+    <button class="btn danger" onclick="resetSim()">↺ Reset</button>
+  </div>
+</header>
+
+<div class="main">
+
+  <!-- CONTROLS ROW -->
+  <div class="controls-row">
+    <div class="control-card" style="flex:2;">
+      <h3>Variability Control</h3>
+      <div class="slider-group">
+        <div class="slider-row">
+          <span class="slider-label">Randomness</span>
+          <input type="range" id="randSlider" min="0" max="1" step="0.01" value="0.2"
+            oninput="onRandChange(this.value)">
+          <span class="slider-val" id="randVal">20%</span>
+        </div>
+        <div class="rand-markers" style="padding-left:90px; padding-right:38px;">
+          <span>Deterministic</span>
+          <span>Low</span>
+          <span>Medium</span>
+          <span>High</span>
+          <span>Chaotic</span>
+        </div>
+        <div class="slider-row" style="margin-top:0.25rem;">
+          <span class="slider-label">Demand Rate</span>
+          <input type="range" id="demandSlider" min="0.1" max="1.5" step="0.05" value="0.4"
+            oninput="onDemandChange(this.value)">
+          <span class="slider-val" id="demandVal">0.4/s</span>
+        </div>
+      </div>
+    </div>
+    <div class="control-card" style="flex:1;">
+      <h3>Simulation Stats</h3>
+      <div style="display:flex; flex-direction:column; gap:0.45rem;">
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+          <span style="font-size:0.68rem; color:var(--muted); text-transform:uppercase; letter-spacing:0.04em;">Status</span>
+          <span class="status-pill pill-paused" id="statusPill">Paused</span>
+        </div>
+        <div style="display:flex; justify-content:space-between;">
+          <span style="font-size:0.68rem; color:var(--muted); text-transform:uppercase; letter-spacing:0.04em;">Units Produced</span>
+          <span style="font-size:0.8rem; font-weight:700;" id="statUnits">0</span>
+        </div>
+        <div style="display:flex; justify-content:space-between;">
+          <span style="font-size:0.68rem; color:var(--muted); text-transform:uppercase; letter-spacing:0.04em;">Elapsed Time</span>
+          <span style="font-size:0.8rem; font-weight:700;" id="statTime">0s</span>
+        </div>
+        <div style="display:flex; justify-content:space-between;">
+          <span style="font-size:0.68rem; color:var(--muted); text-transform:uppercase; letter-spacing:0.04em;">Avg WIP</span>
+          <span style="font-size:0.8rem; font-weight:700;" id="statWip">0</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PROCESS FLOW CANVAS -->
+  <div class="flow-section">
+    <h3>Process Flow — Live Animation</h3>
+    <div class="flow-canvas-wrap">
+      <canvas id="flowCanvas" height="160"></canvas>
+    </div>
+  </div>
+
+  <!-- WORKER ASSIGNMENT -->
+  <div class="worker-section">
+    <h3>Worker Allocation</h3>
+    <div class="total-workers-display" id="totalWorkersDisplay">
+      Total Workers: <strong>7</strong> / 15 max
+    </div>
+    <div class="worker-grid" id="workerGrid"></div>
+  </div>
+
+  <!-- METRICS -->
+  <div class="metrics-row">
+    <div class="metric-card">
+      <div class="metric-label">Throughput</div>
+      <div class="metric-value" id="m-throughput">—</div>
+      <div class="metric-sub">units / min</div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-label">Avg Cycle Time</div>
+      <div class="metric-value" id="m-cycletime">—</div>
+      <div class="metric-sub">seconds / unit</div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-label">Total WIP</div>
+      <div class="metric-value" id="m-wip">0</div>
+      <div class="metric-sub">units in system</div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-label">Bottleneck</div>
+      <div class="metric-value" id="m-bottleneck" style="font-size:1rem;">—</div>
+      <div class="metric-sub">longest eff. cycle time</div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-label">System Util.</div>
+      <div class="metric-value" id="m-util">—</div>
+      <div class="metric-sub">% time steps busy</div>
+    </div>
+  </div>
+
+  <!-- INSIGHT -->
+  <div class="insight-bar" id="insightBar">
+    <span class="icon">💡</span>
+    <span>Press <strong>Start</strong> to begin the simulation. Allocate workers to steps using the +/− buttons. Watch how bottlenecks form and queues build up between steps.</span>
+  </div>
+
+  <!-- CHARTS -->
+  <div class="charts-row">
+    <div class="chart-card">
+      <h4>Queue Length Over Time (per step)</h4>
+      <canvas id="queueChart" class="mini-chart" height="120"></canvas>
+    </div>
+    <div class="chart-card">
+      <h4>Step Utilization (%)</h4>
+      <canvas id="utilChart" class="mini-chart" height="120"></canvas>
+    </div>
+  </div>
+
+</div>
+
+<footer>© Tiancheng Zhao 2026. All Rights Reserved.</footer>
+
+<script>
+// ─────────────────────────────────────────────
+// PROCESS STEPS DEFINITION
+// baseCycleTime = seconds per unit with 1 worker
+// ─────────────────────────────────────────────
+const STEPS = [
+  { name: 'Intake',     base: 1.00, emoji: '📥' },
+  { name: 'Assembly',   base: 2.00, emoji: '🔧' },
+  { name: 'QC Check',   base: 1.50, emoji: '🔍' },
+  { name: 'Packaging',  base: 1.75, emoji: '📦' },
+  { name: 'Dispatch',   base: 1.00, emoji: '🚚' },
+];
+// Throughput of step i = workers_i / base_i.
+// Default 7 workers [1,2,1,2,1]: bottleneck CT=1.5s -> max throughput ~0.67/s (mid of 0.1-1.5 range)
+// Optimal 15 workers: throughput ~2.0/s, covering full demand slider.
+
+const N = STEPS.length;
+const MAX_WORKERS = 15;
+const MAX_QUEUE = 20;
+
+// ─── STATE ───
+let workers = [1, 2, 1, 2, 1]; // total = 7 workers
+let randomness = 0.2;
+let demandRate = 0.4; // arrivals/sec
+let running = false;
+let simTime = 0;        // seconds of sim time elapsed
+let unitsProduced = 0;
+let lastFrameReal = null;
+let animFrame = null;
+
+// Per-step state
+let stepState = STEPS.map(() => ({
+  busy: false,
+  timeRemaining: 0,
+  busyTotal: 0,     // seconds busy
+  queue: 0,
+  processingCount: 0,
+}));
+
+// Inter-arrival tracking
+let nextArrival = 1.0;
+
+// Metrics history for charts (last 60 snapshots)
+const HIST_LEN = 80;
+let queueHistory = Array.from({length: N}, () => Array(HIST_LEN).fill(0));
+let utilHistory  = Array.from({length: N}, () => Array(HIST_LEN).fill(0));
+let histTick = 0;
+let histAccum = 0;  // accumulate sim seconds before snapping
+
+// Completed units data for cycle time
+let completedCycleTimes = [];
+let unitEntryTimes = [];  // sim time when unit entered the system
+
+// Sim speed
+let simSpeed = 3;
+
+// Floating unit particles for animation
+let particles = [];
+let particleIdCounter = 0;
+
+// ─── EFFECTIVE CYCLE TIME ───
+function effectiveCT(stepIdx, workers_arr) {
+  const w = Math.max(1, workers_arr[stepIdx]);
+  return STEPS[stepIdx].base / w;
+}
+
+function sampleCT(stepIdx, workers_arr) {
+  const base = effectiveCT(stepIdx, workers_arr);
+  if (randomness < 0.001) return base;
+  // Gamma-like: mean=base, cv=randomness
+  // Use Box-Muller for simplicity, clamp to >0
+  const u1 = Math.random(), u2 = Math.random();
+  const z = Math.sqrt(-2 * Math.log(u1)) * Math.cos(2 * Math.PI * u2);
+  const std = randomness * base;
+  return Math.max(base * 0.1, base + z * std);
+}
+
+// ─── SIMULATION TICK ───
+function simTick(dt) {
+  simTime += dt;
+
+  // Arrivals: inject into step 0 queue
+  nextArrival -= dt;
+  while (nextArrival <= 0) {
+    if (stepState[0].queue < MAX_QUEUE) {
+      stepState[0].queue++;
+      unitEntryTimes.push(simTime + nextArrival);
+    }
+    const interArrival = Math.max(0.1, (1 / demandRate));
+    nextArrival += randomness < 0.001
+      ? interArrival
+      : Math.max(0.05, interArrival * (1 + (Math.random() * 2 - 1) * randomness));
+  }
+
+  // Process each step
+  for (let i = 0; i < N; i++) {
+    const s = stepState[i];
+
+    if (s.busy) {
+      s.timeRemaining -= dt;
+      s.busyTotal += dt;
+      if (s.timeRemaining <= 0) {
+        // Unit finishes this step
+        s.busy = false;
+        s.processingCount++;
+
+        if (i < N - 1) {
+          // Move to next step's queue
+          if (stepState[i+1].queue < MAX_QUEUE) {
+            stepState[i+1].queue++;
+          }
+        } else {
+          // Completed!
+          unitsProduced++;
+          const entryT = unitEntryTimes.shift();
+          if (entryT !== undefined) {
+            completedCycleTimes.push(simTime - entryT);
+            if (completedCycleTimes.length > 200) completedCycleTimes.shift();
+          }
+          // Spawn exit particle
+          spawnParticle(N - 1, 'exit');
+        }
+      }
+    }
+
+    if (!s.busy && s.queue > 0) {
+      s.queue--;
+      s.busy = true;
+      s.timeRemaining = sampleCT(i, workers);
+      // Spawn processing particle
+      spawnParticle(i, 'process');
+    }
+  }
+
+  // History snapshot every 2 sim-seconds
+  histAccum += dt;
+  if (histAccum >= 2) {
+    histAccum -= 2;
+    for (let i = 0; i < N; i++) {
+      queueHistory[i][histTick % HIST_LEN] = stepState[i].queue;
+      utilHistory[i][histTick % HIST_LEN] = simTime > 0
+        ? (stepState[i].busyTotal / simTime) * 100 : 0;
+    }
+    histTick++;
+  }
+}
+
+// ─── PARTICLES ───
+function spawnParticle(stepIdx, type) {
+  const STEP_W = 1 / N;
+  const cx = (stepIdx + 0.5) * STEP_W;
+  particles.push({
+    id: particleIdCounter++,
+    x: cx + (Math.random() - 0.5) * 0.04,
+    y: type === 'exit' ? 0.55 : 0.45 + (Math.random() - 0.5) * 0.1,
+    vx: type === 'exit' ? 0.08 + Math.random() * 0.05 : (Math.random() - 0.5) * 0.01,
+    vy: type === 'exit' ? -(0.04 + Math.random() * 0.03) : -(0.02 + Math.random() * 0.02),
+    life: 1.0,
+    decay: type === 'exit' ? 0.6 : 0.9,
+    color: type === 'exit' ? '#2d6a4f' : '#2563eb',
+    r: type === 'exit' ? 5 : 4,
+  });
+}
+
+function tickParticles(dt) {
+  for (const p of particles) {
+    p.x += p.vx * dt;
+    p.y += p.vy * dt;
+    p.life *= Math.pow(p.decay, dt * 10);
+    p.vy += 0.002;
+  }
+  particles = particles.filter(p => p.life > 0.05);
+}
+
+// ─── ANIMATION LOOP ───
+function loop(nowReal) {
+  if (!running) return;
+  animFrame = requestAnimationFrame(loop);
+
+  const dtReal = Math.min((nowReal - lastFrameReal) / 1000, 0.1);
+  lastFrameReal = nowReal;
+  const dtSim = dtReal * simSpeed;
+
+  simTick(dtSim);
+  tickParticles(dtSim);
+
+  drawFlow();
+  updateMetrics();
+  drawQueueChart();
+  drawUtilChart();
+}
+
+// ─── DRAW FLOW CANVAS ───
+const flowCanvas = document.getElementById('flowCanvas');
+const flowCtx = flowCanvas.getContext('2d');
+
+function drawFlow() {
+  const dpr = window.devicePixelRatio || 1;
+  const container = flowCanvas.parentElement;
+  const W = container.clientWidth;
+  const H = 160;
+
+  flowCanvas.width = W * dpr;
+  flowCanvas.height = H * dpr;
+  flowCanvas.style.width = W + 'px';
+  flowCanvas.style.height = H + 'px';
+  flowCtx.scale(dpr, dpr);
+
+  const ctx = flowCtx;
+  ctx.clearRect(0, 0, W, H);
+
+  const stepW = W / N;
+  const BOX_W = stepW * 0.62;
+  const BOX_H = 72;
+  const BOX_Y = (H - BOX_H) / 2;
+
+  // ── Draw arrows between steps ──
+  for (let i = 0; i < N - 1; i++) {
+    const x1 = (i + 1) * stepW - (stepW - BOX_W) / 2;
+    const x2 = (i + 1) * stepW + (stepW - BOX_W) / 2;
+    const cy = H / 2;
+
+    ctx.strokeStyle = '#c0bbb0';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.moveTo(x1, cy);
+    ctx.lineTo(x2 - 8, cy);
+    ctx.stroke();
+
+    // Arrowhead
+    ctx.fillStyle = '#c0bbb0';
+    ctx.beginPath();
+    ctx.moveTo(x2, cy);
+    ctx.lineTo(x2 - 9, cy - 5);
+    ctx.lineTo(x2 - 9, cy + 5);
+    ctx.closePath();
+    ctx.fill();
+  }
+
+  // Input arrow
+  ctx.strokeStyle = '#c0bbb0';
+  ctx.lineWidth = 1.5;
+  const firstX = (stepW - BOX_W) / 2;
+  ctx.beginPath();
+  ctx.moveTo(0, H / 2);
+  ctx.lineTo(firstX - 2, H / 2);
+  ctx.stroke();
+  ctx.fillStyle = '#c0bbb0';
+  ctx.beginPath();
+  ctx.moveTo(firstX, H / 2);
+  ctx.lineTo(firstX - 9, H / 2 - 5);
+  ctx.lineTo(firstX - 9, H / 2 + 5);
+  ctx.closePath();
+  ctx.fill();
+
+  // Label: Demand
+  ctx.font = `9px 'Outfit'`;
+  ctx.fillStyle = '#9a9080';
+  ctx.textAlign = 'center';
+  ctx.fillText('demand', (firstX) / 2, H / 2 - 8);
+
+  // ── Draw step boxes ──
+  const effTimes = STEPS.map((_, idx) => effectiveCT(idx, workers));
+  const maxEffTime = Math.max(...effTimes);
+  const bottleneckIdxs = new Set(effTimes.map((t, idx) => Math.abs(t - maxEffTime) < 0.0001 ? idx : -1).filter(x => x >= 0));
+
+  for (let i = 0; i < N; i++) {
+    const s = stepState[i];
+    const cx = (i + 0.5) * stepW;
+    const bx = cx - BOX_W / 2;
+
+    let bg, border;
+    if (bottleneckIdxs.has(i)) {
+      bg = '#fdecea'; border = '#c0392b';
+    } else if (s.busy) {
+      bg = '#d8f3dc'; border = '#2d6a4f';
+    } else if (s.queue > 0) {
+      bg = '#fef3c7'; border = '#d97706';
+    } else {
+      bg = '#f7f5f0'; border = '#c0bbb0';
+    }
+
+    // Box shadow/glow for bottleneck
+    if (bottleneckIdxs.has(i)) {
+      ctx.shadowColor = 'rgba(192,57,43,0.25)';
+      ctx.shadowBlur = 10;
+    }
+
+    ctx.fillStyle = bg;
+    ctx.strokeStyle = border;
+    ctx.lineWidth = bottleneckIdxs.has(i) ? 2.5 : 1.5;
+    roundRect(ctx, bx, BOX_Y, BOX_W, BOX_H, 6);
+    ctx.fill();
+    ctx.stroke();
+    ctx.shadowBlur = 0;
+
+    // Step name
+    ctx.font = `bold 11px 'Outfit', sans-serif`;
+    ctx.fillStyle = '#1c1a16';
+    ctx.textAlign = 'center';
+    ctx.fillText(STEPS[i].emoji + ' ' + STEPS[i].name, cx, BOX_Y + 16);
+
+    // Effective CT
+    ctx.font = `9px 'Outfit'`;
+    ctx.fillStyle = '#7a7060';
+    ctx.fillText(`CT: ${effectiveCT(i, workers).toFixed(1)}s`, cx, BOX_Y + 30);
+
+    // Progress bar (if busy)
+    const barW = BOX_W - 20;
+    const barX = bx + 10;
+    const barY = BOX_Y + 38;
+
+    ctx.fillStyle = '#e0dbd0';
+    roundRect(ctx, barX, barY, barW, 6, 3);
+    ctx.fill();
+
+    if (s.busy) {
+      const fullCT = sampleCT(i, workers); // approximation
+      const progress = 1 - Math.max(0, Math.min(1, s.timeRemaining / effectiveCT(i, workers)));
+      ctx.fillStyle = bottleneckIdxs.has(i) ? '#c0392b' : '#2d6a4f';
+      const fillW = Math.max(0, barW * progress);
+      if (fillW > 0) {
+        roundRect(ctx, barX, barY, fillW, 6, 3);
+        ctx.fill();
+      }
+    }
+
+    // Queue dots
+    const qMax = 8;
+    const displayQ = Math.min(s.queue, qMax);
+    const dotSize = 5;
+    const dotGap = 7;
+    const totalDotW = displayQ * dotSize + (displayQ - 1) * (dotGap - dotSize);
+    const dotStartX = cx - totalDotW / 2;
+
+    for (let d = 0; d < displayQ; d++) {
+      ctx.beginPath();
+      ctx.arc(dotStartX + d * dotGap, BOX_Y + 55, dotSize / 2, 0, Math.PI * 2);
+      ctx.fillStyle = '#f59e0b';
+      ctx.fill();
+    }
+    if (s.queue > qMax) {
+      ctx.font = `8px 'Outfit'`;
+      ctx.fillStyle = '#d97706';
+      ctx.textAlign = 'center';
+      ctx.fillText(`+${s.queue - qMax}`, cx + (qMax / 2 * dotGap) + 8, BOX_Y + 58);
+    }
+
+    // Queue label
+    if (s.queue > 0) {
+      ctx.font = `8px 'Outfit'`;
+      ctx.fillStyle = '#d97706';
+      ctx.textAlign = 'center';
+      ctx.fillText(`Q:${s.queue}`, cx, BOX_Y + BOX_H - 4);
+    }
+  }
+
+  // ── Draw particles ──
+  for (const p of particles) {
+    const px = p.x * W;
+    const py = p.y * H;
+    ctx.globalAlpha = p.life;
+    ctx.beginPath();
+    ctx.arc(px, py, p.r, 0, Math.PI * 2);
+    ctx.fillStyle = p.color;
+    ctx.fill();
+    ctx.globalAlpha = 1;
+  }
+}
+
+function roundRect(ctx, x, y, w, h, r) {
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.lineTo(x + w - r, y);
+  ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+  ctx.lineTo(x + w, y + h - r);
+  ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+  ctx.lineTo(x + r, y + h);
+  ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+  ctx.lineTo(x, y + r);
+  ctx.quadraticCurveTo(x, y, x + r, y);
+  ctx.closePath();
+}
+
+// ─── METRICS ───
+function updateMetrics() {
+  const effTimes = STEPS.map((_, i) => effectiveCT(i, workers));
+  const maxET = Math.max(...effTimes);
+  const bottleneckIdxs = effTimes.map((t, i) => Math.abs(t - maxET) < 0.0001 ? i : -1).filter(x => x >= 0);
+  const bottleneckIdx = bottleneckIdxs[0]; // keep for compat
+
+  const throughputPerMin = simTime > 5
+    ? (unitsProduced / simTime) * 60 : null;
+  const avgCT = completedCycleTimes.length > 0
+    ? completedCycleTimes.reduce((a, b) => a + b, 0) / completedCycleTimes.length : null;
+  const totalWIP = stepState.reduce((s, st) => s + st.queue + (st.busy ? 1 : 0), 0);
+  const avgUtil = simTime > 0
+    ? (stepState.reduce((s, st) => s + st.busyTotal, 0) / (simTime * N)) * 100 : null;
+
+  document.getElementById('m-throughput').textContent = throughputPerMin !== null
+    ? throughputPerMin.toFixed(1) : '—';
+  document.getElementById('m-cycletime').textContent = avgCT !== null
+    ? avgCT.toFixed(1) + 's' : '—';
+  document.getElementById('m-wip').textContent = totalWIP;
+  document.getElementById('m-bottleneck').textContent = bottleneckIdxs.map(i => STEPS[i].name).join(', ');
+  document.getElementById('m-util').textContent = avgUtil !== null
+    ? avgUtil.toFixed(0) + '%' : '—';
+
+  document.getElementById('statUnits').textContent = unitsProduced;
+  document.getElementById('statTime').textContent = simTime.toFixed(0) + 's';
+
+  const avgWIP = simTime > 0 ? totalWIP.toFixed(1) : '0';
+  document.getElementById('statWip').textContent = avgWIP;
+
+  // Insight
+  const insight = generateInsight(bottleneckIdxs, effTimes, totalWIP, avgUtil, throughputPerMin);
+  document.getElementById('insightBar').innerHTML = `<span class="icon">💡</span><span>${insight}</span>`;
+
+  // Worker cards state
+  for (let i = 0; i < N; i++) {
+    const card = document.getElementById(`step-card-${i}`);
+    const s = stepState[i];
+    card.classList.remove('bottleneck', 'running', 'idle');
+    const badge = card.querySelector('.bottleneck-badge');
+    if (bottleneckIdxs.includes(i)) {
+      card.classList.add('bottleneck');
+      badge.style.display = 'block';
+    } else {
+      badge.style.display = 'none';
+      if (s.busy) card.classList.add('running');
+      else card.classList.add('idle');
+    }
+    document.getElementById(`eff-ct-${i}`).innerHTML =
+      `Eff. CT: <strong>${effectiveCT(i, workers).toFixed(1)}s</strong>`;
+  }
+}
+
+function generateInsight(bnIdxs, effTimes, wip, util, tput) {
+  const bnIdx = bnIdxs[0];
+  const bn = bnIdxs.map(i => STEPS[i].name).join(' & ');
+  const bnCT = effTimes[bnIdx].toFixed(1);
+  const tiedBottleneck = bnIdxs.length > 1;
+  const totalW = workers.reduce((a, b) => a + b, 0);
+
+  if (!running) {
+    const tiedNote = tiedBottleneck ? ` (tied bottleneck)` : ``;
+    return `Press <strong>Start</strong> to run the simulation. Currently <strong>${totalW} workers</strong> are assigned across ${N} steps. The theoretical bottleneck is <strong>${bn}</strong>${tiedNote} with effective cycle time <strong>${bnCT}s</strong>.`;
+  }
+
+  const queueBefore = bnIdx > 0 ? stepState[bnIdx - 1].queue : stepState[bnIdx].queue;
+
+  if (wip > 12) {
+    return `⚠️ WIP is building up to <strong>${wip} units</strong>. The <strong>${bn}</strong> step (CT ${bnCT}s) is overwhelmed. Try adding a worker there — or reduce demand rate.`;
+  } else if (util !== null && util < 40) {
+    return `System utilization is only <strong>${util?.toFixed(0)}%</strong> — the line is mostly idle. Consider reducing workers or increasing demand to explore capacity limits.`;
+  } else if (wip > 6) {
+    return `Queue is growing. The <strong>${bn}</strong> bottleneck (CT ${bnCT}s) is constraining flow. Adding a worker there would increase throughput. Notice how queues form <em>upstream</em> of the bottleneck.`;
+  } else if (tput !== null) {
+    return `Running smoothly at <strong>${tput.toFixed(1)} units/min</strong>. Bottleneck: <strong>${bn}</strong> (${bnCT}s). Try increasing randomness to see variability's impact — or move workers between steps.`;
+  }
+  return `Simulation running. Bottleneck is <strong>${bn}</strong> with CT <strong>${bnCT}s</strong>. Explore: move a worker away from a fast step to the bottleneck and watch throughput change.`;
+}
+
+// ─── MINI CHARTS ───
+const qCtx = document.getElementById('queueChart').getContext('2d');
+const uCtx = document.getElementById('utilChart').getContext('2d');
+
+const STEP_COLORS = ['#2563eb', '#d97706', '#c0392b', '#2d6a4f', '#7c3aed'];
+
+function drawMiniChart(ctx, canvas, histories, yMax, yLabel, filled) {
+  const dpr = window.devicePixelRatio || 1;
+  const W = canvas.parentElement.clientWidth - 40;
+  const H = 120;
+  canvas.width = W * dpr;
+  canvas.height = H * dpr;
+  canvas.style.width = W + 'px';
+  canvas.style.height = H + 'px';
+  ctx.scale(dpr, dpr);
+
+  ctx.clearRect(0, 0, W, H);
+  const pad = { l: 30, r: 10, t: 10, b: 20 };
+  const cw = W - pad.l - pad.r;
+  const ch = H - pad.t - pad.b;
+
+  // Grid
+  ctx.strokeStyle = '#e8e4dc';
+  ctx.lineWidth = 1;
+  for (let i = 0; i <= 4; i++) {
+    const y = pad.t + (ch / 4) * i;
+    ctx.beginPath();
+    ctx.moveTo(pad.l, y);
+    ctx.lineTo(pad.l + cw, y);
+    ctx.stroke();
+    ctx.fillStyle = '#9a9080';
+    ctx.font = `8px 'Outfit'`;
+    ctx.textAlign = 'right';
+    const v = yMax * (1 - i / 4);
+    ctx.fillText(yLabel === '%' ? v.toFixed(0) + '%' : v.toFixed(0), pad.l - 3, y + 3);
+  }
+
+  const len = HIST_LEN;
+  const startIdx = histTick < len ? 0 : histTick - len;
+  const count = Math.min(histTick, len);
+
+  for (let si = 0; si < N; si++) {
+    const hist = histories[si];
+    if (count < 2) continue;
+    ctx.beginPath();
+    ctx.strokeStyle = STEP_COLORS[si];
+    ctx.lineWidth = 1.5;
+    ctx.globalAlpha = 0.85;
+
+    for (let j = 0; j < count; j++) {
+      const idx = (startIdx + j) % len;
+      const x = pad.l + (j / (len - 1)) * cw;
+      const y = pad.t + ch - Math.min(1, hist[idx] / yMax) * ch;
+      if (j === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+    }
+    ctx.stroke();
+    ctx.globalAlpha = 1;
+  }
+
+  // Legend
+  ctx.font = `7px 'Outfit'`;
+  ctx.textAlign = 'left';
+  for (let si = 0; si < N; si++) {
+    ctx.fillStyle = STEP_COLORS[si];
+    ctx.fillText(STEPS[si].name.substring(0, 4), pad.l + (cw / N) * si + 2, H - 5);
+  }
+}
+
+function drawQueueChart() {
+  drawMiniChart(qCtx, document.getElementById('queueChart'), queueHistory, MAX_QUEUE, '', false);
+}
+
+function drawUtilChart() {
+  drawMiniChart(uCtx, document.getElementById('utilChart'), utilHistory, 100, '%', false);
+}
+
+// ─── WORKER CARDS ───
+function buildWorkerCards() {
+  const grid = document.getElementById('workerGrid');
+  grid.innerHTML = '';
+  for (let i = 0; i < N; i++) {
+    const card = document.createElement('div');
+    card.className = 'step-worker-card idle';
+    card.id = `step-card-${i}`;
+    card.innerHTML = `
+      <div class="bottleneck-badge" style="display:none;">🔴 Bottleneck</div>
+      <div class="step-name">${STEPS[i].emoji} ${STEPS[i].name}</div>
+      <div class="step-base-time">Base CT: ${STEPS[i].base}s/unit</div>
+      <div class="worker-counter">
+        <button class="wc-btn" id="minus-${i}" onclick="changeWorkers(${i}, -1)">−</button>
+        <span class="wc-count" id="wc-${i}">${workers[i]}</span>
+        <button class="wc-btn" id="plus-${i}" onclick="changeWorkers(${i}, 1)">+</button>
+      </div>
+      <div class="worker-icons" id="wicons-${i}"></div>
+      <div class="step-eff-time" id="eff-ct-${i}">Eff. CT: <strong>${effectiveCT(i, workers).toFixed(1)}s</strong></div>
+    `;
+    grid.appendChild(card);
+    updateWorkerIcons(i);
+  }
+  updateWorkerDisplay();
+}
+
+function updateWorkerIcons(i) {
+  const container = document.getElementById(`wicons-${i}`);
+  container.innerHTML = Array(workers[i]).fill('<span class="worker-icon">👷</span>').join('');
+}
+
+function changeWorkers(stepIdx, delta) {
+  const total = workers.reduce((a, b) => a + b, 0);
+  const newVal = workers[stepIdx] + delta;
+  if (newVal < 1) return;
+  if (delta > 0 && total >= MAX_WORKERS) return;
+  workers[stepIdx] = newVal;
+  document.getElementById(`wc-${stepIdx}`).textContent = newVal;
+  updateWorkerIcons(stepIdx);
+  updateWorkerDisplay();
+  if (!running) drawFlow();
+}
+
+function updateWorkerDisplay() {
+  const total = workers.reduce((a, b) => a + b, 0);
+  document.getElementById('totalWorkersDisplay').innerHTML =
+    `Total Workers: <strong>${total}</strong> / ${MAX_WORKERS} max`;
+
+  for (let i = 0; i < N; i++) {
+    document.getElementById(`minus-${i}`).disabled = workers[i] <= 1;
+    const total2 = workers.reduce((a, b) => a + b, 0);
+    document.getElementById(`plus-${i}`).disabled = total2 >= MAX_WORKERS;
+  }
+}
+
+// ─── CONTROLS ───
+function toggleSim() {
+  running = !running;
+  const btn = document.getElementById('startBtn');
+  const pill = document.getElementById('statusPill');
+  if (running) {
+    btn.textContent = '⏸ Pause';
+    btn.className = 'btn';
+    pill.textContent = 'Running';
+    pill.className = 'status-pill pill-running';
+    lastFrameReal = performance.now();
+    animFrame = requestAnimationFrame(loop);
+  } else {
+    btn.textContent = '▶ Resume';
+    btn.className = 'btn primary';
+    pill.textContent = 'Paused';
+    pill.className = 'status-pill pill-paused';
+    if (animFrame) cancelAnimationFrame(animFrame);
+  }
+}
+
+function resetSim() {
+  if (running) toggleSim();
+  simTime = 0;
+  unitsProduced = 0;
+  nextArrival = 1.0;
+  completedCycleTimes = [];
+  unitEntryTimes = [];
+  particles = [];
+  histTick = 0;
+  histAccum = 0;
+  stepState = STEPS.map(() => ({
+    busy: false, timeRemaining: 0, busyTotal: 0, queue: 0, processingCount: 0
+  }));
+  queueHistory = Array.from({length: N}, () => Array(HIST_LEN).fill(0));
+  utilHistory  = Array.from({length: N}, () => Array(HIST_LEN).fill(0));
+
+  document.getElementById('startBtn').textContent = '▶ Start';
+  document.getElementById('startBtn').className = 'btn primary';
+  document.getElementById('statusPill').textContent = 'Paused';
+  document.getElementById('statusPill').className = 'status-pill pill-paused';
+  document.getElementById('m-throughput').textContent = '—';
+  document.getElementById('m-cycletime').textContent = '—';
+  document.getElementById('m-wip').textContent = '0';
+  document.getElementById('m-bottleneck').textContent = '—';
+  document.getElementById('m-util').textContent = '—';
+  document.getElementById('statUnits').textContent = '0';
+  document.getElementById('statTime').textContent = '0s';
+  document.getElementById('statWip').textContent = '0';
+  document.getElementById('insightBar').innerHTML = `<span class="icon">💡</span><span>Simulation reset. Press <strong>Start</strong> to begin. Adjust workers with the +/− buttons below the flow diagram.</span>`;
+
+  buildWorkerCards();
+  drawFlow();
+  drawQueueChart();
+  drawUtilChart();
+}
+
+function onRandChange(val) {
+  randomness = parseFloat(val);
+  const pct = Math.round(randomness * 100);
+  document.getElementById('randVal').textContent = pct + '%';
+}
+
+function onDemandChange(val) {
+  demandRate = parseFloat(val);
+  document.getElementById('demandVal').textContent = demandRate.toFixed(2) + '/s';
+}
+
+document.getElementById('speedSlider').addEventListener('input', function() {
+  simSpeed = parseInt(this.value);
+  document.getElementById('speedLabel').textContent = simSpeed + '×';
+});
+
+// ─── INIT ───
+buildWorkerCards();
+drawFlow();
+drawQueueChart();
+drawUtilChart();
+
+window.addEventListener('resize', () => {
+  if (!running) { drawFlow(); drawQueueChart(); drawUtilChart(); }
+});
+</script>
+</body>
+</html>
