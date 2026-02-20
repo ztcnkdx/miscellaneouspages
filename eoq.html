@@ -1,0 +1,863 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>EOQ Explorer</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Fraunces:ital,wght@0,300;0,700;1,300&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0f0f0e;
+    --surface: #1a1a18;
+    --surface2: #242422;
+    --border: #2e2e2b;
+    --text: #e8e6df;
+    --muted: #7a7870;
+    --accent: #c8a84b;
+    --accent2: #e07b4a;
+    --accent3: #5bb8a0;
+    --holding: #e07b4a;
+    --ordering: #5bb8a0;
+    --total: #c8a84b;
+    --canvas-bg: #0f0f0e;
+    --canvas-grid: #2a2a28;
+    --canvas-axis: #5a5855;
+    --canvas-dot-stroke: #0f0f0e;
+  }
+
+  :root.light {
+    --bg: #f5f3ee;
+    --surface: #ffffff;
+    --surface2: #ede9e1;
+    --border: #d6d0c4;
+    --text: #1a1a18;
+    --muted: #7a7260;
+    --accent: #a0782a;
+    --accent2: #c0562a;
+    --accent3: #2e8f7a;
+    --holding: #c0562a;
+    --ordering: #2e8f7a;
+    --total: #a0782a;
+    --canvas-bg: #f5f3ee;
+    --canvas-grid: #ddd8ce;
+    --canvas-axis: #9a9080;
+    --canvas-dot-stroke: #f5f3ee;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Mono', monospace;
+    min-height: 100vh;
+    padding: 2rem;
+    transition: background 0.25s, color 0.25s;
+  }
+
+  header {
+    margin-bottom: 2.5rem;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 1.5rem;
+  }
+
+  header h1 {
+    font-family: 'Fraunces', serif;
+    font-weight: 700;
+    font-size: 2.4rem;
+    color: var(--accent);
+    letter-spacing: -0.02em;
+    line-height: 1;
+  }
+
+  header p {
+    color: var(--muted);
+    font-size: 0.78rem;
+    margin-top: 0.5rem;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+  }
+
+  .layout {
+    display: grid;
+    grid-template-columns: 340px 1fr;
+    gap: 1.5rem;
+    max-width: 1200px;
+  }
+
+  /* LEFT PANEL */
+  .left-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+  }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 1.25rem;
+  }
+
+  .card h2 {
+    font-family: 'Fraunces', serif;
+    font-weight: 300;
+    font-style: italic;
+    font-size: 0.95rem;
+    color: var(--muted);
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    margin-bottom: 1.2rem;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 0.6rem;
+  }
+
+  .param-row {
+    margin-bottom: 1.1rem;
+  }
+
+  .param-label {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: 0.4rem;
+  }
+
+  .param-name {
+    font-size: 0.78rem;
+    color: var(--muted);
+    letter-spacing: 0.04em;
+  }
+
+  .param-name span {
+    font-style: italic;
+    color: var(--accent);
+    margin-right: 0.3rem;
+  }
+
+  .param-value {
+    font-size: 0.9rem;
+    color: var(--text);
+    font-weight: 500;
+  }
+
+  input[type="range"] {
+    width: 100%;
+    height: 4px;
+    background: var(--surface2);
+    border-radius: 2px;
+    outline: none;
+    cursor: pointer;
+    -webkit-appearance: none;
+    appearance: none;
+    vertical-align: middle;
+  }
+
+  input[type="range"]::-webkit-slider-container {
+    overflow: visible;
+  }
+
+  input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: var(--accent);
+    cursor: pointer;
+    transition: transform 0.15s;
+    margin-top: -5px;
+  }
+
+  input[type="range"]::-webkit-slider-thumb:hover {
+    transform: scale(1.3);
+  }
+
+  input[type="range"]::-webkit-slider-runnable-track {
+    height: 4px;
+    border-radius: 2px;
+    background: linear-gradient(to right, var(--accent) 0%, var(--accent) var(--pct, 50%), var(--surface2) var(--pct, 50%));
+  }
+
+  input[type="range"]::-moz-range-thumb {
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: var(--accent);
+    cursor: pointer;
+    border: none;
+    transition: transform 0.15s;
+  }
+
+  input[type="range"]::-moz-range-track {
+    height: 4px;
+    border-radius: 2px;
+    background: var(--surface2);
+  }
+
+  /* RESULTS */
+  .results-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.75rem;
+  }
+
+  .result-cell {
+    background: var(--surface2);
+    border-radius: 4px;
+    padding: 0.8rem;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .result-cell::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 3px;
+    height: 100%;
+    background: var(--accent);
+  }
+
+  .result-cell.holding::before { background: var(--holding); }
+  .result-cell.ordering::before { background: var(--ordering); }
+  .result-cell.total::before { background: var(--total); }
+  .result-cell.eoq::before { background: var(--accent); }
+
+  .result-cell .label {
+    font-size: 0.65rem;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin-bottom: 0.3rem;
+  }
+
+  .result-cell .value {
+    font-size: 1.15rem;
+    font-weight: 500;
+    color: var(--text);
+  }
+
+  .result-cell.eoq .value { color: var(--accent); font-size: 1.4rem; }
+  .result-cell.total .value { color: var(--total); }
+
+  .result-cell .sub {
+    font-size: 0.65rem;
+    color: var(--muted);
+    margin-top: 0.2rem;
+  }
+
+  /* Q INDICATOR */
+  .q-indicator {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 0.8rem 1rem;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+  }
+
+  .q-label { font-size: 0.7rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; }
+  .q-val { font-size: 1.5rem; color: var(--accent2); font-weight: 500; }
+
+  .q-delta {
+    font-size: 0.72rem;
+    padding: 0.2rem 0.5rem;
+    border-radius: 3px;
+    font-weight: 500;
+  }
+  .q-delta.above { background: rgba(224,123,74,0.15); color: var(--holding); }
+  .q-delta.below { background: rgba(91,184,160,0.15); color: var(--ordering); }
+  .q-delta.optimal { background: rgba(200,168,75,0.2); color: var(--accent); }
+
+  /* RIGHT PANEL - CHART */
+  .right-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+  }
+
+  .chart-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 1.25rem 1.25rem 0.75rem;
+    flex: 1;
+  }
+
+  .chart-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+  }
+
+  .chart-title {
+    font-family: 'Fraunces', serif;
+    font-weight: 300;
+    font-style: italic;
+    font-size: 0.95rem;
+    color: var(--muted);
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+
+  .legend {
+    display: flex;
+    gap: 1.2rem;
+    font-size: 0.68rem;
+    color: var(--muted);
+  }
+
+  .legend-item { display: flex; align-items: center; gap: 0.35rem; }
+  .legend-dot { width: 8px; height: 8px; border-radius: 50%; }
+
+  canvas {
+    width: 100%;
+    display: block;
+  }
+
+  /* INSIGHT BOX */
+  .insight-box {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 1.1rem 1.25rem;
+    font-size: 0.78rem;
+    line-height: 1.6;
+    color: var(--muted);
+  }
+
+  .insight-box strong {
+    color: var(--accent);
+    font-weight: 500;
+  }
+
+  /* FORMULA STRIP */
+  .formula-strip {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 0.75rem 1rem;
+    font-size: 0.72rem;
+    color: var(--muted);
+    line-height: 1.8;
+    letter-spacing: 0.02em;
+  }
+
+  .formula-strip span {
+    color: var(--accent);
+    font-weight: 500;
+  }
+
+  /* SENSITIVITY TABLE */
+  .sens-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.73rem;
+  }
+
+  .sens-table th {
+    color: var(--muted);
+    font-weight: 400;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    padding: 0.4rem 0.6rem;
+    border-bottom: 1px solid var(--border);
+    text-align: right;
+  }
+
+  .sens-table th:first-child { text-align: left; }
+
+  .sens-table td {
+    padding: 0.35rem 0.6rem;
+    border-bottom: 1px solid var(--border);
+    text-align: right;
+    color: var(--text);
+  }
+
+  .sens-table td:first-child { text-align: left; color: var(--muted); }
+
+  .sens-table tr.highlight td { color: var(--accent); background: rgba(200,168,75,0.07); }
+
+  @media (max-width: 900px) {
+    .layout { grid-template-columns: 1fr; }
+  }
+
+  /* THEME TOGGLE */
+  .theme-toggle {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 0.3rem 0.75rem;
+    font-family: 'DM Mono', monospace;
+    font-size: 0.72rem;
+    color: var(--muted);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    transition: background 0.2s, color 0.2s, border-color 0.2s;
+    white-space: nowrap;
+  }
+
+  .theme-toggle:hover {
+    background: var(--border);
+    color: var(--text);
+  }
+
+  .theme-icon { font-size: 0.85rem; }
+
+  /* FOOTER */
+  footer {
+    margin-top: 2.5rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--border);
+    font-size: 0.7rem;
+    color: var(--muted);
+    letter-spacing: 0.04em;
+    text-align: center;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+    <div>
+      <h1>EOQ Explorer</h1>
+      <p>Economic Order Quantity &amp; Lot Sizing — Interactive Tool</p>
+    </div>
+    <button class="theme-toggle" id="theme-toggle" onclick="toggleTheme()">
+      <span class="theme-icon" id="theme-icon">☀️</span>
+      <span id="theme-label">Light Mode</span>
+    </button>
+  </div>
+</header>
+
+<div class="layout">
+  <!-- LEFT -->
+  <div class="left-panel">
+    <div class="card">
+      <h2>Parameters</h2>
+
+      <div class="param-row">
+        <div class="param-label">
+          <div class="param-name"><span>D</span> Annual Demand (units)</div>
+          <div class="param-value" id="val-D">1,000</div>
+        </div>
+        <input type="range" id="slider-D" min="100" max="10000" step="100" value="1000">
+      </div>
+
+      <div class="param-row">
+        <div class="param-label">
+          <div class="param-name"><span>S</span> Ordering Cost ($/order)</div>
+          <div class="param-value" id="val-S">$50</div>
+        </div>
+        <input type="range" id="slider-S" min="5" max="500" step="5" value="50">
+      </div>
+
+      <div class="param-row">
+        <div class="param-label">
+          <div class="param-name"><span>H</span> Holding Cost ($/unit/yr)</div>
+          <div class="param-value" id="val-H">$2.00</div>
+        </div>
+        <input type="range" id="slider-H" min="0.5" max="20" step="0.5" value="2">
+      </div>
+
+      <div class="param-row" style="margin-bottom:0;">
+        <div class="param-label">
+          <div class="param-name"><span>Q</span> Your Order Quantity</div>
+          <div class="param-value" id="val-Q">250</div>
+        </div>
+        <input type="range" id="slider-Q" min="10" max="2000" step="10" value="250">
+      </div>
+    </div>
+
+    <!-- OPTIMAL RESULTS -->
+    <div class="card">
+      <h2>Optimal (EOQ)</h2>
+      <div class="results-grid">
+        <div class="result-cell eoq" style="grid-column: span 2;">
+          <div class="label">Optimal Order Quantity Q*</div>
+          <div class="value" id="res-eoq">—</div>
+          <div class="sub" id="res-eoq-sub">—</div>
+        </div>
+        <div class="result-cell holding">
+          <div class="label">Holding Cost*</div>
+          <div class="value" id="res-hc">—</div>
+        </div>
+        <div class="result-cell ordering">
+          <div class="label">Ordering Cost*</div>
+          <div class="value" id="res-oc">—</div>
+        </div>
+        <div class="result-cell total" style="grid-column: span 2;">
+          <div class="label">Min Total Annual Cost</div>
+          <div class="value" id="res-tc">—</div>
+          <div class="sub" id="res-orders">—</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- YOUR Q -->
+    <div class="card">
+      <h2>Your Q vs Optimal</h2>
+      <div class="q-indicator">
+        <div>
+          <div class="q-label">Your Q</div>
+          <div class="q-val" id="your-q-val">250</div>
+        </div>
+        <div style="flex:1;">
+          <div class="q-label" style="margin-bottom:0.3rem;">Cost Penalty</div>
+          <div class="q-delta" id="q-delta">—</div>
+        </div>
+        <div style="text-align:right;">
+          <div class="q-label">Your Total Cost</div>
+          <div style="font-size:1rem;color:var(--text);font-weight:500;" id="your-tc">—</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- FORMULA -->
+    <div class="formula-strip">
+      <span>Q* = √(2DS / H)</span><br>
+      TC = (D/Q)·S + (Q/2)·H<br>
+      <span>At Q* → HC = OC</span> (costs equalize)
+    </div>
+  </div>
+
+  <!-- RIGHT -->
+  <div class="right-panel">
+    <div class="chart-card">
+      <div class="chart-header">
+        <div class="chart-title">Cost vs Order Quantity</div>
+        <div class="legend">
+          <div class="legend-item"><div class="legend-dot" style="background:var(--holding)"></div>Holding</div>
+          <div class="legend-item"><div class="legend-dot" style="background:var(--ordering)"></div>Ordering</div>
+          <div class="legend-item"><div class="legend-dot" style="background:var(--total)"></div>Total</div>
+          <div class="legend-item"><div class="legend-dot" style="background:var(--accent);border:2px solid var(--accent)"></div>Q*</div>
+        </div>
+      </div>
+      <canvas id="chart" height="320"></canvas>
+    </div>
+
+    <!-- INSIGHT -->
+    <div class="insight-box" id="insight-box">
+      Adjust the sliders to explore how ordering and holding costs respond to changes in demand, cost parameters, and your chosen order quantity.
+    </div>
+
+    <!-- SENSITIVITY TABLE -->
+    <div class="card">
+      <h2>Sensitivity — Q* at Different Demand Levels</h2>
+      <table class="sens-table" id="sens-table">
+        <thead>
+          <tr>
+            <th>Demand (D)</th>
+            <th>Q*</th>
+            <th>Orders/yr</th>
+            <th>Total Cost</th>
+            <th>Cycle Time</th>
+          </tr>
+        </thead>
+        <tbody id="sens-body"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<footer>
+  &copy; Tiancheng Zhao 2026. All Rights Reserved.
+</footer>
+
+<script>
+const canvas = document.getElementById('chart');
+const ctx = canvas.getContext('2d');
+
+function getParams() {
+  return {
+    D: +document.getElementById('slider-D').value,
+    S: +document.getElementById('slider-S').value,
+    H: +document.getElementById('slider-H').value,
+    Q: +document.getElementById('slider-Q').value,
+  };
+}
+
+function calcEOQ(D, S, H) {
+  return Math.sqrt(2 * D * S / H);
+}
+
+function totalCost(Q, D, S, H) {
+  return (D / Q) * S + (Q / 2) * H;
+}
+
+function fmt(n) {
+  if (n >= 1000) return '$' + n.toLocaleString('en-US', {maximumFractionDigits: 0});
+  return '$' + n.toFixed(2);
+}
+
+function fmtN(n, dec=0) {
+  return n.toLocaleString('en-US', {maximumFractionDigits: dec});
+}
+
+function update() {
+  const {D, S, H, Q} = getParams();
+  const eoq = calcEOQ(D, S, H);
+  const eoqRounded = Math.round(eoq);
+
+  const hcStar = (eoq / 2) * H;
+  const ocStar = (D / eoq) * S;
+  const tcStar = hcStar + ocStar;
+  const ordersPyr = D / eoq;
+  const cycleWeeks = (eoq / D) * 52;
+
+  const yourTC = totalCost(Q, D, S, H);
+  const penalty = yourTC - tcStar;
+  const penPct = (penalty / tcStar) * 100;
+
+  // Update display
+  document.getElementById('val-D').textContent = fmtN(D);
+  document.getElementById('val-S').textContent = '$' + S;
+  document.getElementById('val-H').textContent = '$' + H.toFixed(2);
+  document.getElementById('val-Q').textContent = fmtN(Q);
+
+  document.getElementById('res-eoq').textContent = fmtN(eoqRounded) + ' units';
+  document.getElementById('res-eoq-sub').textContent = `${ordersPyr.toFixed(1)} orders/yr · ${cycleWeeks.toFixed(1)} wk cycle`;
+  document.getElementById('res-hc').textContent = fmt(hcStar);
+  document.getElementById('res-oc').textContent = fmt(ocStar);
+  document.getElementById('res-tc').textContent = fmt(tcStar) + '/yr';
+  document.getElementById('res-orders').textContent = `${ordersPyr.toFixed(1)} orders per year`;
+
+  document.getElementById('your-q-val').textContent = fmtN(Q);
+  document.getElementById('your-tc').textContent = fmt(yourTC) + '/yr';
+
+  const deltaEl = document.getElementById('q-delta');
+  if (Math.abs(Q - eoqRounded) <= eoqRounded * 0.03) {
+    deltaEl.textContent = '✓ Near Optimal';
+    deltaEl.className = 'q-delta optimal';
+  } else {
+    const sign = Q > eoqRounded ? '↑ Too High' : '↓ Too Low';
+    deltaEl.textContent = `+${fmt(penalty)} (+${penPct.toFixed(1)}%) — ${sign}`;
+    deltaEl.className = 'q-delta ' + (Q > eoqRounded ? 'above' : 'below');
+  }
+
+  // Insight
+  const ratio = Q / eoqRounded;
+  let insight = '';
+  if (ratio > 1.5) {
+    insight = `Your order quantity (${fmtN(Q)}) is <strong>${((ratio-1)*100).toFixed(0)}% above Q*</strong>. You're carrying too much inventory — holding costs dominate and you're tying up working capital unnecessarily. Try cutting Q toward <strong>${fmtN(eoqRounded)}</strong>.`;
+  } else if (ratio < 0.67) {
+    insight = `Your order quantity (${fmtN(Q)}) is <strong>${((1-ratio)*100).toFixed(0)}% below Q*</strong>. You're ordering too frequently — setup and ordering costs are eating into margins. Increasing Q toward <strong>${fmtN(eoqRounded)}</strong> will reduce transaction costs.`;
+  } else if (Math.abs(ratio - 1) <= 0.03) {
+    insight = `You're very close to Q* = <strong>${fmtN(eoqRounded)}</strong>. At the optimal point, <strong>holding cost equals ordering cost</strong> (each = ${fmt(hcStar)}/yr). This equality is the hallmark of the EOQ model.`;
+  } else {
+    insight = `The EOQ formula balances the tradeoff: ordering more often reduces holding cost but increases ordering cost. At Q* = <strong>${fmtN(eoqRounded)}</strong>, total cost is minimized at <strong>${fmt(tcStar)}/yr</strong>. Notice the total cost curve is flat near the optimum — being 20% off Q* only adds ~2% cost.`;
+  }
+  document.getElementById('insight-box').innerHTML = insight;
+
+  // Sensitivity table
+  const currentD = D;
+  const demandLevels = [D*0.25, D*0.5, D*0.75, D, D*1.5, D*2, D*3].map(Math.round);
+  const tbody = document.getElementById('sens-body');
+  tbody.innerHTML = '';
+  demandLevels.forEach(d => {
+    const q = calcEOQ(d, S, H);
+    const tc = totalCost(q, d, S, H);
+    const orders = d / q;
+    const cycle = (q / d) * 52;
+    const tr = document.createElement('tr');
+    if (d === currentD) tr.className = 'highlight';
+    tr.innerHTML = `
+      <td>${fmtN(d)}</td>
+      <td>${fmtN(Math.round(q))}</td>
+      <td>${orders.toFixed(1)}</td>
+      <td>${fmt(tc)}</td>
+      <td>${cycle.toFixed(1)} wks</td>
+    `;
+    tbody.appendChild(tr);
+  });
+
+  // Draw chart
+  drawChart(D, S, H, Q, eoq);
+
+  // Update slider fill
+  ['D','S','H','Q'].forEach(p => {
+    const sl = document.getElementById(`slider-${p}`);
+    const min = +sl.min, max = +sl.max, val = +sl.value;
+    const pct = ((val - min) / (max - min) * 100).toFixed(1) + '%';
+    sl.style.setProperty('--pct', pct);
+  });
+}
+
+function drawChart(D, S, H, userQ, eoq) {
+  const dpr = window.devicePixelRatio || 1;
+  const rect = canvas.parentElement.getBoundingClientRect();
+  const W = rect.width - 40; // account for padding
+  const H_canvas = 320;
+
+  canvas.width = W * dpr;
+  canvas.height = H_canvas * dpr;
+  canvas.style.width = W + 'px';
+  canvas.style.height = H_canvas + 'px';
+  ctx.scale(dpr, dpr);
+
+  const pad = { left: 70, right: 30, top: 20, bottom: 45 };
+  const cw = W - pad.left - pad.right;
+  const ch = H_canvas - pad.top - pad.bottom;
+
+  ctx.clearRect(0, 0, W, H_canvas);
+
+  // Q range: 0.1*eoq to 4*eoq
+  const qMin = Math.max(10, eoq * 0.1);
+  const qMax = eoq * 4;
+  const N = 300;
+
+  const costs = [];
+  for (let i = 0; i <= N; i++) {
+    const q = qMin + (qMax - qMin) * i / N;
+    costs.push({
+      q,
+      hc: (q / 2) * H,
+      oc: (D / q) * S,
+      tc: totalCost(q, D, S, H)
+    });
+  }
+
+  const maxCost = Math.max(...costs.map(c => c.tc)) * 1.05;
+
+  function xScale(q) { return pad.left + (q - qMin) / (qMax - qMin) * cw; }
+  function yScale(c) { return pad.top + ch - (c / maxCost) * ch; }
+
+  // Grid
+  ctx.strokeStyle = getCSSVar('--canvas-grid');
+  ctx.lineWidth = 1;
+  for (let i = 0; i <= 4; i++) {
+    const y = pad.top + (ch / 4) * i;
+    ctx.beginPath();
+    ctx.moveTo(pad.left, y);
+    ctx.lineTo(pad.left + cw, y);
+    ctx.stroke();
+    const val = maxCost * (1 - i / 4);
+    ctx.fillStyle = getCSSVar('--canvas-axis');
+    ctx.font = '10px DM Mono';
+    ctx.textAlign = 'right';
+    ctx.fillText('$' + Math.round(val).toLocaleString(), pad.left - 8, y + 4);
+  }
+
+  // X axis ticks
+  ctx.textAlign = 'center';
+  for (let i = 0; i <= 4; i++) {
+    const q = qMin + (qMax - qMin) * i / 4;
+    const x = xScale(q);
+    ctx.fillStyle = getCSSVar('--canvas-axis');
+    ctx.font = '10px DM Mono';
+    ctx.fillText(Math.round(q).toLocaleString(), x, H_canvas - pad.bottom + 15);
+  }
+
+  // Axis labels
+  ctx.save();
+  ctx.translate(14, pad.top + ch / 2);
+  ctx.rotate(-Math.PI / 2);
+  ctx.fillStyle = getCSSVar('--canvas-axis');
+  ctx.font = '10px DM Mono';
+  ctx.textAlign = 'center';
+  ctx.fillText('Annual Cost ($)', 0, 0);
+  ctx.restore();
+
+  ctx.fillStyle = getCSSVar('--canvas-axis');
+  ctx.font = '10px DM Mono';
+  ctx.textAlign = 'center';
+  ctx.fillText('Order Quantity Q (units)', pad.left + cw / 2, H_canvas - 5);
+
+  // Draw curves
+  function drawLine(key, color, dashed) {
+    ctx.beginPath();
+    ctx.strokeStyle = color;
+    ctx.lineWidth = dashed ? 1.5 : 2;
+    if (dashed) ctx.setLineDash([4, 4]);
+    else ctx.setLineDash([]);
+    costs.forEach((c, i) => {
+      const x = xScale(c.q);
+      const y = yScale(c[key]);
+      if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+    });
+    ctx.stroke();
+    ctx.setLineDash([]);
+  }
+
+  drawLine('hc', '#e07b4a', true);
+  drawLine('oc', '#5bb8a0', true);
+  drawLine('tc', '#c8a84b', false);
+
+  // EOQ vertical line
+  const eoqX = xScale(eoq);
+  const eoqY = yScale(totalCost(eoq, D, S, H));
+  ctx.beginPath();
+  ctx.strokeStyle = 'rgba(200,168,75,0.3)';
+  ctx.lineWidth = 1;
+  ctx.setLineDash([6, 4]);
+  ctx.moveTo(eoqX, pad.top);
+  ctx.lineTo(eoqX, pad.top + ch);
+  ctx.stroke();
+  ctx.setLineDash([]);
+
+  // EOQ point
+  ctx.beginPath();
+  ctx.arc(eoqX, eoqY, 5, 0, Math.PI * 2);
+  ctx.fillStyle = '#c8a84b';
+  ctx.fill();
+  ctx.strokeStyle = getCSSVar('--canvas-dot-stroke');
+  ctx.lineWidth = 2;
+  ctx.stroke();
+
+  // Q* label
+  ctx.fillStyle = '#c8a84b';
+  ctx.font = '10px DM Mono';
+  ctx.textAlign = 'center';
+  ctx.fillText('Q* = ' + Math.round(eoq).toLocaleString(), eoqX, pad.top - 6);
+
+  // User Q marker
+  if (userQ >= qMin && userQ <= qMax) {
+    const uqX = xScale(userQ);
+    const uqY = yScale(totalCost(userQ, D, S, H));
+    ctx.beginPath();
+    ctx.arc(uqX, uqY, 5, 0, Math.PI * 2);
+    ctx.fillStyle = '#e07b4a';
+    ctx.fill();
+    ctx.strokeStyle = getCSSVar('--canvas-dot-stroke');
+    ctx.lineWidth = 2;
+    ctx.stroke();
+
+    ctx.fillStyle = '#e07b4a';
+    ctx.font = '10px DM Mono';
+    ctx.textAlign = uqX > eoqX ? 'right' : 'left';
+    const labelX = uqX > eoqX ? uqX - 8 : uqX + 8;
+    ctx.fillText('Your Q', labelX, uqY - 9);
+  }
+}
+
+// Wire up sliders
+['D','S','H','Q'].forEach(p => {
+  document.getElementById(`slider-${p}`).addEventListener('input', update);
+});
+
+window.addEventListener('resize', update);
+
+// Theme toggle
+function toggleTheme() {
+  const root = document.documentElement;
+  const isLight = root.classList.toggle('light');
+  document.getElementById('theme-icon').textContent = isLight ? '🌙' : '☀️';
+  document.getElementById('theme-label').textContent = isLight ? 'Dark Mode' : 'Light Mode';
+  update();
+}
+
+function getCSSVar(name) {
+  return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+}
+
+update();
+</script>
+</body>
+</html>
