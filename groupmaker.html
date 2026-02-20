@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Random Group Maker</title>
 <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
 :root {
   --bg:        #f4f1eb;
@@ -447,6 +448,189 @@ footer {
   letter-spacing: 0.04em;
 }
 
+/* ── INPUT TABS ── */
+.input-tabs {
+  display: flex;
+  border-bottom: 1.5px solid var(--border);
+  margin-bottom: 1rem;
+  gap: 0;
+}
+
+.input-tab {
+  flex: 1;
+  padding: 0.45rem 0.5rem;
+  font-family: 'Outfit', sans-serif;
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-align: center;
+  cursor: pointer;
+  border: none;
+  background: transparent;
+  color: var(--muted);
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1.5px;
+  transition: color 0.15s, border-color 0.15s;
+  letter-spacing: 0.03em;
+}
+
+.input-tab.active {
+  color: var(--text);
+  border-bottom-color: var(--text);
+}
+
+.input-tab:hover:not(.active) { color: var(--text); }
+
+/* ── DROP ZONE ── */
+.drop-zone {
+  border: 2px dashed var(--border);
+  border-radius: 8px;
+  padding: 1.75rem 1rem;
+  text-align: center;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+  background: var(--bg);
+  position: relative;
+}
+
+.drop-zone:hover, .drop-zone.dragover {
+  border-color: var(--text);
+  background: var(--surface2);
+}
+
+.drop-zone input[type="file"] {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  cursor: pointer;
+  width: 100%;
+  height: 100%;
+}
+
+.drop-icon { font-size: 1.8rem; margin-bottom: 0.5rem; }
+
+.drop-label {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text);
+  margin-bottom: 0.25rem;
+}
+
+.drop-sub {
+  font-size: 0.68rem;
+  color: var(--muted);
+}
+
+/* Loaded file indicator */
+.file-loaded {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  background: var(--surface2);
+  border: 1.5px solid var(--border);
+  border-radius: 6px;
+  padding: 0.6rem 0.75rem;
+  margin-bottom: 0.75rem;
+  font-size: 0.78rem;
+}
+
+.file-loaded-icon { font-size: 1rem; }
+.file-loaded-name { flex: 1; font-weight: 600; color: var(--text); }
+.file-loaded-size { color: var(--muted); font-size: 0.68rem; }
+.file-clear-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--muted);
+  font-size: 0.9rem;
+  padding: 0 0.2rem;
+  transition: color 0.1s;
+}
+.file-clear-btn:hover { color: var(--text); }
+
+/* Column picker */
+.col-picker-wrap {
+  margin-top: 0.75rem;
+}
+
+.col-picker-label {
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--muted);
+  margin-bottom: 0.4rem;
+}
+
+.col-picker-select {
+  width: 100%;
+  padding: 0.5rem 0.65rem;
+  font-family: 'Outfit', sans-serif;
+  font-size: 0.82rem;
+  border: 1.5px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg);
+  color: var(--text);
+  outline: none;
+  cursor: pointer;
+  transition: border-color 0.15s;
+}
+
+.col-picker-select:focus { border-color: var(--text); }
+
+.col-preview {
+  margin-top: 0.6rem;
+  font-size: 0.68rem;
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+.col-preview strong { color: var(--text); }
+
+/* Sheet picker */
+.sheet-picker-wrap {
+  margin-bottom: 0.75rem;
+}
+
+.sheet-picker-label {
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--muted);
+  margin-bottom: 0.4rem;
+}
+
+.sheet-picker-select {
+  width: 100%;
+  padding: 0.5rem 0.65rem;
+  font-family: 'Outfit', sans-serif;
+  font-size: 0.82rem;
+  border: 1.5px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg);
+  color: var(--text);
+  outline: none;
+  cursor: pointer;
+}
+
+.apply-col-btn {
+  width: 100%;
+  margin-top: 0.75rem;
+  padding: 0.6rem;
+  background: var(--text);
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  font-family: 'Outfit', sans-serif;
+  font-size: 0.8rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.apply-col-btn:hover { background: #444; }
+.apply-col-btn:disabled { background: #bbb; cursor: not-allowed; }
+
 /* ── COLOR THEMES per group ── */
 .gc-0 { background: var(--g0); border-color: #b8debb; }
 .gc-0 .group-number { color: var(--g0t); }
@@ -525,8 +709,17 @@ footer {
     <!-- Roster Input -->
     <div class="panel-card">
       <h2>Class Roster</h2>
-      <textarea id="rosterInput"
-        placeholder="Paste names here, one per line:
+
+      <!-- Tabs -->
+      <div class="input-tabs">
+        <button class="input-tab active" id="tabPaste" onclick="switchTab('paste')">✏️ Paste Names</button>
+        <button class="input-tab" id="tabUpload" onclick="switchTab('upload')">📂 Upload File</button>
+      </div>
+
+      <!-- Paste panel -->
+      <div id="panePaste">
+        <textarea id="rosterInput"
+          placeholder="Paste names here, one per line:
 
 Alice Johnson
 Bob Smith
@@ -535,8 +728,43 @@ David Lee
 Emma Wilson
 Frank Chen
 ..."
-        oninput="onRosterChange()"></textarea>
-      <div class="roster-hint">One name per line. Empty lines and duplicates are ignored.</div>
+          oninput="onRosterChange()"></textarea>
+        <div class="roster-hint">One name per line. Empty lines and duplicates are ignored.</div>
+      </div>
+
+      <!-- Upload panel -->
+      <div id="paneUpload" style="display:none;">
+        <!-- File loaded indicator (hidden until file loaded) -->
+        <div id="fileLoaded" style="display:none;" class="file-loaded">
+          <span class="file-loaded-icon">📄</span>
+          <span class="file-loaded-name" id="fileLoadedName"></span>
+          <span class="file-loaded-size" id="fileLoadedSize"></span>
+          <button class="file-clear-btn" onclick="clearFile()" title="Remove file">✕</button>
+        </div>
+
+        <!-- Drop zone (hidden after file loaded) -->
+        <div class="drop-zone" id="dropZone">
+          <input type="file" id="fileInput" accept=".csv,.xlsx,.xls" onchange="onFileSelect(event)">
+          <div class="drop-icon">📂</div>
+          <div class="drop-label">Drop a file here or click to browse</div>
+          <div class="drop-sub">Supports .csv, .xlsx, .xls</div>
+        </div>
+
+        <!-- Sheet picker (xlsx only, hidden until needed) -->
+        <div id="sheetPickerWrap" style="display:none;" class="sheet-picker-wrap">
+          <div class="sheet-picker-label">Sheet</div>
+          <select class="sheet-picker-select" id="sheetPicker" onchange="onSheetChange()"></select>
+        </div>
+
+        <!-- Column picker (hidden until file parsed) -->
+        <div id="colPickerWrap" style="display:none;" class="col-picker-wrap">
+          <div class="col-picker-label">Select Name Column</div>
+          <select class="col-select col-picker-select" id="colPicker" onchange="onColPickerChange()"></select>
+          <div class="col-preview" id="colPreview"></div>
+          <button class="apply-col-btn" id="applyColBtn" onclick="applyColumn()">Use This Column →</button>
+        </div>
+      </div>
+
       <div class="name-count" id="nameCount">0 names entered</div>
     </div>
 
@@ -844,10 +1072,166 @@ function clearAll() {
   document.getElementById('headerMeta').textContent = 'Paste names to get started';
 }
 
+// ── TAB SWITCHING ──
+function switchTab(tab) {
+  const isPaste = tab === 'paste';
+  document.getElementById('tabPaste').classList.toggle('active', isPaste);
+  document.getElementById('tabUpload').classList.toggle('active', !isPaste);
+  document.getElementById('panePaste').style.display = isPaste ? 'block' : 'none';
+  document.getElementById('paneUpload').style.display = isPaste ? 'none' : 'block';
+}
+
+// ── FILE UPLOAD STATE ──
+let workbook = null;
+let parsedRows = [];  // array of objects (all rows from selected sheet)
+
+// ── DROP ZONE DRAG EVENTS ──
+const dropZone = document.getElementById('dropZone');
+dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('dragover'); });
+dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
+dropZone.addEventListener('drop', e => {
+  e.preventDefault();
+  dropZone.classList.remove('dragover');
+  const file = e.dataTransfer.files[0];
+  if (file) processFile(file);
+});
+
+function onFileSelect(e) {
+  const file = e.target.files[0];
+  if (file) processFile(file);
+}
+
+function processFile(file) {
+  const name = file.name;
+  const ext = name.split('.').pop().toLowerCase();
+  if (!['csv','xlsx','xls'].includes(ext)) {
+    alert('Please upload a .csv, .xlsx, or .xls file.');
+    return;
+  }
+
+  // Show file indicator, hide drop zone
+  document.getElementById('dropZone').style.display = 'none';
+  document.getElementById('fileLoaded').style.display = 'flex';
+  document.getElementById('fileLoadedName').textContent = name;
+  document.getElementById('fileLoadedSize').textContent = formatBytes(file.size);
+
+  const reader = new FileReader();
+  reader.onload = e => {
+    const data = new Uint8Array(e.target.result);
+    workbook = XLSX.read(data, { type: 'array' });
+
+    // Sheet picker: show only for xlsx with multiple sheets
+    const sheetNames = workbook.SheetNames;
+    const sheetWrap = document.getElementById('sheetPickerWrap');
+    if (sheetNames.length > 1) {
+      const sel = document.getElementById('sheetPicker');
+      sel.innerHTML = sheetNames.map(s => `<option value="${escapeHtml(s)}">${escapeHtml(s)}</option>`).join('');
+      sheetWrap.style.display = 'block';
+    } else {
+      sheetWrap.style.display = 'none';
+    }
+
+    loadSheet(sheetNames[0]);
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+function loadSheet(sheetName) {
+  const ws = workbook.Sheets[sheetName];
+  parsedRows = XLSX.utils.sheet_to_json(ws, { defval: '' });
+
+  if (!parsedRows.length) {
+    alert('This sheet appears to be empty.');
+    return;
+  }
+
+  // Populate column picker
+  const cols = Object.keys(parsedRows[0]);
+  const sel = document.getElementById('colPicker');
+  sel.innerHTML = cols.map(c => `<option value="${escapeAttr(c)}">${escapeHtml(c)}</option>`).join('');
+
+  // Auto-select a likely name column
+  const likelyName = cols.find(c =>
+    /name|student|全名|姓名|first|last|participant/i.test(c)
+  ) || cols[0];
+  sel.value = likelyName;
+
+  document.getElementById('colPickerWrap').style.display = 'block';
+  updateColPreview(likelyName);
+}
+
+function onSheetChange() {
+  const sheetName = document.getElementById('sheetPicker').value;
+  loadSheet(sheetName);
+}
+
+function onColPickerChange() {
+  updateColPreview(document.getElementById('colPicker').value);
+}
+
+function updateColPreview(col) {
+  const samples = parsedRows
+    .map(r => String(r[col] ?? '').trim())
+    .filter(v => v.length > 0)
+    .slice(0, 5);
+  const total = parsedRows.filter(r => String(r[col] ?? '').trim().length > 0).length;
+  const el = document.getElementById('colPreview');
+  if (!samples.length) {
+    el.innerHTML = '<span style="color:#c0392b">Column appears empty.</span>';
+    document.getElementById('applyColBtn').disabled = true;
+    return;
+  }
+  el.innerHTML = `<strong>${total}</strong> non-empty values · Preview: ${samples.map(s => `<em>${escapeHtml(s)}</em>`).join(', ')}${total > 5 ? '…' : ''}`;
+  document.getElementById('applyColBtn').disabled = false;
+}
+
+function applyColumn() {
+  const col = document.getElementById('colPicker').value;
+  const extracted = parsedRows
+    .map(r => String(r[col] ?? '').trim())
+    .filter(v => v.length > 0);
+
+  // Deduplicate
+  const unique = [...new Set(extracted)];
+
+  // Populate the textarea and switch to paste view (or directly set names)
+  names = unique;
+
+  // Update textarea so user can see/edit
+  document.getElementById('rosterInput').value = unique.join('\n');
+
+  // Switch to paste tab so they can see the loaded names
+  switchTab('paste');
+
+  // Trigger roster update
+  onRosterChange();
+}
+
+function clearFile() {
+  workbook = null;
+  parsedRows = [];
+  document.getElementById('fileInput').value = '';
+  document.getElementById('fileLoaded').style.display = 'none';
+  document.getElementById('dropZone').style.display = 'block';
+  document.getElementById('sheetPickerWrap').style.display = 'none';
+  document.getElementById('colPickerWrap').style.display = 'none';
+}
+
+function formatBytes(bytes) {
+  if (bytes < 1024) return bytes + ' B';
+  if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+  return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+}
+
+function escapeAttr(s) {
+  return s.replace(/"/g, '&quot;');
+}
+
+
 // ── INIT ──
 changeSize(0); // set initial button states
 
-// Allow pressing Enter in textarea to not interfere, but support Ctrl+Enter to shuffle
+// Ctrl+Enter to shuffle while in textarea
 document.getElementById('rosterInput').addEventListener('keydown', e => {
   if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') shuffle();
 });
