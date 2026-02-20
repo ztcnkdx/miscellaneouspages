@@ -1,0 +1,856 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Random Group Maker</title>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:        #f4f1eb;
+  --surface:   #ffffff;
+  --surface2:  #ede9e0;
+  --border:    #d8d2c4;
+  --text:      #1e1b16;
+  --muted:     #857d6e;
+  --accent:    #1e1b16;
+  --shuffle-bg:#2c5f2e;
+  --shuffle-fg:#ffffff;
+
+  /* Group palette — 8 distinct warm/cool tones */
+  --g0: #e8f4ea; --g0b: #2c5f2e; --g0t: #1a3d1b;
+  --g1: #fdf0e0; --g1b: #c07020; --g1t: #7a4510;
+  --g2: #e8eaf6; --g2b: #3949ab; --g2t: #1a2370;
+  --g3: #fce4ec; --g3b: #c2185b; --g3t: #7b0c38;
+  --g4: #e0f7fa; --g4b: #00838f; --g4t: #004d57;
+  --g5: #f3e5f5; --g5b: #7b1fa2; --g5t: #4a0060;
+  --g6: #fff8e1; --g6b: #f9a825; --g6t: #a06000;
+  --g7: #e8f5e9; --g7b: #388e3c; --g7t: #1b5e20;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Outfit', sans-serif;
+  min-height: 100vh;
+  padding: 2rem 2.5rem 3rem;
+}
+
+/* ── HEADER ── */
+header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  margin-bottom: 2rem;
+  padding-bottom: 1.25rem;
+  border-bottom: 2px solid var(--text);
+}
+
+.header-title h1 {
+  font-family: 'Instrument Serif', serif;
+  font-size: 2.6rem;
+  font-weight: 400;
+  letter-spacing: -0.02em;
+  line-height: 1;
+  color: var(--text);
+}
+
+.header-title p {
+  font-size: 0.75rem;
+  color: var(--muted);
+  margin-top: 0.4rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.header-meta {
+  text-align: right;
+  font-size: 0.75rem;
+  color: var(--muted);
+  line-height: 1.8;
+}
+
+.header-meta strong { color: var(--text); font-weight: 600; }
+
+/* ── TWO-COLUMN LAYOUT ── */
+.layout {
+  display: grid;
+  grid-template-columns: 320px 1fr;
+  gap: 1.5rem;
+  align-items: start;
+}
+
+/* ── LEFT PANEL ── */
+.left-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  position: sticky;
+  top: 1.5rem;
+}
+
+.panel-card {
+  background: var(--surface);
+  border: 1.5px solid var(--border);
+  border-radius: 8px;
+  padding: 1.25rem;
+}
+
+.panel-card h2 {
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.09em;
+  color: var(--muted);
+  margin-bottom: 0.85rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid var(--border);
+}
+
+/* Roster textarea */
+#rosterInput {
+  width: 100%;
+  height: 220px;
+  border: 1.5px solid var(--border);
+  border-radius: 6px;
+  padding: 0.75rem;
+  font-family: 'Outfit', sans-serif;
+  font-size: 0.82rem;
+  line-height: 1.6;
+  color: var(--text);
+  background: var(--bg);
+  resize: vertical;
+  outline: none;
+  transition: border-color 0.15s;
+}
+
+#rosterInput:focus { border-color: var(--accent); }
+#rosterInput::placeholder { color: #b0a898; }
+
+.roster-hint {
+  font-size: 0.68rem;
+  color: var(--muted);
+  margin-top: 0.5rem;
+  line-height: 1.5;
+}
+
+.name-count {
+  font-size: 0.72rem;
+  color: var(--muted);
+  margin-top: 0.5rem;
+}
+
+.name-count strong { color: var(--text); }
+
+/* Group size controls */
+.size-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+}
+
+.size-label {
+  font-size: 0.78rem;
+  color: var(--muted);
+  flex: 1;
+}
+
+.size-stepper {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  border: 1.5px solid var(--border);
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.size-btn {
+  width: 32px;
+  height: 32px;
+  background: var(--surface2);
+  border: none;
+  font-size: 1.1rem;
+  color: var(--text);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.1s;
+  font-family: 'Outfit', sans-serif;
+}
+
+.size-btn:hover { background: var(--border); }
+.size-btn:disabled { opacity: 0.35; cursor: not-allowed; }
+
+.size-val {
+  width: 36px;
+  text-align: center;
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--text);
+  border-left: 1.5px solid var(--border);
+  border-right: 1.5px solid var(--border);
+  line-height: 32px;
+}
+
+.size-info {
+  font-size: 0.7rem;
+  color: var(--muted);
+  background: var(--surface2);
+  border-radius: 4px;
+  padding: 0.45rem 0.65rem;
+  line-height: 1.5;
+}
+
+.size-info strong { color: var(--text); }
+
+/* Mode toggle */
+.mode-toggle {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  border: 1.5px solid var(--border);
+  border-radius: 6px;
+  overflow: hidden;
+  margin-bottom: 0.75rem;
+}
+
+.mode-btn {
+  padding: 0.45rem 0.5rem;
+  font-family: 'Outfit', sans-serif;
+  font-size: 0.72rem;
+  font-weight: 500;
+  text-align: center;
+  cursor: pointer;
+  border: none;
+  background: var(--surface2);
+  color: var(--muted);
+  transition: background 0.15s, color 0.15s;
+}
+
+.mode-btn.active {
+  background: var(--text);
+  color: #fff;
+}
+
+.mode-btn:first-child { border-right: 1px solid var(--border); }
+
+/* Shuffle button */
+.shuffle-btn {
+  width: 100%;
+  padding: 0.85rem;
+  background: var(--shuffle-bg);
+  color: var(--shuffle-fg);
+  border: none;
+  border-radius: 8px;
+  font-family: 'Outfit', sans-serif;
+  font-size: 0.92rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  transition: background 0.15s, transform 0.1s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.shuffle-btn:hover { background: #1e4220; }
+.shuffle-btn:active { transform: scale(0.98); }
+.shuffle-btn:disabled { background: #9ab89b; cursor: not-allowed; }
+
+.shuffle-icon {
+  font-size: 1.1rem;
+  display: inline-block;
+  transition: transform 0.4s;
+}
+
+.shuffle-btn:not(:disabled):hover .shuffle-icon { transform: rotate(180deg); }
+
+/* Action bar */
+.action-bar {
+  display: flex;
+  gap: 0.6rem;
+}
+
+.action-btn {
+  flex: 1;
+  padding: 0.55rem 0.5rem;
+  font-family: 'Outfit', sans-serif;
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  border: 1.5px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface);
+  color: var(--text);
+  cursor: pointer;
+  transition: background 0.12s, border-color 0.12s;
+  text-align: center;
+}
+
+.action-btn:hover { background: var(--surface2); border-color: var(--text); }
+.action-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+/* ── RIGHT PANEL ── */
+.right-panel { min-height: 300px; }
+
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 320px;
+  color: var(--muted);
+  text-align: center;
+  gap: 0.75rem;
+}
+
+.empty-icon {
+  font-size: 3rem;
+  opacity: 0.35;
+}
+
+.empty-state p {
+  font-size: 0.85rem;
+  line-height: 1.6;
+  max-width: 260px;
+}
+
+/* Groups grid */
+.groups-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.1rem;
+}
+
+.groups-title {
+  font-family: 'Instrument Serif', serif;
+  font-size: 1.5rem;
+  font-weight: 400;
+  color: var(--text);
+}
+
+.groups-meta {
+  font-size: 0.72rem;
+  color: var(--muted);
+}
+
+#groupsGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 1rem;
+}
+
+/* Group card */
+.group-card {
+  border-radius: 8px;
+  padding: 1rem 1.1rem;
+  border: 1.5px solid transparent;
+  opacity: 0;
+  transform: translateY(12px) scale(0.97);
+  animation: cardIn 0.35s ease forwards;
+}
+
+@keyframes cardIn {
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.group-card-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-bottom: 0.65rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid transparent;
+}
+
+.group-number {
+  font-family: 'Instrument Serif', serif;
+  font-size: 1.1rem;
+  font-weight: 400;
+}
+
+.group-size-badge {
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 2px 7px;
+  border-radius: 10px;
+  opacity: 0.7;
+}
+
+.member-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.member-item {
+  font-size: 0.83rem;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  opacity: 0;
+  animation: memberIn 0.25s ease forwards;
+}
+
+@keyframes memberIn {
+  from { opacity: 0; transform: translateX(-6px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+.member-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+/* Copy flash */
+.copy-flash {
+  position: fixed;
+  bottom: 2rem;
+  left: 50%;
+  transform: translateX(-50%) translateY(10px);
+  background: var(--text);
+  color: #fff;
+  font-size: 0.78rem;
+  font-weight: 600;
+  padding: 0.6rem 1.4rem;
+  border-radius: 50px;
+  opacity: 0;
+  transition: opacity 0.2s, transform 0.2s;
+  pointer-events: none;
+  z-index: 100;
+}
+
+.copy-flash.show {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+
+/* footer */
+footer {
+  margin-top: 3rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--border);
+  font-size: 0.68rem;
+  color: var(--muted);
+  text-align: center;
+  letter-spacing: 0.04em;
+}
+
+/* ── COLOR THEMES per group ── */
+.gc-0 { background: var(--g0); border-color: #b8debb; }
+.gc-0 .group-number { color: var(--g0t); }
+.gc-0 .group-card-header { border-color: #b8debb; }
+.gc-0 .group-size-badge { background: #b8debb; color: var(--g0t); }
+.gc-0 .member-dot { background: var(--g0b); }
+
+.gc-1 { background: var(--g1); border-color: #f0c890; }
+.gc-1 .group-number { color: var(--g1t); }
+.gc-1 .group-card-header { border-color: #f0c890; }
+.gc-1 .group-size-badge { background: #f0c890; color: var(--g1t); }
+.gc-1 .member-dot { background: var(--g1b); }
+
+.gc-2 { background: var(--g2); border-color: #9fa8da; }
+.gc-2 .group-number { color: var(--g2t); }
+.gc-2 .group-card-header { border-color: #9fa8da; }
+.gc-2 .group-size-badge { background: #9fa8da; color: var(--g2t); }
+.gc-2 .member-dot { background: var(--g2b); }
+
+.gc-3 { background: var(--g3); border-color: #f48fb1; }
+.gc-3 .group-number { color: var(--g3t); }
+.gc-3 .group-card-header { border-color: #f48fb1; }
+.gc-3 .group-size-badge { background: #f48fb1; color: var(--g3t); }
+.gc-3 .member-dot { background: var(--g3b); }
+
+.gc-4 { background: var(--g4); border-color: #80cbc4; }
+.gc-4 .group-number { color: var(--g4t); }
+.gc-4 .group-card-header { border-color: #80cbc4; }
+.gc-4 .group-size-badge { background: #80cbc4; color: var(--g4t); }
+.gc-4 .member-dot { background: var(--g4b); }
+
+.gc-5 { background: var(--g5); border-color: #ce93d8; }
+.gc-5 .group-number { color: var(--g5t); }
+.gc-5 .group-card-header { border-color: #ce93d8; }
+.gc-5 .group-size-badge { background: #ce93d8; color: var(--g5t); }
+.gc-5 .member-dot { background: var(--g5b); }
+
+.gc-6 { background: var(--g6); border-color: #ffe082; }
+.gc-6 .group-number { color: var(--g6t); }
+.gc-6 .group-card-header { border-color: #ffe082; }
+.gc-6 .group-size-badge { background: #ffe082; color: var(--g6t); }
+.gc-6 .member-dot { background: var(--g6b); }
+
+.gc-7 { background: var(--g7); border-color: #a5d6a7; }
+.gc-7 .group-number { color: var(--g7t); }
+.gc-7 .group-card-header { border-color: #a5d6a7; }
+.gc-7 .group-size-badge { background: #a5d6a7; color: var(--g7t); }
+.gc-7 .member-dot { background: var(--g7b); }
+
+@media (max-width: 800px) {
+  .layout { grid-template-columns: 1fr; }
+  .left-panel { position: static; }
+  body { padding: 1.25rem 1.25rem 2.5rem; }
+  header { flex-direction: column; align-items: flex-start; gap: 0.5rem; }
+  .header-meta { text-align: left; }
+}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-title">
+    <h1>Random Group Maker</h1>
+    <p>Paste roster · Set size · Shuffle</p>
+  </div>
+  <div class="header-meta" id="headerMeta">
+    Paste names to get started
+  </div>
+</header>
+
+<div class="layout">
+
+  <!-- LEFT PANEL -->
+  <div class="left-panel">
+
+    <!-- Roster Input -->
+    <div class="panel-card">
+      <h2>Class Roster</h2>
+      <textarea id="rosterInput"
+        placeholder="Paste names here, one per line:
+
+Alice Johnson
+Bob Smith
+Carol Davis
+David Lee
+Emma Wilson
+Frank Chen
+..."
+        oninput="onRosterChange()"></textarea>
+      <div class="roster-hint">One name per line. Empty lines and duplicates are ignored.</div>
+      <div class="name-count" id="nameCount">0 names entered</div>
+    </div>
+
+    <!-- Group Size -->
+    <div class="panel-card">
+      <h2>Group Settings</h2>
+
+      <div style="margin-bottom:0.85rem;">
+        <div style="font-size:0.72rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.07em;margin-bottom:0.5rem;">Mode</div>
+        <div class="mode-toggle">
+          <button class="mode-btn active" id="modeBySize" onclick="setMode('size')">By group size</button>
+          <button class="mode-btn" id="modeByCount" onclick="setMode('count')">By # of groups</button>
+        </div>
+      </div>
+
+      <div class="size-row" id="sizeRow">
+        <span class="size-label" id="sizeRowLabel">Students per group</span>
+        <div class="size-stepper">
+          <button class="size-btn" id="sizeDown" onclick="changeSize(-1)">−</button>
+          <span class="size-val" id="sizeVal">3</span>
+          <button class="size-btn" id="sizeUp" onclick="changeSize(1)">+</button>
+        </div>
+      </div>
+
+      <div class="size-info" id="sizeInfo">
+        Enter names to see group preview.
+      </div>
+    </div>
+
+    <!-- Actions -->
+    <div class="panel-card">
+      <h2>Actions</h2>
+      <button class="shuffle-btn" id="shuffleBtn" onclick="shuffle()" disabled>
+        <span class="shuffle-icon">🔀</span>
+        Shuffle Groups
+      </button>
+      <div style="height:0.75rem;"></div>
+      <div class="action-bar">
+        <button class="action-btn" id="copyBtn" onclick="copyGroups()" disabled>📋 Copy</button>
+        <button class="action-btn" id="printBtn" onclick="printGroups()" disabled>🖨 Print</button>
+        <button class="action-btn" onclick="clearAll()">✕ Clear</button>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- RIGHT PANEL -->
+  <div class="right-panel" id="rightPanel">
+    <div class="empty-state" id="emptyState">
+      <div class="empty-icon">👥</div>
+      <p>Paste your class roster on the left, set the group size, and hit <strong>Shuffle</strong>.</p>
+    </div>
+    <div id="groupsOutput" style="display:none;">
+      <div class="groups-header">
+        <div class="groups-title" id="groupsTitle">Groups</div>
+        <div class="groups-meta" id="groupsMeta"></div>
+      </div>
+      <div id="groupsGrid"></div>
+    </div>
+  </div>
+
+</div>
+
+<div class="copy-flash" id="copyFlash">Copied to clipboard ✓</div>
+
+<footer>© Tiancheng Zhao 2026. All Rights Reserved.</footer>
+
+<script>
+// ── STATE ──
+let mode = 'size';   // 'size' | 'count'
+let sizeOrCount = 3; // group size OR number of groups depending on mode
+let names = [];
+let groups = [];
+
+// ── ROSTER PARSING ──
+function parseNames(raw) {
+  return [...new Set(
+    raw.split('\n')
+       .map(s => s.trim())
+       .filter(s => s.length > 0)
+  )];
+}
+
+function onRosterChange() {
+  names = parseNames(document.getElementById('rosterInput').value);
+  const n = names.length;
+  document.getElementById('nameCount').innerHTML =
+    n === 0 ? '0 names entered'
+    : `<strong>${n}</strong> name${n !== 1 ? 's' : ''} entered`;
+  document.getElementById('shuffleBtn').disabled = n < 2;
+  updateSizeInfo();
+  updateHeaderMeta();
+}
+
+// ── MODE ──
+function setMode(m) {
+  mode = m;
+  document.getElementById('modeBySize').classList.toggle('active', m === 'size');
+  document.getElementById('modeByCount').classList.toggle('active', m === 'count');
+  document.getElementById('sizeRowLabel').textContent =
+    m === 'size' ? 'Students per group' : 'Number of groups';
+  updateSizeInfo();
+}
+
+// ── SIZE STEPPER ──
+function changeSize(delta) {
+  const min = 2, max = mode === 'size' ? 20 : 30;
+  sizeOrCount = Math.max(min, Math.min(max, sizeOrCount + delta));
+  document.getElementById('sizeVal').textContent = sizeOrCount;
+  document.getElementById('sizeDown').disabled = sizeOrCount <= min;
+  document.getElementById('sizeUp').disabled = sizeOrCount >= max;
+  updateSizeInfo();
+}
+
+function updateSizeInfo() {
+  const n = names.length;
+  const el = document.getElementById('sizeInfo');
+  if (n < 2) {
+    el.innerHTML = 'Enter names to see group preview.';
+    return;
+  }
+
+  let numGroups, groupSize, remainder;
+  if (mode === 'size') {
+    groupSize = sizeOrCount;
+    numGroups = Math.ceil(n / groupSize);
+    remainder = n % groupSize;
+  } else {
+    numGroups = sizeOrCount;
+    groupSize = Math.floor(n / numGroups);
+    remainder = n % numGroups;
+  }
+
+  const larger = remainder > 0 ? remainder : 0;
+  const smaller = numGroups - larger;
+
+  let preview = '';
+  if (remainder === 0) {
+    preview = `<strong>${numGroups}</strong> groups of <strong>${groupSize}</strong>`;
+  } else {
+    if (mode === 'size') {
+      preview = `<strong>${smaller}</strong> group${smaller !== 1 ? 's' : ''} of ${groupSize}, <strong>${larger}</strong> group of ${groupSize + 1}`;
+      // last group gets fewer or more? let's clarify:
+      // ceil(n/size) groups, last might be small
+      const lastSize = n - groupSize * (numGroups - 1);
+      if (lastSize !== groupSize) {
+        preview = `<strong>${numGroups - 1}</strong> group${numGroups - 1 !== 1 ? 's' : ''} of ${groupSize} + <strong>1</strong> group of ${lastSize}`;
+      }
+    } else {
+      preview = `<strong>${smaller}</strong> group${smaller !== 1 ? 's' : ''} of ${groupSize}, <strong>${larger}</strong> group${larger !== 1 ? 's' : ''} of ${groupSize + 1}`;
+    }
+  }
+  el.innerHTML = `→ ${preview}`;
+}
+
+function updateHeaderMeta() {
+  const n = names.length;
+  const el = document.getElementById('headerMeta');
+  if (n === 0) { el.textContent = 'Paste names to get started'; return; }
+  el.innerHTML = `<strong>${n}</strong> students loaded`;
+}
+
+// ── FISHER-YATES SHUFFLE ──
+function fisherYates(arr) {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+// ── MAKE GROUPS ──
+function makeGroups(shuffled) {
+  const n = shuffled.length;
+  let sizes = [];
+
+  if (mode === 'size') {
+    const gs = sizeOrCount;
+    const numG = Math.ceil(n / gs);
+    for (let i = 0; i < numG; i++) {
+      const start = i * gs;
+      sizes.push(shuffled.slice(start, start + gs));
+    }
+  } else {
+    const numG = Math.min(sizeOrCount, n);
+    const base = Math.floor(n / numG);
+    const extra = n % numG;
+    let idx = 0;
+    for (let i = 0; i < numG; i++) {
+      const sz = base + (i < extra ? 1 : 0);
+      sizes.push(shuffled.slice(idx, idx + sz));
+      idx += sz;
+    }
+  }
+  return sizes;
+}
+
+// ── SHUFFLE & RENDER ──
+function shuffle() {
+  if (names.length < 2) return;
+
+  const shuffled = fisherYates(names);
+  groups = makeGroups(shuffled);
+
+  document.getElementById('emptyState').style.display = 'none';
+  document.getElementById('groupsOutput').style.display = 'block';
+
+  const title = `${groups.length} Group${groups.length !== 1 ? 's' : ''}`;
+  document.getElementById('groupsTitle').textContent = title;
+  document.getElementById('groupsMeta').textContent =
+    `${names.length} students · shuffled ${new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}`;
+  document.getElementById('headerMeta').innerHTML =
+    `<strong>${groups.length}</strong> groups · <strong>${names.length}</strong> students`;
+
+  renderGroups(groups);
+
+  document.getElementById('copyBtn').disabled = false;
+  document.getElementById('printBtn').disabled = false;
+
+  // Animate shuffle icon
+  const icon = document.querySelector('.shuffle-icon');
+  icon.style.transform = 'rotate(360deg)';
+  setTimeout(() => { icon.style.transform = ''; }, 400);
+}
+
+function renderGroups(groups) {
+  const grid = document.getElementById('groupsGrid');
+  grid.innerHTML = '';
+
+  groups.forEach((members, gi) => {
+    const colorClass = `gc-${gi % 8}`;
+    const card = document.createElement('div');
+    card.className = `group-card ${colorClass}`;
+    card.style.animationDelay = `${gi * 60}ms`;
+
+    const label = `Group ${gi + 1}`;
+    const sizeLabel = `${members.length} member${members.length !== 1 ? 's' : ''}`;
+
+    const memberHTML = members.map((name, mi) => `
+      <li class="member-item" style="animation-delay:${gi * 60 + mi * 40 + 80}ms">
+        <span class="member-dot"></span>
+        ${escapeHtml(name)}
+      </li>
+    `).join('');
+
+    card.innerHTML = `
+      <div class="group-card-header">
+        <span class="group-number">${label}</span>
+        <span class="group-size-badge">${sizeLabel}</span>
+      </div>
+      <ul class="member-list">${memberHTML}</ul>
+    `;
+    grid.appendChild(card);
+  });
+}
+
+function escapeHtml(str) {
+  return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+// ── COPY ──
+function copyGroups() {
+  if (!groups.length) return;
+  const lines = groups.map((members, gi) =>
+    `Group ${gi + 1}:\n${members.map(m => '  • ' + m).join('\n')}`
+  ).join('\n\n');
+  navigator.clipboard.writeText(lines).then(() => {
+    const flash = document.getElementById('copyFlash');
+    flash.classList.add('show');
+    setTimeout(() => flash.classList.remove('show'), 2000);
+  });
+}
+
+// ── PRINT ──
+function printGroups() {
+  if (!groups.length) return;
+  const lines = groups.map((members, gi) =>
+    `<div style="margin-bottom:1.2rem;"><strong>Group ${gi + 1}</strong><br>${members.map(m => '&nbsp;&nbsp;• ' + escapeHtml(m)).join('<br>')}</div>`
+  ).join('');
+  const win = window.open('', '_blank');
+  win.document.write(`
+    <html><head><title>Groups</title>
+    <style>body{font-family:sans-serif;padding:2rem;font-size:14px;} h2{margin-bottom:1.5rem;}</style>
+    </head><body>
+    <h2>Random Groups — ${new Date().toLocaleDateString()}</h2>
+    <div style="columns:3;column-gap:2rem;">${lines}</div>
+    <script>window.print();window.close();<\/script>
+    </body></html>`);
+  win.document.close();
+}
+
+// ── CLEAR ──
+function clearAll() {
+  document.getElementById('rosterInput').value = '';
+  names = [];
+  groups = [];
+  document.getElementById('nameCount').textContent = '0 names entered';
+  document.getElementById('shuffleBtn').disabled = true;
+  document.getElementById('copyBtn').disabled = true;
+  document.getElementById('printBtn').disabled = true;
+  document.getElementById('emptyState').style.display = 'flex';
+  document.getElementById('groupsOutput').style.display = 'none';
+  document.getElementById('sizeInfo').innerHTML = 'Enter names to see group preview.';
+  document.getElementById('headerMeta').textContent = 'Paste names to get started';
+}
+
+// ── INIT ──
+changeSize(0); // set initial button states
+
+// Allow pressing Enter in textarea to not interfere, but support Ctrl+Enter to shuffle
+document.getElementById('rosterInput').addEventListener('keydown', e => {
+  if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') shuffle();
+});
+</script>
+</body>
+</html>
