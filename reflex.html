@@ -1,0 +1,1485 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Reflex & Cognition Tester</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Outfit:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #0e0f11;
+  --surface: #16181c;
+  --surface2: #1e2026;
+  --border: #2a2d35;
+  --text: #e8eaf0;
+  --muted: #5a5f70;
+  --accent: #e8eaf0;
+  --red: #e84040;
+  --green: #22c55e;
+  --blue: #3b82f6;
+  --yellow: #f59e0b;
+  --purple: #a855f7;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Outfit', sans-serif;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ── NAV ── */
+nav {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  padding: 0 1.5rem;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
+  flex-shrink: 0;
+}
+
+.nav-brand {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--muted);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 1rem 1.5rem 1rem 0;
+  border-right: 1px solid var(--border);
+  margin-right: 0.5rem;
+  white-space: nowrap;
+}
+
+.nav-tab {
+  padding: 1.1rem 1.25rem;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--muted);
+  cursor: pointer;
+  border: none;
+  background: none;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  transition: color 0.15s, border-color 0.15s;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  white-space: nowrap;
+  font-family: 'Outfit', sans-serif;
+}
+
+.nav-tab:hover { color: var(--text); }
+.nav-tab.active { color: var(--text); border-bottom-color: var(--text); }
+.nav-tab .tab-num {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.65rem;
+  background: var(--surface2);
+  border-radius: 3px;
+  padding: 1px 5px;
+  color: var(--muted);
+}
+.nav-tab.active .tab-num { background: var(--text); color: var(--bg); }
+
+/* ── PAGES ── */
+.page { display: none; flex: 1; overflow: hidden; }
+.page.active { display: flex; flex-direction: column; }
+
+/* ── SHARED COMPONENTS ── */
+.section-header {
+  padding: 1.5rem 2rem 1rem;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.section-title {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.section-subtitle {
+  font-size: 0.72rem;
+  color: var(--muted);
+  margin-top: 0.2rem;
+  font-family: 'JetBrains Mono', monospace;
+}
+
+.btn {
+  font-family: 'Outfit', sans-serif;
+  font-size: 0.8rem;
+  font-weight: 700;
+  padding: 0.55rem 1.25rem;
+  border-radius: 6px;
+  border: 1.5px solid var(--border);
+  cursor: pointer;
+  transition: all 0.15s;
+  background: var(--surface2);
+  color: var(--text);
+  letter-spacing: 0.02em;
+}
+.btn:hover { border-color: var(--text); }
+.btn.primary { background: var(--text); color: var(--bg); border-color: var(--text); }
+.btn.primary:hover { background: #ccc; }
+.btn.danger { background: var(--red); color: #fff; border-color: var(--red); }
+
+.stat-pill {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.72rem;
+  padding: 0.3rem 0.75rem;
+  border-radius: 20px;
+  border: 1px solid var(--border);
+  color: var(--muted);
+  background: var(--surface2);
+}
+
+/* ─────────────────────────────────────────
+   TEST 1 — REFLEX
+───────────────────────────────────────── */
+#page-reflex {
+  overflow: hidden;
+}
+
+.reflex-layout {
+  display: grid;
+  grid-template-columns: 1fr 280px;
+  flex: 1;
+  overflow: hidden;
+}
+
+.reflex-arena {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  user-select: none;
+  transition: background 0.08s;
+  overflow: hidden;
+}
+
+.reflex-arena.state-wait { background: #1a0a0a; }
+.reflex-arena.state-ready { background: #3d0a0a; }
+.reflex-arena.state-red { background: #3d0a0a; }
+.reflex-arena.state-green { background: #0a2e15; }
+.reflex-arena.state-early { background: #1a100a; }
+.reflex-arena.state-done { background: var(--surface2); }
+
+.reflex-light {
+  width: 180px;
+  height: 180px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.08s, box-shadow 0.08s;
+  flex-shrink: 0;
+}
+
+.reflex-arena.state-wait .reflex-light { background: #2a2a2a; box-shadow: none; }
+.reflex-arena.state-ready .reflex-light { background: #2a2a2a; box-shadow: none; }
+.reflex-arena.state-red .reflex-light { background: var(--red); box-shadow: 0 0 60px rgba(232,64,64,0.5), 0 0 120px rgba(232,64,64,0.2); }
+.reflex-arena.state-green .reflex-light { background: var(--green); box-shadow: 0 0 60px rgba(34,197,94,0.5), 0 0 120px rgba(34,197,94,0.2); }
+.reflex-arena.state-early .reflex-light { background: var(--yellow); box-shadow: 0 0 60px rgba(245,158,11,0.4); }
+.reflex-arena.state-done .reflex-light { background: var(--blue); box-shadow: 0 0 60px rgba(59,130,246,0.4); }
+
+.reflex-msg {
+  position: absolute;
+  bottom: 2.5rem;
+  left: 50%;
+  transform: translateX(-50%);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.85rem;
+  color: var(--muted);
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+.reflex-result {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  text-align: center;
+  pointer-events: none;
+}
+
+.reflex-time {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 3.5rem;
+  font-weight: 700;
+  line-height: 1;
+  color: var(--text);
+}
+
+.reflex-time-unit {
+  font-size: 1rem;
+  color: var(--muted);
+}
+
+.reflex-panel {
+  border-left: 1px solid var(--border);
+  background: var(--surface);
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+}
+
+.reflex-panel-header {
+  padding: 1rem 1.25rem 0.75rem;
+  border-bottom: 1px solid var(--border);
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.09em;
+  color: var(--muted);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.reflex-stats {
+  padding: 1rem 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.reflex-stat-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+}
+
+.reflex-stat-label {
+  font-size: 0.7rem;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.reflex-stat-val {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.reflex-history {
+  flex: 1;
+  padding: 0.75rem 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  overflow-y: auto;
+}
+
+.history-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.45rem 0.65rem;
+  border-radius: 5px;
+  background: var(--surface2);
+  font-size: 0.75rem;
+}
+
+.history-item .h-num { color: var(--muted); font-family: 'JetBrains Mono', monospace; }
+.history-item .h-time { font-family: 'JetBrains Mono', monospace; font-weight: 700; color: var(--text); }
+.history-item .h-bar {
+  height: 4px;
+  border-radius: 2px;
+  background: var(--green);
+  flex: 1;
+  margin: 0 0.65rem;
+}
+
+.history-item.early { background: #1e1508; }
+.history-item.early .h-time { color: var(--yellow); }
+
+.reflex-actions {
+  padding: 1rem 1.25rem;
+  border-top: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+/* ─────────────────────────────────────────
+   TEST 2 — DYNAMIC VISION
+───────────────────────────────────────── */
+#page-vision {
+  overflow: hidden;
+}
+
+.vision-layout {
+  display: grid;
+  grid-template-columns: 1fr 300px;
+  flex: 1;
+  overflow: hidden;
+}
+
+.vision-arena {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg);
+  overflow: hidden;
+}
+
+.vision-display {
+  text-align: center;
+  position: relative;
+}
+
+.vision-flash-nums {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 5rem;
+  font-weight: 700;
+  letter-spacing: 0.15em;
+  color: var(--text);
+  line-height: 1;
+  transition: opacity 0.05s;
+}
+
+.vision-flash-nums.hidden { opacity: 0; }
+
+.vision-instruction {
+  font-size: 0.85rem;
+  color: var(--muted);
+  margin-top: 1.5rem;
+  font-family: 'JetBrains Mono', monospace;
+}
+
+.vision-input-area {
+  margin-top: 2rem;
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+}
+
+.vision-input {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 2rem;
+  font-weight: 700;
+  background: var(--surface);
+  border: 2px solid var(--border);
+  border-radius: 8px;
+  color: var(--text);
+  padding: 0.5rem 1rem;
+  text-align: center;
+  outline: none;
+  width: 360px;
+  letter-spacing: 0.2em;
+  transition: border-color 0.15s;
+}
+
+.vision-input:focus { border-color: var(--blue); }
+.vision-input.correct { border-color: var(--green); background: #0a1f12; }
+.vision-input.wrong { border-color: var(--red); background: #1f0a0a; }
+
+.vision-countdown {
+  position: absolute;
+  top: 2rem;
+  left: 50%;
+  transform: translateX(-50%);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 3rem;
+  font-weight: 700;
+  color: var(--text);
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+
+.vision-countdown.visible { opacity: 1; }
+
+.vision-bar {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  height: 3px;
+  background: var(--blue);
+  transition: width 0.1s linear;
+}
+
+.vision-panel {
+  border-left: 1px solid var(--border);
+  background: var(--surface);
+  display: flex;
+  flex-direction: column;
+  padding: 1.25rem;
+  gap: 1.25rem;
+  overflow-y: auto;
+}
+
+.vision-panel h3 {
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.09em;
+  color: var(--muted);
+  margin-bottom: 0.5rem;
+}
+
+.diff-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.5rem;
+}
+
+.diff-btn {
+  padding: 0.6rem;
+  font-family: 'Outfit', sans-serif;
+  font-size: 0.78rem;
+  font-weight: 700;
+  border: 1.5px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface2);
+  color: var(--muted);
+  cursor: pointer;
+  text-align: center;
+  transition: all 0.15s;
+}
+
+.diff-btn:hover { border-color: var(--text); color: var(--text); }
+.diff-btn.active { background: var(--text); color: var(--bg); border-color: var(--text); }
+
+.slider-group { display: flex; flex-direction: column; gap: 0.75rem; }
+
+.slider-row { display: flex; flex-direction: column; gap: 0.3rem; }
+
+.slider-label-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.72rem;
+  color: var(--muted);
+}
+
+.slider-label-row span:last-child {
+  font-family: 'JetBrains Mono', monospace;
+  color: var(--text);
+  font-weight: 700;
+}
+
+input[type="range"].ctrl-slider {
+  width: 100%;
+  height: 4px;
+  -webkit-appearance: none;
+  appearance: none;
+  background: var(--surface2);
+  border-radius: 2px;
+  outline: none;
+  cursor: pointer;
+}
+
+input[type="range"].ctrl-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--text);
+  cursor: pointer;
+  margin-top: -5px;
+}
+
+input[type="range"].ctrl-slider::-webkit-slider-runnable-track {
+  height: 4px;
+  border-radius: 2px;
+}
+
+.vision-scoreboard {
+  flex: 1;
+  overflow-y: auto;
+}
+
+.score-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.45rem 0.6rem;
+  border-radius: 5px;
+  font-size: 0.75rem;
+  margin-bottom: 0.35rem;
+}
+
+.score-item.correct-s { background: #0a1f12; color: var(--green); }
+.score-item.wrong-s { background: #1f0a0a; color: var(--red); }
+.score-icon { font-size: 0.75rem; }
+.score-seq { font-family: 'JetBrains Mono', monospace; font-weight: 700; flex: 1; }
+.score-ans { font-family: 'JetBrains Mono', monospace; color: var(--muted); font-size: 0.68rem; }
+
+/* ─────────────────────────────────────────
+   TEST 3 — NUMBER HUNT
+───────────────────────────────────────── */
+#page-hunt {
+  overflow: hidden;
+}
+
+.hunt-layout {
+  display: grid;
+  grid-template-columns: 1fr 280px;
+  flex: 1;
+  overflow: hidden;
+}
+
+.hunt-arena {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
+  background: var(--bg);
+  overflow: hidden;
+}
+
+#huntCanvas {
+  border-radius: 4px;
+  cursor: pointer;
+  display: block;
+  max-width: 100%;
+  max-height: 100%;
+}
+
+.hunt-panel {
+  border-left: 1px solid var(--border);
+  background: var(--surface);
+  display: flex;
+  flex-direction: column;
+  padding: 1.25rem;
+  gap: 1.25rem;
+  overflow-y: auto;
+}
+
+.hunt-panel h3 {
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.09em;
+  color: var(--muted);
+  margin-bottom: 0.5rem;
+}
+
+.hunt-timer-display {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 2.5rem;
+  font-weight: 700;
+  color: var(--text);
+  text-align: center;
+  padding: 0.75rem;
+  background: var(--surface2);
+  border-radius: 8px;
+  border: 1px solid var(--border);
+}
+
+.hunt-progress {
+  font-size: 0.72rem;
+  color: var(--muted);
+  text-align: center;
+  font-family: 'JetBrains Mono', monospace;
+}
+
+.hunt-progress strong { color: var(--text); }
+
+.hunt-next-label {
+  font-size: 0.65rem;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  margin-bottom: 0.3rem;
+}
+
+.hunt-next-num {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 3rem;
+  font-weight: 700;
+  color: var(--yellow);
+  text-align: center;
+  line-height: 1;
+}
+
+.hunt-records {
+  flex: 1;
+  overflow-y: auto;
+}
+
+.record-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.4rem 0.6rem;
+  border-radius: 4px;
+  background: var(--surface2);
+  font-size: 0.72rem;
+  margin-bottom: 0.3rem;
+}
+
+.record-item .r-diff { color: var(--muted); }
+.record-item .r-time { font-family: 'JetBrains Mono', monospace; font-weight: 700; color: var(--text); }
+.record-item .r-gold { color: var(--yellow); }
+
+/* ── FOOTER ── */
+footer {
+  padding: 0.75rem 2rem;
+  border-top: 1px solid var(--border);
+  font-size: 0.65rem;
+  color: var(--muted);
+  text-align: center;
+  letter-spacing: 0.04em;
+  flex-shrink: 0;
+  background: var(--surface);
+}
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <div class="nav-brand">⚡ Reflex Lab</div>
+  <button class="nav-tab active" onclick="showPage('reflex')"><span class="tab-num">1</span> Reflex Speed</button>
+  <button class="nav-tab" onclick="showPage('vision')"><span class="tab-num">2</span> Dynamic Vision</button>
+  <button class="nav-tab" onclick="showPage('hunt')"><span class="tab-num">3</span> Number Hunt</button>
+</nav>
+
+<!-- ═══════════════════════════════════════
+     PAGE 1 — REFLEX SPEED
+════════════════════════════════════════ -->
+<div class="page active" id="page-reflex">
+  <div class="section-header">
+    <div>
+      <div class="section-title">Reflex Speed Test</div>
+      <div class="section-subtitle">Wait for green → click as fast as possible</div>
+    </div>
+    <div style="display:flex;gap:0.6rem;align-items:center;">
+      <span class="stat-pill" id="r-attempts">0 attempts</span>
+    </div>
+  </div>
+  <div class="reflex-layout">
+    <div class="reflex-arena state-wait" id="reflexArena" onclick="reflexClick()">
+      <div class="reflex-light" id="reflexLight"></div>
+      <div class="reflex-result" id="reflexResult" style="display:none;">
+        <div class="reflex-time" id="reflexTime">—</div>
+        <div class="reflex-time-unit">milliseconds</div>
+      </div>
+      <div class="reflex-msg" id="reflexMsg">Click anywhere to begin</div>
+    </div>
+    <div class="reflex-panel">
+      <div class="reflex-panel-header">
+        <span>Results</span>
+        <button class="btn" style="font-size:0.65rem;padding:0.25rem 0.6rem;" onclick="clearReflexHistory()">Clear</button>
+      </div>
+      <div class="reflex-stats">
+        <div class="reflex-stat-row">
+          <span class="reflex-stat-label">Best</span>
+          <span class="reflex-stat-val" id="r-best">—</span>
+        </div>
+        <div class="reflex-stat-row">
+          <span class="reflex-stat-label">Average</span>
+          <span class="reflex-stat-val" id="r-avg">—</span>
+        </div>
+        <div class="reflex-stat-row">
+          <span class="reflex-stat-label">Last</span>
+          <span class="reflex-stat-val" id="r-last">—</span>
+        </div>
+        <div class="reflex-stat-row">
+          <span class="reflex-stat-label">False Starts</span>
+          <span class="reflex-stat-val" id="r-false">0</span>
+        </div>
+      </div>
+      <div class="reflex-history" id="reflexHistory"></div>
+      <div class="reflex-actions">
+        <button class="btn primary" onclick="startReflex()">▶ New Round</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════
+     PAGE 2 — DYNAMIC VISION
+════════════════════════════════════════ -->
+<div class="page" id="page-vision">
+  <div class="section-header">
+    <div>
+      <div class="section-title">Dynamic Vision Test</div>
+      <div class="section-subtitle">Memorize the flashing numbers, then type them</div>
+    </div>
+    <span class="stat-pill" id="v-score">Score: 0/0</span>
+  </div>
+  <div class="vision-layout">
+    <div class="vision-arena" id="visionArena">
+      <div class="vision-bar" id="visionBar" style="width:0%"></div>
+      <div class="vision-display" id="visionDisplay">
+        <div class="vision-flash-nums hidden" id="visionNums">——</div>
+        <div class="vision-instruction" id="visionInstruct">Press Start to begin</div>
+        <div class="vision-input-area" id="visionInputArea" style="display:none;">
+          <input type="text" class="vision-input" id="visionInput"
+            placeholder="———"
+            oninput="checkVisionInput()"
+            onkeydown="visionInputKey(event)"
+            autocomplete="off" autocorrect="off" spellcheck="false">
+        </div>
+      </div>
+    </div>
+
+    <div class="vision-panel">
+      <div>
+        <h3>Difficulty</h3>
+        <div class="diff-grid" id="visionDiffGrid">
+          <button class="diff-btn" onclick="setVisionDiff(3,1000,'Easy')">Easy<br><small style="font-weight:400;opacity:0.7">3 digits · 1.0s</small></button>
+          <button class="diff-btn active" onclick="setVisionDiff(4,700,'Medium')">Medium<br><small style="font-weight:400;opacity:0.7">4 digits · 0.7s</small></button>
+          <button class="diff-btn" onclick="setVisionDiff(5,450,'Hard')">Hard<br><small style="font-weight:400;opacity:0.7">5 digits · 0.45s</small></button>
+          <button class="diff-btn" onclick="setVisionDiff(6,280,'Expert')">Expert<br><small style="font-weight:400;opacity:0.7">6 digits · 0.28s</small></button>
+        </div>
+      </div>
+
+      <div class="slider-group">
+        <h3>Custom Settings</h3>
+        <div class="slider-row">
+          <div class="slider-label-row">
+            <span>Digit Count</span>
+            <span id="v-digits-val">4</span>
+          </div>
+          <input type="range" class="ctrl-slider" id="v-digits" min="1" max="8" value="4"
+            oninput="visionCustom()">
+        </div>
+        <div class="slider-row">
+          <div class="slider-label-row">
+            <span>Flash Duration</span>
+            <span id="v-dur-val">700ms</span>
+          </div>
+          <input type="range" class="ctrl-slider" id="v-dur" min="150" max="2000" step="50" value="700"
+            oninput="visionCustom()">
+        </div>
+        <div class="slider-row">
+          <div class="slider-label-row">
+            <span>Rounds</span>
+            <span id="v-rounds-val">10</span>
+          </div>
+          <input type="range" class="ctrl-slider" id="v-rounds" min="5" max="30" step="5" value="10"
+            oninput="document.getElementById('v-rounds-val').textContent=this.value">
+        </div>
+      </div>
+
+      <div style="display:flex;gap:0.5rem;">
+        <button class="btn primary" id="visionStartBtn" onclick="startVision()">▶ Start Test</button>
+        <button class="btn" id="visionRestartBtn" onclick="restartVision()" style="display:none;">↺ Restart</button>
+      </div>
+
+      <div>
+        <h3>Round History</h3>
+        <div class="vision-scoreboard" id="visionScoreboard"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════
+     PAGE 3 — NUMBER HUNT
+════════════════════════════════════════ -->
+<div class="page" id="page-hunt">
+  <div class="section-header">
+    <div>
+      <div class="section-title">Number Hunt</div>
+      <div class="section-subtitle">Click numbers 1 → N in order as fast as possible</div>
+    </div>
+    <span class="stat-pill" id="hunt-status-pill">Ready</span>
+  </div>
+  <div class="hunt-layout">
+    <div class="hunt-arena" id="huntArena">
+      <canvas id="huntCanvas"></canvas>
+    </div>
+    <div class="hunt-panel">
+      <div>
+        <h3>Difficulty</h3>
+        <div class="diff-grid" id="huntDiffGrid">
+          <button class="diff-btn active" onclick="setHuntDiff(20,'Easy')">Easy<br><small style="font-weight:400;opacity:0.7">1 → 20</small></button>
+          <button class="diff-btn" onclick="setHuntDiff(30,'Medium')">Medium<br><small style="font-weight:400;opacity:0.7">1 → 30</small></button>
+          <button class="diff-btn" onclick="setHuntDiff(40,'Hard')">Hard<br><small style="font-weight:400;opacity:0.7">1 → 40</small></button>
+          <button class="diff-btn" onclick="setHuntDiff(50,'Expert')">Expert<br><small style="font-weight:400;opacity:0.7">1 → 50</small></button>
+        </div>
+      </div>
+
+      <div>
+        <div class="hunt-next-label">Find next</div>
+        <div class="hunt-next-num" id="huntNextNum">—</div>
+      </div>
+
+      <div class="hunt-timer-display" id="huntTimerDisplay">00:00.0</div>
+      <div class="hunt-progress" id="huntProgress">Press Start to begin</div>
+
+      <button class="btn primary" id="huntStartBtn" onclick="startHunt()">▶ Start</button>
+
+      <div>
+        <h3>Personal Records</h3>
+        <div class="hunt-records" id="huntRecords"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<footer>© Tiancheng Zhao 2026. All Rights Reserved.</footer>
+
+<script>
+// ════════════════════════════════════════
+// NAVIGATION
+// ════════════════════════════════════════
+function showPage(id) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('page-' + id).classList.add('active');
+  event.currentTarget.classList.add('active');
+}
+
+// ════════════════════════════════════════
+// TEST 1 — REFLEX SPEED
+// ════════════════════════════════════════
+let reflexState = 'wait'; // wait | ready | red | green | early | done
+let reflexTimer = null;
+let reflexGreenTime = null;
+let reflexResults = [];
+let reflexFalseStarts = 0;
+
+function startReflex() {
+  clearTimeout(reflexTimer);
+  reflexState = 'ready';
+  setReflexState('ready');
+  document.getElementById('reflexResult').style.display = 'none';
+  document.getElementById('reflexMsg').textContent = 'Get ready…';
+
+  // Go red immediately — no brief green flash
+  reflexState = 'red';
+  setReflexState('red');
+  document.getElementById('reflexMsg').textContent = 'Wait…';
+
+  const delay = 1500 + Math.random() * 3500;
+  reflexTimer = setTimeout(() => {
+    reflexState = 'green';
+    setReflexState('green');
+    reflexGreenTime = performance.now();
+    document.getElementById('reflexMsg').textContent = 'CLICK NOW!';
+  }, delay);
+}
+
+function setReflexState(state) {
+  const arena = document.getElementById('reflexArena');
+  arena.className = 'reflex-arena state-' + state;
+}
+
+function reflexClick() {
+  if (reflexState === 'wait') {
+    startReflex();
+    return;
+  }
+  if (reflexState === 'ready' || reflexState === 'red') {
+    // Too early
+    clearTimeout(reflexTimer);
+    reflexFalseStarts++;
+    reflexState = 'early';
+    setReflexState('early');
+    document.getElementById('reflexMsg').textContent = 'Too early! Click to try again.';
+    document.getElementById('r-false').textContent = reflexFalseStarts;
+    addReflexHistory(null, true);
+    reflexState = 'wait';
+    return;
+  }
+  if (reflexState === 'green') {
+    const rt = Math.round(performance.now() - reflexGreenTime);
+    reflexState = 'done';
+    setReflexState('done');
+    reflexResults.push(rt);
+    showReflexResult(rt);
+    updateReflexStats();
+    addReflexHistory(rt, false);
+    document.getElementById('reflexMsg').textContent = 'Click to go again';
+    document.getElementById('r-attempts').textContent = reflexResults.length + ' attempts';
+    reflexState = 'wait';
+    return;
+  }
+  if (reflexState === 'wait' || reflexState === 'done' || reflexState === 'early') {
+    startReflex();
+  }
+}
+
+function showReflexResult(ms) {
+  const el = document.getElementById('reflexResult');
+  el.style.display = 'block';
+  const timeEl = document.getElementById('reflexTime');
+  timeEl.textContent = ms;
+  // Color coding
+  if (ms < 200) timeEl.style.color = '#22c55e';
+  else if (ms < 300) timeEl.style.color = '#f59e0b';
+  else timeEl.style.color = '#e84040';
+}
+
+function updateReflexStats() {
+  if (!reflexResults.length) return;
+  const best = Math.min(...reflexResults);
+  const avg = Math.round(reflexResults.reduce((a,b) => a+b,0) / reflexResults.length);
+  const last = reflexResults[reflexResults.length - 1];
+  document.getElementById('r-best').textContent = best + ' ms';
+  document.getElementById('r-avg').textContent = avg + ' ms';
+  document.getElementById('r-last').textContent = last + ' ms';
+}
+
+function addReflexHistory(ms, isEarly) {
+  const list = document.getElementById('reflexHistory');
+  const n = reflexResults.length + (isEarly ? 0 : 0);
+  const item = document.createElement('div');
+  item.className = 'history-item' + (isEarly ? ' early' : '');
+
+  const bestSoFar = reflexResults.length ? Math.min(...reflexResults) : 999;
+  const barWidth = isEarly ? 0 : Math.max(5, Math.min(100, (1 - (ms - 150) / 500) * 100));
+
+  item.innerHTML = isEarly
+    ? `<span class="h-num">#${reflexResults.length + 1}</span><span style="flex:1;margin:0 0.5rem;font-size:0.68rem;color:var(--yellow)">false start</span><span class="h-time" style="color:var(--yellow)">✕</span>`
+    : `<span class="h-num">#${reflexResults.length}</span><div class="h-bar" style="width:${barWidth}%"></div><span class="h-time">${ms}ms</span>`;
+
+  list.insertBefore(item, list.firstChild);
+}
+
+function clearReflexHistory() {
+  reflexResults = [];
+  reflexFalseStarts = 0;
+  reflexState = 'wait';
+  setReflexState('wait');
+  document.getElementById('reflexHistory').innerHTML = '';
+  document.getElementById('reflexResult').style.display = 'none';
+  document.getElementById('reflexMsg').textContent = 'Click anywhere to begin';
+  document.getElementById('r-best').textContent = '—';
+  document.getElementById('r-avg').textContent = '—';
+  document.getElementById('r-last').textContent = '—';
+  document.getElementById('r-false').textContent = '0';
+  document.getElementById('r-attempts').textContent = '0 attempts';
+  clearTimeout(reflexTimer);
+}
+
+// ════════════════════════════════════════
+// TEST 2 — DYNAMIC VISION
+// ════════════════════════════════════════
+let visionDigits = 4;
+let visionDuration = 700; // ms flash time
+let visionRounds = 10;
+let visionCurrentRound = 0;
+let visionSequence = '';
+let visionCorrect = 0;
+let visionTotal = 0;
+let visionRunning = false;
+let visionPhase = 'idle'; // idle | countdown | flash | input | result
+
+function setVisionDiff(digits, dur, label) {
+  // If a session is running or stuck, reset it first
+  if (visionRunning || visionPhase !== 'idle') resetVisionState();
+  visionDigits = digits;
+  visionDuration = dur;
+  document.getElementById('v-digits').value = digits;
+  document.getElementById('v-digits-val').textContent = digits;
+  document.getElementById('v-dur').value = dur;
+  document.getElementById('v-dur-val').textContent = dur + 'ms';
+  document.querySelectorAll('#visionDiffGrid .diff-btn').forEach(b => b.classList.remove('active'));
+  event.currentTarget.classList.add('active');
+}
+
+function visionCustom() {
+  visionDigits = parseInt(document.getElementById('v-digits').value);
+  visionDuration = parseInt(document.getElementById('v-dur').value);
+  document.getElementById('v-digits-val').textContent = visionDigits;
+  document.getElementById('v-dur-val').textContent = visionDuration + 'ms';
+  document.querySelectorAll('#visionDiffGrid .diff-btn').forEach(b => b.classList.remove('active'));
+  visionRounds = parseInt(document.getElementById('v-rounds').value);
+}
+
+function generateVisionSeq(n) {
+  let s = '';
+  for (let i = 0; i < n; i++) s += Math.floor(Math.random() * 10);
+  return s;
+}
+
+function startVision() {
+  resetVisionState();
+  visionRounds = parseInt(document.getElementById('v-rounds').value);
+  visionDigits = parseInt(document.getElementById('v-digits').value);
+  visionDuration = parseInt(document.getElementById('v-dur').value);
+  visionRunning = true;
+  visionCurrentRound = 0;
+  visionCorrect = 0;
+  visionTotal = 0;
+  document.getElementById('visionScoreboard').innerHTML = '';
+  document.getElementById('visionRestartBtn').style.display = 'inline-flex';
+  updateVisionScore();
+  runVisionRound();
+}
+
+function restartVision() {
+  resetVisionState();
+  startVision();
+}
+
+function resetVisionState() {
+  // Cancel any pending timers by invalidating the phase
+  visionRunning = false;
+  visionPhase = 'idle';
+  // Reset UI
+  const numsEl = document.getElementById('visionNums');
+  numsEl.className = 'vision-flash-nums hidden';
+  numsEl.textContent = '——';
+  document.getElementById('visionInstruct').textContent = 'Press Start to begin';
+  const inputArea = document.getElementById('visionInputArea');
+  inputArea.style.display = 'none';
+  document.getElementById('visionInput').value = '';
+  document.getElementById('visionInput').className = 'vision-input';
+  const bar = document.getElementById('visionBar');
+  bar.style.transition = 'none';
+  bar.style.width = '0%';
+}
+
+function runVisionRound() {
+  if (visionCurrentRound >= visionRounds) {
+    endVision();
+    return;
+  }
+  visionCurrentRound++;
+  visionSequence = generateVisionSeq(visionDigits);
+
+  const numsEl = document.getElementById('visionNums');
+  const instructEl = document.getElementById('visionInstruct');
+  const inputArea = document.getElementById('visionInputArea');
+  const input = document.getElementById('visionInput');
+  const bar = document.getElementById('visionBar');
+
+  inputArea.style.display = 'none';
+  input.className = 'vision-input';
+  input.value = '';
+
+  // Brief gap
+  numsEl.className = 'vision-flash-nums hidden';
+  instructEl.textContent = `Round ${visionCurrentRound} / ${visionRounds}`;
+  bar.style.transition = 'none';
+  bar.style.width = '0%';
+
+  setTimeout(() => {
+    // Flash numbers
+    numsEl.textContent = visionSequence.split('').join(' ');
+    numsEl.className = 'vision-flash-nums';
+    instructEl.textContent = 'Memorize!';
+
+    // Progress bar
+    bar.style.transition = `width ${visionDuration}ms linear`;
+    bar.style.width = '100%';
+
+    setTimeout(() => {
+      // Hide numbers
+      numsEl.className = 'vision-flash-nums hidden';
+      bar.style.transition = 'none';
+      bar.style.width = '0%';
+      instructEl.textContent = 'Type what you saw:';
+      inputArea.style.display = 'flex';
+      input.focus();
+      visionPhase = 'input';
+    }, visionDuration);
+  }, 500);
+}
+
+function checkVisionInput() {
+  const input = document.getElementById('visionInput');
+  const val = input.value.replace(/\s/g, '');
+  if (val.length >= visionSequence.length) {
+    submitVisionAnswer(val.substring(0, visionSequence.length));
+  }
+}
+
+function visionInputKey(e) {
+  if (e.key === 'Enter') {
+    const val = document.getElementById('visionInput').value.replace(/\s/g, '');
+    submitVisionAnswer(val);
+  }
+}
+
+function countCorrectDigits(seq, ans) {
+  // Count digit-by-digit positional matches
+  let correct = 0;
+  const len = Math.min(seq.length, ans.length);
+  for (let i = 0; i < len; i++) {
+    if (seq[i] === ans[i]) correct++;
+  }
+  return correct;
+}
+
+function submitVisionAnswer(answer) {
+  if (visionPhase !== 'input') return;
+  visionPhase = 'result';
+  const input = document.getElementById('visionInput');
+  const fullCorrect = answer === visionSequence;
+  const digitMatches = countCorrectDigits(visionSequence, answer);
+  const partialScore = digitMatches / visionSequence.length; // 0.0–1.0
+
+  visionTotal += visionSequence.length; // total possible digits this round
+  visionCorrect += digitMatches;        // digits matched
+
+  if (fullCorrect) {
+    input.className = 'vision-input correct';
+  } else if (digitMatches > 0) {
+    input.className = 'vision-input wrong'; // partial — show as wrong but log partial
+    input.style.borderColor = '#f59e0b';    // amber for partial
+    input.style.background = '#1a1500';
+  } else {
+    input.className = 'vision-input wrong';
+    input.style.borderColor = '';
+    input.style.background = '';
+  }
+
+  updateVisionScore();
+  addVisionScore(visionSequence, answer, fullCorrect, digitMatches);
+
+  setTimeout(() => {
+    input.style.borderColor = '';
+    input.style.background = '';
+    visionPhase = 'flash';
+    runVisionRound();
+  }, 800);
+}
+
+function updateVisionScore() {
+  if (visionTotal === 0) {
+    document.getElementById('v-score').textContent = 'Score: 0/0';
+    return;
+  }
+  const pct = Math.round(visionCorrect / visionTotal * 100);
+  document.getElementById('v-score').textContent = `Score: ${visionCorrect}/${visionTotal} digits (${pct}%)`;
+}
+
+function addVisionScore(seq, ans, fullCorrect, digitMatches) {
+  const sb = document.getElementById('visionScoreboard');
+  const item = document.createElement('div');
+  item.style.marginBottom = '0.35rem';
+  item.style.borderRadius = '5px';
+  item.style.padding = '0.45rem 0.6rem';
+  item.style.fontSize = '0.75rem';
+
+  if (fullCorrect) {
+    item.style.background = '#0a1f12';
+    item.style.color = 'var(--green)';
+  } else if (digitMatches > 0) {
+    item.style.background = '#1a1200';
+    item.style.color = 'var(--yellow)';
+  } else {
+    item.style.background = '#1f0a0a';
+    item.style.color = 'var(--red)';
+  }
+
+  // Build per-character comparison
+  let seqDisplay = '';
+  for (let i = 0; i < seq.length; i++) {
+    const matched = ans[i] === seq[i];
+    const color = matched ? 'var(--green)' : 'var(--red)';
+    seqDisplay += `<span style="color:${color};font-weight:700">${seq[i]}</span>`;
+  }
+
+  const icon = fullCorrect ? '✓' : (digitMatches > 0 ? `${digitMatches}/${seq.length}` : '✗');
+  const ansDisplay = ans || '(blank)';
+
+  item.innerHTML = `
+    <div style="display:flex;align-items:center;gap:0.5rem;">
+      <span style="font-family:'JetBrains Mono',monospace;font-size:0.7rem;min-width:2rem;">${icon}</span>
+      <span style="font-family:'JetBrains Mono',monospace;letter-spacing:0.1em;">${seqDisplay}</span>
+      ${!fullCorrect ? `<span style="font-family:'JetBrains Mono',monospace;color:var(--muted);font-size:0.68rem;">→ ${ansDisplay}</span>` : ''}
+    </div>
+  `;
+  sb.insertBefore(item, sb.firstChild);
+}
+
+function endVision() {
+  visionRunning = false;
+  visionPhase = 'idle';
+  const pct = visionTotal > 0 ? Math.round(visionCorrect / visionTotal * 100) : 0;
+  document.getElementById('visionNums').textContent = `${pct}%`;
+  document.getElementById('visionNums').className = 'vision-flash-nums';
+  document.getElementById('visionInstruct').textContent = `Done! Digit accuracy: ${pct}% (${visionCorrect}/${visionTotal}) — Press Start for another session`;
+  document.getElementById('visionInputArea').style.display = 'none';
+}
+
+// ════════════════════════════════════════
+// TEST 3 — NUMBER HUNT
+// ════════════════════════════════════════
+let huntN = 20;
+let huntDiffLabel = 'Easy';
+let huntStartTime = null;
+let huntTimerInterval = null;
+let huntNext = 1;
+let huntRunning = false;
+let huntCells = []; // {num, cx, cy, polygon: [{x,y}...]}
+let huntRecords = {}; // {label: time}
+let huntCanvas, huntCtx;
+let huntW, huntH;
+let huntFound = [];
+
+function setHuntDiff(n, label) {
+  huntN = n;
+  huntDiffLabel = label;
+  document.querySelectorAll('#huntDiffGrid .diff-btn').forEach(b => b.classList.remove('active'));
+  event.currentTarget.classList.add('active');
+  if (!huntRunning) generateHunt();
+}
+
+// Voronoi-based irregular partition
+function generateVoronoi(w, h, n) {
+  // Random seed points
+  const pts = [];
+  const margin = 30;
+  for (let i = 0; i < n; i++) {
+    pts.push({
+      x: margin + Math.random() * (w - 2 * margin),
+      y: margin + Math.random() * (h - 2 * margin)
+    });
+  }
+
+  // Relaxation (Lloyd's algorithm, 2 iterations)
+  for (let iter = 0; iter < 2; iter++) {
+    const cells = computeVoronoiCells(pts, w, h);
+    for (let i = 0; i < n; i++) {
+      if (cells[i] && cells[i].length > 0) {
+        const cx = cells[i].reduce((s, p) => s + p.x, 0) / cells[i].length;
+        const cy = cells[i].reduce((s, p) => s + p.y, 0) / cells[i].length;
+        pts[i].x = Math.max(margin, Math.min(w - margin, cx));
+        pts[i].y = Math.max(margin, Math.min(h - margin, cy));
+      }
+    }
+  }
+
+  const cells = computeVoronoiCells(pts, w, h);
+  return cells.map((poly, i) => ({
+    polygon: poly,
+    cx: poly.length ? poly.reduce((s, p) => s + p.x, 0) / poly.length : pts[i].x,
+    cy: poly.length ? poly.reduce((s, p) => s + p.y, 0) / poly.length : pts[i].y,
+  }));
+}
+
+function computeVoronoiCells(pts, w, h) {
+  const n = pts.length;
+  const res = 2; // pixel resolution
+  const assignments = new Int16Array((w / res + 1) * (h / res + 1)).fill(-1);
+  const gW = Math.ceil(w / res) + 1;
+
+  for (let py = 0; py <= h; py += res) {
+    for (let px = 0; px <= w; px += res) {
+      let best = Infinity, bi = 0;
+      for (let i = 0; i < n; i++) {
+        const dx = px - pts[i].x, dy = py - pts[i].y;
+        const d = dx * dx + dy * dy;
+        if (d < best) { best = d; bi = i; }
+      }
+      assignments[(py / res) * gW + (px / res)] = bi;
+    }
+  }
+
+  // Extract polygons via marching edges
+  const polygons = Array.from({length: n}, () => []);
+  // Simple approach: collect boundary pixels and compute convex hull per cell
+  const cellPts = Array.from({length: n}, () => []);
+  for (let py = 0; py <= h; py += res) {
+    for (let px = 0; px <= w; px += res) {
+      const gi = (py / res) * gW + (px / res);
+      const ci = assignments[gi];
+      if (ci >= 0) cellPts[ci].push({x: px, y: py});
+    }
+  }
+
+  return cellPts.map(pts => convexHull(pts));
+}
+
+function convexHull(pts) {
+  if (pts.length < 3) return pts;
+  pts = pts.slice().sort((a, b) => a.x - b.x || a.y - b.y);
+  const lower = [], upper = [];
+  for (const p of pts) {
+    while (lower.length >= 2 && cross(lower[lower.length-2], lower[lower.length-1], p) <= 0) lower.pop();
+    lower.push(p);
+  }
+  for (let i = pts.length - 1; i >= 0; i--) {
+    const p = pts[i];
+    while (upper.length >= 2 && cross(upper[upper.length-2], upper[upper.length-1], p) <= 0) upper.pop();
+    upper.push(p);
+  }
+  upper.pop(); lower.pop();
+  return lower.concat(upper);
+}
+
+function cross(o, a, b) {
+  return (a.x - o.x) * (b.y - o.y) - (a.y - o.y) * (b.x - o.x);
+}
+
+function pointInPolygon(px, py, poly) {
+  let inside = false;
+  for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
+    const xi = poly[i].x, yi = poly[i].y;
+    const xj = poly[j].x, yj = poly[j].y;
+    if (((yi > py) !== (yj > py)) && (px < (xj - xi) * (py - yi) / (yj - yi) + xi)) {
+      inside = !inside;
+    }
+  }
+  return inside;
+}
+
+function generateHunt() {
+  const arena = document.getElementById('huntArena');
+  const size = Math.min(arena.clientWidth - 30, arena.clientHeight - 30, 600);
+  huntW = size;
+  huntH = size;
+  huntCanvas.width = size;
+  huntCanvas.height = size;
+  huntCanvas.style.width = size + 'px';
+  huntCanvas.style.height = size + 'px';
+
+  const cells = generateVoronoi(huntW, huntH, huntN);
+  const nums = Array.from({length: huntN}, (_, i) => i + 1);
+  // Shuffle numbers into cells
+  for (let i = nums.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [nums[i], nums[j]] = [nums[j], nums[i]];
+  }
+
+  huntCells = cells.map((c, i) => ({...c, num: nums[i], found: false}));
+  huntFound = [];
+  huntNext = 1;
+  drawHunt();
+  document.getElementById('huntNextNum').textContent = '1';
+  document.getElementById('huntProgress').textContent = `0 / ${huntN} found`;
+}
+
+function drawHunt() {
+  const ctx = huntCtx;
+  ctx.clearRect(0, 0, huntW, huntH);
+
+  // Background
+  ctx.fillStyle = '#12141a';
+  ctx.fillRect(0, 0, huntW, huntH);
+
+  for (const cell of huntCells) {
+    if (!cell.polygon || cell.polygon.length < 3) continue;
+    ctx.beginPath();
+    ctx.moveTo(cell.polygon[0].x, cell.polygon[0].y);
+    for (let i = 1; i < cell.polygon.length; i++) ctx.lineTo(cell.polygon[i].x, cell.polygon[i].y);
+    ctx.closePath();
+
+    ctx.fillStyle = '#1a1e28';
+    ctx.strokeStyle = '#2a3040';
+    ctx.lineWidth = 1.5;
+    ctx.fill();
+    ctx.stroke();
+
+    const fontSize = huntN <= 20 ? 18 : huntN <= 30 ? 15 : huntN <= 40 ? 13 : 11;
+    ctx.font = `bold ${fontSize}px 'JetBrains Mono', monospace`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillStyle = '#6a7090';
+    ctx.fillText(cell.num, cell.cx, cell.cy);
+  }
+}
+
+function huntCanvasClick(e) {
+  if (!huntRunning) return;
+  const rect = huntCanvas.getBoundingClientRect();
+  const scaleX = huntW / rect.width;
+  const scaleY = huntH / rect.height;
+  const mx = (e.clientX - rect.left) * scaleX;
+  const my = (e.clientY - rect.top) * scaleY;
+
+  for (const cell of huntCells) {
+    if (cell.num !== huntNext) continue;
+    if (!cell.polygon || cell.polygon.length < 3) continue;
+    if (pointInPolygon(mx, my, cell.polygon)) {
+      huntFound.push(cell.num);
+      huntNext++;
+      document.getElementById('huntProgress').textContent = `${huntFound.length} / ${huntN} found`;
+      document.getElementById('huntNextNum').textContent = huntNext <= huntN ? huntNext : '✓';
+      drawHunt();
+      if (huntFound.length === huntN) finishHunt();
+      break;
+    }
+  }
+}
+
+function startHunt() {
+  huntRunning = false;
+  generateHunt();
+  huntNext = 1;
+  huntFound = [];
+  document.getElementById('huntProgress').textContent = `0 / ${huntN} found`;
+  document.getElementById('huntNextNum').textContent = '1';
+  document.getElementById('hunt-status-pill').textContent = 'Running';
+  document.getElementById('huntStartBtn').textContent = '↺ Restart';
+
+  clearInterval(huntTimerInterval);
+  huntStartTime = performance.now();
+  huntRunning = true;
+
+  huntTimerInterval = setInterval(() => {
+    if (!huntRunning) return;
+    const elapsed = (performance.now() - huntStartTime) / 1000;
+    document.getElementById('huntTimerDisplay').textContent = formatHuntTime(elapsed);
+  }, 100);
+}
+
+function finishHunt() {
+  huntRunning = false;
+  clearInterval(huntTimerInterval);
+  const elapsed = (performance.now() - huntStartTime) / 1000;
+  document.getElementById('huntTimerDisplay').textContent = formatHuntTime(elapsed);
+  document.getElementById('hunt-status-pill').textContent = 'Done!';
+  document.getElementById('huntNextNum').textContent = '✓';
+
+  // Save record
+  const key = huntDiffLabel;
+  const isNew = !huntRecords[key] || elapsed < huntRecords[key];
+  if (isNew) huntRecords[key] = elapsed;
+  updateHuntRecords(elapsed, isNew);
+  drawHunt();
+}
+
+function updateHuntRecords(latest, isNew) {
+  const div = document.getElementById('huntRecords');
+  div.innerHTML = '';
+  const diffOrder = ['Easy', 'Medium', 'Hard', 'Expert'];
+  for (const label of diffOrder) {
+    if (huntRecords[label] === undefined) continue;
+    const item = document.createElement('div');
+    item.className = 'record-item';
+    const isLatest = label === huntDiffLabel;
+    item.innerHTML = `
+      <span class="r-diff">${label}</span>
+      <span class="r-time ${isLatest && isNew ? 'r-gold' : ''}">${formatHuntTime(huntRecords[label])}${isLatest && isNew ? ' 🏆' : ''}</span>
+    `;
+    div.appendChild(item);
+  }
+}
+
+function formatHuntTime(s) {
+  const m = Math.floor(s / 60);
+  const sec = Math.floor(s % 60);
+  const tenth = Math.floor((s * 10) % 10);
+  return `${m.toString().padStart(2,'0')}:${sec.toString().padStart(2,'0')}.${tenth}`;
+}
+
+// ── INIT ──
+huntCanvas = document.getElementById('huntCanvas');
+huntCtx = huntCanvas.getContext('2d');
+huntCanvas.addEventListener('click', huntCanvasClick);
+
+window.addEventListener('load', () => {
+  setTimeout(generateHunt, 100);
+});
+
+window.addEventListener('resize', () => {
+  if (!huntRunning) setTimeout(generateHunt, 100);
+});
+</script>
+</body>
+</html>
