@@ -75,13 +75,14 @@
     <div id="seed-screen" class="min-h-screen flex items-center justify-center p-6">
         <div class="card w-full max-w-md text-center">
             <h1 class="text-2xl font-bold text-gray-900 mb-2">The Newsvendor Challenge</h1>
-            <p class="text-gray-500 mb-6">Enter a random seed to begin. Use the same seed as your classmates to compete on identical demand streams.</p>
+            <p class="text-gray-500 mb-6">Enter a seed to compete on the same demand stream as your classmates, or skip to be assigned one randomly.</p>
             <div class="input-group text-left">
-                <label for="seed-input">Random Seed</label>
+                <label for="seed-input">Random Seed <span class="text-gray-400 font-normal">(optional)</span></label>
                 <input type="text" id="seed-input" placeholder="e.g., SPRING2025" class="text-center text-lg tracking-widest uppercase" maxlength="20">
             </div>
             <p class="text-xs text-gray-400 mb-5">Letters and numbers only. Case-insensitive.</p>
-            <button id="start-game-btn" class="btn btn-primary w-full text-lg">Start Game</button>
+            <button id="start-game-btn" class="btn btn-primary w-full text-lg mb-3">Start Game</button>
+            <button id="skip-seed-btn" class="w-full text-sm text-gray-400 hover:text-gray-600 underline cursor-pointer bg-transparent border-none">Skip — assign me a random seed</button>
         </div>
     </div>
 
@@ -209,18 +210,29 @@
         }
 
         // --- SEED SCREEN LOGIC ---
-        document.getElementById('start-game-btn').addEventListener('click', function() {
-            const rawSeed = document.getElementById('seed-input').value.trim();
-            if (!rawSeed) {
-                alert("Please enter a seed to start the game.");
-                return;
-            }
-            const seed = rawSeed.toUpperCase();
+        function generateRandomSeed() {
+            const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+            let seed = '';
+            for (let i = 0; i < 6; i++) seed += chars[Math.floor(Math.random() * chars.length)];
+            return seed;
+        }
+
+        function startWithSeed(seed) {
             rng = makePRNG(seed);
             document.getElementById('active-seed-display').textContent = seed;
             document.getElementById('seed-screen').classList.add('hidden');
             document.getElementById('app-container').classList.remove('hidden');
             initializeGame();
+        }
+
+        document.getElementById('start-game-btn').addEventListener('click', function() {
+            const rawSeed = document.getElementById('seed-input').value.trim();
+            const seed = rawSeed ? rawSeed.toUpperCase() : generateRandomSeed();
+            startWithSeed(seed);
+        });
+
+        document.getElementById('skip-seed-btn').addEventListener('click', function() {
+            startWithSeed(generateRandomSeed());
         });
 
         document.getElementById('seed-input').addEventListener('keyup', function(e) {
