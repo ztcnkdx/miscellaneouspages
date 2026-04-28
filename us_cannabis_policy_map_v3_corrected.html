@@ -1,0 +1,1288 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>U.S. Cannabis Policy Map v3 (2018-2026, corrected schema)</title>
+<style>
+:root { color-scheme: light; }
+* { box-sizing: border-box; }
+body { margin: 0; padding: 16px; background: #fff; color: #1a1a1a; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif; font-size: 13px; line-height: 1.45; max-width: 1320px; margin-left: auto; margin-right: auto; }
+h1 { font-size: 19px; margin: 0 0 4px; color: #1f3864; }
+.subtitle { color: #555; font-size: 12px; margin-bottom: 14px; }
+.changelog { background: #fef9e7; border: 1px solid #f4d03f; border-radius: 6px; padding: 8px 12px; margin-bottom: 12px; font-size: 11.5px; }
+.changelog b { color: #7d6608; }
+details.methodology { background: #f8f9fb; border: 1px solid #d8dde4; border-radius: 8px; padding: 8px 14px; margin-bottom: 14px; }
+details.methodology summary { cursor: pointer; font-weight: 600; color: #1f3864; padding: 4px 0; user-select: none; }
+details.methodology[open] summary { border-bottom: 1px solid #d8dde4; padding-bottom: 8px; margin-bottom: 10px; }
+.method-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(360px, 1fr)); gap: 10px 18px; }
+.method-item { font-size: 11.8px; line-height: 1.5; }
+.method-item h4 { font-size: 12.5px; color: #1f3864; margin: 0 0 3px; font-weight: 600; }
+.method-item p { margin: 2px 0; color: #333; }
+.method-item .scale { font-family: ui-monospace, monospace; font-size: 11px; color: #666; }
+.controls { display: flex; flex-direction: column; gap: 10px; margin-bottom: 12px; padding: 10px 12px; background: #f5f6f8; border-radius: 8px; border: 1px solid #e3e5ea; }
+.tabs { display: flex; flex-wrap: wrap; gap: 6px; }
+.tab-group { display: flex; flex-wrap: wrap; gap: 4px; padding: 2px 0; align-items: center; }
+.tab-group-label { font-size: 10.5px; color: #666; font-weight: 600; margin-right: 4px; text-transform: uppercase; letter-spacing: 0.4px; }
+.tab { padding: 5px 10px; font-size: 11.5px; border: 1px solid #cbd0d8; background: #fff; border-radius: 5px; cursor: pointer; transition: all .12s; }
+.tab:hover { background: #ebeef3; }
+.tab.active { background: #1f3864; color: #fff; border-color: #1f3864; }
+.slider-row { display: flex; align-items: center; gap: 12px; }
+.slider-row .date-label { font-weight: 600; min-width: 130px; font-size: 13px; color: #1f3864; }
+.slider-row input[type=range] { flex: 1; height: 4px; }
+.play-btn { padding: 4px 10px; font-size: 11.5px; border: 1px solid #1f3864; background: #fff; color: #1f3864; border-radius: 4px; cursor: pointer; }
+.play-btn:hover { background: #1f3864; color: #fff; }
+.main { display: grid; grid-template-columns: 1.4fr 1fr; gap: 14px; }
+@media (max-width: 880px) { .main { grid-template-columns: 1fr; } }
+.map-wrap { background: #fff; border: 1px solid #e3e5ea; border-radius: 8px; padding: 12px; }
+.tile { cursor: pointer; transition: stroke .1s, stroke-width .1s; }
+.tile:hover { stroke: #ff6600; stroke-width: 2.5; }
+.tile.selected { stroke: #1f3864; stroke-width: 3; }
+.tile-label { fill: #fff; font-size: 9.5px; font-weight: 700; pointer-events: none; text-anchor: middle; dominant-baseline: middle; }
+.tile-label.dark { fill: #222; }
+.legend { margin-top: 10px; display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: center; font-size: 11px; }
+.legend-item { display: flex; align-items: center; gap: 4px; }
+.legend-swatch { width: 14px; height: 14px; border-radius: 2px; border: 1px solid rgba(0,0,0,0.1); }
+.info { background: #fff; border: 1px solid #e3e5ea; border-radius: 8px; padding: 12px 14px; max-height: 640px; overflow-y: auto; }
+.info h2 { font-size: 14px; margin: 0 0 6px; color: #1f3864; }
+.info .placeholder { color: #888; font-size: 12px; font-style: italic; }
+.params-grid { display: grid; grid-template-columns: auto 1fr; gap: 3px 10px; font-size: 11.5px; margin-bottom: 8px; }
+.params-grid .k { color: #555; font-weight: 600; }
+.params-grid .v { color: #1a1a1a; }
+.params-grid .v.highlight { background: #fff7d1; padding: 0 4px; border-radius: 2px; }
+.section-h { font-size: 11px; font-weight: 600; color: #666; margin: 6px 0 4px; padding-top: 4px; border-top: 1px solid #eee; }
+.timeline-list { list-style: none; padding: 0; margin: 6px 0 0; }
+.timeline-list li { padding: 6px 0; border-bottom: 1px dashed #d8dde4; font-size: 11.5px; }
+.timeline-list li:last-child { border-bottom: none; }
+.timeline-list .tdate { color: #1f3864; font-weight: 700; }
+.timeline-list a { color: #0563c1; text-decoration: none; }
+.timeline-list a:hover { text-decoration: underline; }
+.tooltip { position: fixed; pointer-events: none; background: #1a1a1a; color: #fff; padding: 4px 8px; font-size: 11px; border-radius: 4px; z-index: 100; opacity: 0; transition: opacity .1s; max-width: 260px; }
+.note { font-size: 10.5px; color: #666; margin-top: 8px; line-height: 1.4; }
+</style>
+</head>
+<body>
+<h1>U.S. Cannabis Policy Map v3 (2018-2026)</h1>
+<div class="subtitle">Tile-grid choropleth with corrected status schema and partially normalized policy fields. October 2018 - April 2026, all 51 jurisdictions, monthly resolution. <b>Caveats:</b> tax fields remain mixed-channel where channel-specific (<code>*_med</code>) fields are absent; <code>mh</code>/<code>ah</code> home-grow scalars are not empirical variables (see methodology). Click a state for full timeline & citations.</div>
+
+<div class="changelog">
+<b>v3 changelog (rounds 1-3, external reviewer corrections).</b> Round 1: schema rebuilt to atomic fields (med/dec/au/ret booleans; tax split into 6 fields; forms split into 6 booleans; possession & home-grow split medical vs adult-use). Round 2 (23 fixes): CT/IL/MD/MN/NY/OH baseline decriminalization restored; AL vape disabled; AZ Prop 207 effective date corrected; CT 0.5 oz decrim threshold; DE medical smoking + Sept 2024 OMC URL; FL flower-NA pre-2019; HI 10 plants; IA cc:null post-2020; MO 6oz/30d post-Amendment 3; MT possession vs purchase split; NH flower+smoke for therapeutic; NM 2019 decrim added; ND 2019 HB 1050 decrim added; OH minor-misdemeanor 3.5 oz; PA Act 44 90-day supply; RI methodology fixed; VT 6 plants total; WA 6.5% sales tax. <b>Round 3:</b> FL 70-day non-smokable supply added to baseline + 2019 update; WV V:1 vapor authorized; VA narrow CBD/THC-A oil baseline (L:1, fc/cc:NA); TX 2025 HB 46 cc:null with mg-dosage-unit description; NY adult-use ts:0 (sales-tax exempt); IL te tiered + 7% cultivation; MO tf:10.225 state-only; SD sales tax 4.5%→4.2% on 2023-07-01; methodology flags tf as heuristic. <b>Round 4:</b> Schema-consistency fixes (C/E/cc/es/ep): AL/FL/MN/TX/UT/VA/NY pairings cleaned; DC tf:6; NJ tf:6.625 + SEEF $2.50/oz from 2026. <b>Round 5:</b> NY home-grow 2024-06-26; NY medical expansion 2021-03-31; NY tf:18 state-only; NM excise schedule fixed; NM medical ts:0; ME ah:6; OH 2025 txn timeline; MT tl:3; IL tl description; NE legal-protection convention; MA/RI tf:17. <b>Round 6:</b> Methodology clarifications (ret/med/mh/ah definitions); txc populated for 18 adult-use states; CT 2025-07-30; ND 2025 edibles; MS baseline decrim; OH SB 56; MI medical window; OK descriptive mp; LA flower window; NM post-retail tw. <b>Round 7:</b> ME 2018 ah:3 + 2023-10-25 ah:6; RI split events; CT mp:5; MN S:1/E:1 medical timing; MN baseline ts:0; SD tw clarified; PA/IL/MS te:0 (upstream taxes not retail); MS citation rewritten; AL E:0; TX HB 46 E:1 with numeric caps; NH E:1; mh/ah warning strengthened. <b>Round 8:</b> ap overload documented; IA/ME/WV medical taxes added; VA oil-only baseline; MN 2022/2023 edibles split; NY 3.15% noted; AL 75mg clause; MA Oct-Nov tax timing; new upstream/mixed tax types. <b>Round 9:</b> ME/MI 2026 tax updates; IL/MO/OH medical sales taxes; WV tt:dispensary_gr; ap/dp atomic split; NY te_med; MA txn timing. <b>Round 10:</b> dp first-class; decrim events ap:"NA"; NY 2019 fix; NJ phaseout; RI medical 7%; NV pre-2024 txc; ME tt; subtitle. <b>Round 11:</b> NJ ts_med phaseout machine-readable; NJ SEEF events 2024/2025/2026; NJ Jan-Feb 2021 timing fix; ME tt:"retail_plus_weight"; NY tt:"retail_plus_wholesale"; txn:"NA" before AU retail; field-key comment updated. <b>Round 12:</b> MA mh:12 + NY 2022-10-05 mh:3 + OK txn:NA + CO ts_med + NV ts_med + te/tl/tt methodology rewrites. <b>Round 13:</b> NJ 2023 SEEF; MA 2018-11-20 txc:5 + cc:null; CO baseline txc:8; NV methodology medical sales-tax wording; OK txc methodology; tt count fix. <b>Round 17 (second reviewer-feedback pass, 2026-04-28).</b> External reviewer's second review identified 11 additional issues. Some were observed as still-present (their snapshot pre-dated Round 16 in those cases — fixes #4 / #8 / #11 had already taken in Round 16 but their diff was vs Round 15). All 11 addressed: (1) <b>Louisiana 7% therapeutic-marijuana licensee fee</b> — La. R.S. 40:1046(H)(4)(c) imposes a 7% fee on gross sales of therapeutic marijuana paid by the licensed production facility / contractor and collected by LA Dept. of Revenue (deposited to Disability Services Fund per R.S. 28:826). LA <code>tw</code> rewritten to capture the licensee fee; <code>tt:"licensee_gr"</code> (new tax-structure category added to <code>TAX_TYPE_COLORS</code>); <code>tf:7</code> as display-only. Medical retail sales-tax exemption for patients preserved as a separate concept. Baseline citation upgraded to <code>legis.la.gov/Legis/Law.aspx?d=96986</code>. (2) <b>dp baseline coverage</b> — 40 baselines previously omitted <code>dp</code> entirely, causing the Decrim Threshold tab to render <code>undefined oz</code> for those states. <code>dp:"NA"</code> now added to all 40. <code>formatVal()</code> and <code>formatValShort()</code> hardened with leading <code>val === undefined</code> guards that return <code>'N/A'</code> / empty rather than concatenating undefined. (3) <b>Medical-tax tabs added to PARAMS</b> — new tabs <i>Medical Excise %</i> (<code>te_med</code>) and <i>Medical Sales %</i> (<code>ts_med</code>) so the channel-specific overrides for NJ / NY / RI / NV / CO / IL medical tax fields are no longer hidden. States with no <code>te_med</code> / <code>ts_med</code> render as <i>N/A</i>. (4) <b>txc methodology heading</b> renamed from <i>Concentrate Daily/Transaction/Possession Cap (g) - txc</i> to <i>Concentrate cap / equivalent (g) - txc (mixed AU-transaction / AU-possession / medical-possession)</i>; PARAMS label and formatters were corrected in Round 16. (5) <b>Event-specific citations added</b> — DE 2025-08-01; NJ 2024 / 2025 / 2026 SEEF; MO 2018-12-06 / 2022-12-08; MT 2021-01-01 / 2022-01-01; VA 2020-07-01 / 2021-07-01; CT 2021-07-01 / 2023-07-01; NE 2024-12-10; NM 2021-06-29; NY 2019-08-28. (6) <b>Baseline citations</b> added for AL, MO, UT (states whose previous earliest <code>ci</code> row was post-2018-10-17). (7) <b>Arkansas baseline citation</b> upgraded to cite <i>Act 1098 of 2017</i> (eff. 2017-07-01) as the original source of the 4% special privilege tax — Act 740 (2019) row retained as continuation. (8) <b>No-op events</b> already removed in Round 16 (verified 0 empty events remain). (9) <b>v4-only:</b> a geometry-provenance block added to the Visualization Details paragraph: source GeoJSON URL, license basis, projection method (cos-corrected linear with cos(37°)≈0.7986), AK Aleutian-wrap clipping, AK/HI inset boxes, DC marker synthesis, 1-decimal rounding, and generation script path. (10) <b>Round-15 retraction strikethrough cleaned</b> per reviewer — the <code>&lt;s&gt;...&lt;/s&gt;</code> block in Round-15 #2 replaced with a clean prose statement that the Round-15 wide paraphrase was reverted in Round 16. (11) <b>v4 visualization methodology</b> verified already in real-geographic-projection language (Round 16 fix took); reviewer's snapshot pre-dated Round 16. v3↔v4 parity re-verified after Round 17.<br><br><b>Round 16 (reviewer-feedback fixes, 2026-04-28).</b> External reviewer flagged 11 issues against the Round-15 audit; all 11 applied to data and methodology in this pass. (1) <b>CT 2025-10-01 PA 25-166 vape-exemption wording</b> reverted from the Round-15 wide paraphrase "vape products exempt" back to the actual statutory phrase <i>"prefilled cartridges for use in an electronic cannabis delivery system exempt from the 70% non-flower cap"</i> per PA 25-166 (HB 7181 enrolled); secondary "vapes exempt" characterizations were paraphrases of the narrower statutory carve-out. (2) <b>CT 2025-10-01 citation added</b> to the CT <code>ci</code> array pointing at the official <code>cga.ct.gov</code> PA 25-166 PDF (previously the latest CT citation was the 2025-07-30 transaction-limit notice). (3) <b>Methodology #26</b> rewritten so the AU concentrate-cap list shows <code>CT 1.25g pre-2023-12 / 2.5g from 2023-12-01 / 5g from 2025-07-30</code> instead of the stale "CT none". (4) <b>txc UI</b>: PARAMS label changed from "Conc Daily (g)" to "Concentrate cap/equiv (g)"; <code>formatVal</code> renders "g" instead of "g/day"; <code>formatValShort</code> renders "g" instead of "g/d". <b>txc remains a mixed AU-transaction / AU-possession / medical-possession scalar</b>; clean panel use still requires <code>txc_au_txn</code> / <code>txc_au_poss</code> / <code>txc_med_poss</code> splits — methodology #26 retains that caveat. (5) <b>tl UI</b>: PARAMS label changed from "Local Max %" to "Local cannabis tax %"; methodology #21 rewritten to acknowledge that the scalar is a <i>representative single local layer</i>, not necessarily a maximum (CO is Denver-representative; IL is single-layer max; states differ). (6) <b>Methodology #28</b>: NJ removed from the <code>flat</code> example list (NJ is <code>sales_plus_weight</code> since 2022-04-21). (7) <b>v4-only:</b> the visualization-details methodology paragraph rewritten from tile-grid language to real-geographic-projection language. (8) <b>Round-15 overclaim</b> rewritten: "every Round-14 claim and every other live data row" replaced with "Round-14 claims and selected high-risk live data rows" — consistent with the unresolved-claims disclaimer. (9) <b>No-op events removed</b> from <code>c</code> arrays for GA 2019-04-17, GA 2023-04-13, MN 2022-07-01, MO 2020-10-17, OH 2019-01-16, TX 2019-06-14, UT 2020-03-01, WV 2021-11-12 (eight events that had empty change objects; the matching <code>ci</code> citation rows are preserved as historical references). Event count drops from 99 → 91. (10) <b>Trailing NUL bytes</b> stripped from end-of-file (1,185 NULs after <code>&lt;/html&gt;</code>); browser rendering unchanged but file is now strictly text. (11) <b>OH 2025-06-04 citation upgraded</b>: replaced ABC6 secondary-news URL with the Ohio DCC official daily-limits page (<code>com.ohio.gov/divisions-and-programs/cannabis-control/patients-caregivers/product-supply</code>); ABC6 / Marijuana Moment / Cannabis Law Report kept as corroboration only. v3↔v4 parity re-verified after Round 16 — see <code>audit/v3_v4_parity_report.json</code>.<br><br><b>Round 15 (round-14 exhaustive audit, 2026-04-28).</b> Independent verification of Round-14 claims and selected high-risk live data rows against primary state-agency / statute / CDTFA / CRC / DCC / DCP sources. Audit deliverables in <code>audit/</code> subdirectory: <code>audit_report.md</code>, <code>errors_fixed.csv</code>, <code>unresolved_claims.csv</code>, <code>source_ledger.csv</code>, <code>claims_per_field.json</code>, <code>schema_decisions.md</code>, <code>scripts/</code>, <code>test_results.md</code>. Round-15 corrections applied to data: (1) <b>OH transaction-cap event re-dated 2025-06-06 → 2025-06-04</b> per DCC announcement and ABC6 / Marijuana Moment / Cannabis Law Report sources confirming June 4, 2025 effective date; <code>win</code> string also augmented with the 15,000 mg/day non-flower THC cap that accompanied the increase. (2) <b>CT 2025-10-01 PA 25-166 prefilled-cartridge exemption.</b> The Round-15 audit briefly widened the statutory phrasing to "vape products exempt" based on three secondary characterizations (Shipman &amp; Goodwin, Higher Collective, CT Examiner). Round 16 reverted to PA 25-166 statutory language: "prefilled cartridges for use in an electronic cannabis delivery system exempt from the 70% non-flower cap." Methodology #10 reads consistent with statute; OH SB 56 70% extract cap added (effective 2026-03-20). (3) <b>NJ event source-order</b> reordered chronologically (2021-02-22 now before 2021-07-01 in the source); runtime sort order unchanged. (4) Methodology #25 augmented with the 2025-07-30 CT 1 oz transaction-cap raise and the 2025-06-04 OH transaction-cap raise. <b>Verified-correct (no change)</b> Round-14 claims: CT PA 25-166 flower 35% / non-flower 70% / prefilled-cartridge exemption / 2025-10-01 effective date; MA H.5350 2026-04-19 1→2 oz; NJ SEEF 2024 $1.24 → 2025 $2.50 → 2026 held flat; ME 2026-01-01 14% retail tax + $223/lb-$63/lb-$23/$1/$0.20 weight schedule; MI 2026-01-01 24% AU wholesale tax (HB 4951, signed 2025-10-07); CA 2025-07-01 19% then 2025-10-01 15% (CDTFA L-979/L-992; AB 564); NY 2024-06-01 9% retail+9% wholesale + medical 3.15% (FY2025 budget); MN 2025-09-16 first non-tribal AU sale (Vireo Green Goods); OH 2026-03-20 SB 56 35%/70%; ND 2025-08-01 HB 1203 5/50 mg edibles; KY 2025-01-01 medical operational; NE 2024-12-10 Init 437/438; NV 2024-01-01 2.5 oz / 0.25 oz concentrate; MD 2025-07-01 9% → 12%; MN 2025-07-01 10% → 15%; NM 2025-07-01 12% → 13%; CT 2023-01-10 retail launch + 2023-12-01 0.25 → 0.5 oz + 2025-07-30 0.5 → 1 oz; MA 2018-11-20 first sales (Cultivate Leicester / NETA Northampton); RI 2022-05-25 enactment + 2022-12-01 retail; NJ 2021-02-22 CREAMM Act / 6 oz possession; TX 2025-09-01 HB 46 / 10 mg dosage / 1000 mg package; VT 2022-10-01 retail; OH Issue 2 2023-12-07 effective with 2.5 oz / 15 g concentrate; WA 37% excise + 6.5% sales; PA 5% upstream gross receipts (not retail). <b>Unresolved / not independently re-verified</b> with primary sources within this audit window — 1,800+ field-level claims (esp. baselines and pre-2024 events for non-Phase-6 states); see <code>audit/unresolved_claims.csv</code> and <code>audit/audit_report.md §8</code>. The audit does <b>not</b> assert that all 2,027 atomic claims were primary-source verified.<br><br><b>Round 14:</b> CT 2025-10-01 PA 25-166 raises flower cap 30%→35% and concentrate cap 60%→70% (prefilled cartridges for use in an electronic cannabis delivery system exempt from the 70% non-flower cap); CT txc populated through equivalency: 0.25 oz transaction → txc:1.25 (2023-01-10), 0.5 oz → txc:2.5 (2023-12-01), 1 oz → txc:5 (2025-07-30); MA methodology #10 rewritten to explicitly note MA does NOT have a 70% cap (purchase equivalency only; constraint is in txc not cc) and remove MA from cc cap examples; CO tl:0 → tl:5.5 with Denver-special note (tw clarifies this is representative, not statewide max); CA baseline tt:"retail_plus_weight" pre-2022 (15% excise + $9.25/oz cultivation), → tt:"flat" on 2022-07-01 when cultivation tax repealed; NJ 2022-04-21 tt:"flat" → tt:"sales_plus_weight" (new category, sales tax + per-oz SEEF cultivator fee; #ec4899 color); methodology Schema Redesign Rationale rewritten to drop the "6 atomic tax fields" claim and accurately describe partial normalization with channel-specific overrides; methodology #28 (tt categories) extended to document <code>sales_plus_weight</code>; CA <code>retail_plus_weight</code> pre-2022 explicitly noted in tt entry.
+</div>
+
+<details class="methodology">
+<summary>&#x25BC; Methodology: parameter definitions, encodings, calculations, and sources</summary>
+
+<div class="method-grid">
+
+<div class="method-item">
+<h4>Schema redesign rationale</h4>
+<p>v2's single <code>s</code> status field collapsed orthogonal dimensions into one ordinal, causing the reviewer-flagged class of errors where <code>D</code> (decriminalized) overwrote <code>M</code> (medical) when both were active. v3 stores four independent booleans (<code>med</code>, <code>dec</code>, <code>au</code>, <code>ret</code>) and derives a 5-level display label only for visualization. Tax fields are partially normalized into retail purchaser excise (<code>te</code>), state sales (<code>ts</code>), local max (<code>tl</code>), wholesale/cultivation/upstream (<code>tw</code>), potency-tax flag (<code>tp</code>), structure type (<code>tt</code>), display heuristic (<code>tf</code>), plus channel-specific overrides where present (<code>te_med</code>, <code>ts_med</code>); channel-specific fields override shared scalars where populated. Forms are six booleans; possession splits into <code>mp</code>/<code>dp</code>/<code>ap</code> for medical/decrim/adult-use channels; home grow splits into medical vs adult-use plant counts (with explicit warning that the scalars are not empirical-grade — see #7-8).</p>
+</div>
+
+<div class="method-item">
+<h4>1-4. Status booleans (med, dec, au, ret)</h4>
+<p><b>med</b> = patient-side medical-cannabis program legally enacted (legal protection convention; does NOT require licensed access to be operational; e.g., NE 2024-12-10 onward where Init 437/438 grants protection but licensed access is not yet active by Apr 2026); <b>dec</b> = nonmedical possession decriminalized below criminal threshold; <b>au</b> = adult-use possession legally protected (irrespective of retail); <b>ret</b> = <b>adult-use</b> state-licensed retail cannabis sales actively occurring (NOT medical-dispensary retail; medical retail is implied by med:1 plus operational program but is not separately tracked). For NE-style legal-protection-without-access, <code>med:1, ret:0, win:"...licensed access NOT operational..."</code>. The composite "Legal Status" tab displays a 5-level summary: <b>P</b>(prohibited) &rarr; <b>D</b>(decrim only, no medical) &rarr; <b>M</b>(medical legal, irrespective of decrim) &rarr; <b>AN</b>(adult-use possession, no retail) &rarr; <b>A</b>(adult-use w/retail). Decriminalization does not demote states with active medical programs.</p>
+</div>
+
+<div class="method-item">
+<h4>5-6. Possession (medical / decrim / adult-use) - now atomic</h4>
+<p><b>v3 round-10: ap is now strictly adult-use.</b> Three independent possession fields: <code>med_poss</code> (mp) = patient possession ceiling; <code>dp</code> = decriminalized civil-fine threshold (populated only when dec:1 + au:0); <code>ap</code> = adult-use lawful possession (populated only when au:1). When au:1 transitions occur, dp is set to "NA". When dec:1 + au:0 events occur, ap is "NA" and dp holds the threshold. <b>-1</b> = criminal (any-amount possession remains a criminal offense; e.g., NC, prohibition states). The "Decrim Threshold" tab renders <code>dp</code>; the "Adult-Use Possession" tab renders <code>ap</code>; both are first-class parameters.</p>
+</div>
+
+<div class="method-item">
+<h4>7-8. Home Grow (medical / adult-use)</h4>
+<p><b>WARNING: mh and ah are coarse single-scalar plant counts and SHOULD NOT be used as empirical variables.</b> The encoding is internally inconsistent across states because no single semantics fits all jurisdictions: in ME 2018-2023 baseline ah:3 = mature plants only (3 mature + 12 immature + unlimited seedlings, raised to 6 mature on 2023-10-25 by PL 2023 c.220); in CT ah:6 conflates 3 mature + 3 immature; in NM ah:6 conflates 6 mature + 6 immature with a separate 12-mature household cap; in CO ah:6 = 6 plants per person with 3-mature limit and 12-plant household cap. Treating these as comparable scalars produces misleading cross-state comparisons. <b>Empirical work must recode with separate fields</b>: <code>*_mature</code>, <code>*_immature</code>, <code>*_seedlings</code>, <code>*_residence_cap</code>, <code>*_per_patient_or_adult</code>, and <code>*_hardship_or_distance_conditioned</code>. The composite "Home Grow" tab displays max(mh, ah) for visual cross-state ordering only and is not a publication-ready variable.</p>
+</div>
+
+<div class="method-item">
+<h4>9. Flower THC Cap (% w/w)</h4>
+<p>Maximum THC concentration permitted in cannabis flower. <b>"NA"</b> = flower-form cannabis is not permitted as a product (GA, IA, AL, KS, ID, etc.). <b>null</b> = flower permitted with no statutory potency cap. Numeric cap: CT 30%, MS 30%, VT 30%, KY 35% (corrected from null), TX historical 0.5-1% before HB 46.</p>
+</div>
+
+<div class="method-item">
+<h4>10. Concentrate THC Cap (% w/w)</h4>
+<p>Cap on THC concentration in extracts/concentrates. <b>"NA"</b> = concentrates not authorized as cannabis product (GA's program is low-THC oil only). CT 60% pre-2025-10-01, raised to 70% by PA 25-166 with <b>prefilled cartridges for use in an electronic cannabis delivery system exempt</b> from the 70% non-flower cap (statutory phrase from PA 25-166 / HB 7181 enrolled; secondary "vapes exempt" characterizations are paraphrases of this narrower carve-out); MS 60%; VT 60% (vape exempt); KY 70%; OH 70% from 2026-03-20 (SB 56). Most adult-use states have no concentration cap. <b>MA does NOT have a general 70% concentrate potency cap</b> — its constraint is purchase equivalency under 935 CMR 500.140 (1 oz flower = 5 g active THC concentrate pre-2026; 2 oz = 10 g post-2026), captured in <code>txc</code> rather than <code>cc</code>.</p>
+</div>
+
+<div class="method-item">
+<h4>11. Edible Per-Serving Cap (mg THC)</h4>
+<p>THC per individually-dosed serving. Industry-modal 10 mg; CT/VT/MS 5 mg; AK 5 mg; MA 5.5 mg with regulatory variance (encoded as 5 with note); HI 10 mg medical; RI 10 mg adult-use. Adult-use values; medical caps shown separately where relevant.</p>
+</div>
+
+<div class="method-item">
+<h4>12. Edible Per-Package Cap (mg THC)</h4>
+<p>Total THC per retail package. Modal 100 mg adult-use; FL medical 200 mg; HI medical 1000 mg (corrected from 100); MN adult-use 200 mg (corrected from 50); DE 50 mg (corrected from 100); MN hemp 50 mg (separate channel); RI 100 mg.</p>
+</div>
+
+<div class="method-item">
+<h4>13-18. Form Booleans (flower / smoke / vape / conc / edible / low-THC oil)</h4>
+<p>Atomic boolean flags replacing v2's ordinal <code>frm</code>. <b>flower_ok</b> = raw plant material permitted as a product; <b>smoke_ok</b> = combustion permitted (false in UT, KY, WV, PA which authorize plant material only via vaporization); <b>vape_ok</b> = vaporization permitted; <b>conc_ok</b> = concentrate/extract products permitted; <b>edible_ok</b> = traditional edible products permitted; <b>low_thc_oil</b> = state has a separate low-THC oil program (true in GA at &le;5%; some narrow CBD states). Note: Minnesota medical edibles (gummies/chews) authorized 2022-08-01 at 10mg/100mg; Minnesota adult-use cannabis edibles authorized 2023-08-01 at 10mg/200mg; Minnesota hemp-derived edibles are a separate channel. Florida edibles authorized 2020-08-27 (10mg/200mg medical). Pennsylvania has not authorized edibles throughout the window. Composite "Form Profile" tab summarizes.</p>
+</div>
+
+<div class="method-item">
+<h4>19. State Cannabis Excise Tax (%) - retail-purchaser excise only</h4>
+<p>State-imposed cannabis-specific excise rate <b>as a percentage of retail price imposed on the purchaser</b>. Excludes state sales/use tax, local taxes, AND upstream/wholesale gross-receipts taxes (which appear in <code>tw</code> with <code>tt:"upstream"</code> or <code>"upstream_gross_receipts"</code>). <b>0%</b> when no retail-purchaser excise (medical-only states with sales-tax exemption; or states like PA where the cannabis-specific tax is an upstream grower/processor gross-receipts tax not imposed on retail purchasers; or IL medical, where the 7% cultivation privilege tax is on cultivators not retail). Examples: KY 0% (medical exempt); MN 10% pre-2025-07-01 then 15%; CA 15% &rarr; 19% (2025-07-01) &rarr; 15% (2025-10-01); WA 37%; NY AU 9% retail + 9% wholesale (see tt:retail_plus_wholesale). PA 5% is NOT a retail excise and appears under <code>tw</code> with <code>tt:"upstream"</code>; WV 10% is downstream dispensary gross receipts (<code>tt:"dispensary_gr"</code>).</p>
+</div>
+
+<div class="method-item">
+<h4>20. State Sales Tax on Cannabis (%)</h4>
+<p>Standard state sales/use tax applied to cannabis sales (where applicable). Medical cannabis is sales-tax exempt in CA, FL, NY (medical), MD (medical), NJ (medical post-2022-07-01 phaseout), PA, MN, and others. <b>Note for NV</b>: medical cannabis is exempt from the 10% retail cannabis excise but NOT from sales/use tax — Nevada medical sales remain subject to state sales tax (6.85%) plus local variability. Adult-use sales typically subject to standard state sales tax in addition to excise (except where AU is explicitly exempt: NY post-2024-06-01, NJ AU exempt from cannabis-specific tax but subject to standard sales tax). Medical-channel rate captured in <code>ts_med</code> where channel-specific.</p>
+</div>
+
+<div class="method-item">
+<h4>21. Local cannabis tax (%) - representative single layer; not necessarily max</h4>
+<p><b>WARNING: tl is a single-scalar approximation with mixed semantics across states</b> — it should be read as a <i>representative</i> local cannabis-tax layer, not as a uniform "maximum" across jurisdictions. Across rows, <code>tl</code> means different things: in some states it is the statutory maximum single local layer (e.g., NJ &le;2% Cannabis Transfer Tax; CT 3% municipal cap); in others it is the maximum single layer authorized by statute even though the combined stacked burden is higher (IL <code>tl:3.75</code> reflects the max single layer, county unincorporated; the combined incorporated-area maximum is approximately 6% = 3% municipal + 3% county); and in CO the value is <i>representative-Denver-special</i> rather than statewide max — CO has no statewide statutory local-tax ceiling and Denver's special retail-marijuana tax of 5.5% is shown as the representative layer (Denver also imposes a separate ~5.15% general local tax; see CO <code>tw</code> for context). For empirical work, do not treat <code>tl</code> as comparable across states; recode with structured fields: <code>tl_municipal_max</code>, <code>tl_county_unincorp_max</code>, <code>tl_county_incorp_max</code>, <code>tl_combined_incorp_max</code>, <code>tl_representative_special</code>.</p>
+</div>
+
+<div class="method-item">
+<h4>22. Wholesale / Cultivation Tax</h4>
+<p>String description of weight-based or wholesale-revenue cannabis tax not captured by the retail-percent fields. AK $50/oz mature bud cultivation; CO 15% wholesale at first sale; ME $335/lb flower; CA cultivation tax (repealed 2022-07-01, AB 195); MN gross-receipts tax (10% &rarr; 15%, 2025-07-01).</p>
+</div>
+
+<div class="method-item">
+<h4>23. Potency-Based Tax (boolean)</h4>
+<p>True if state imposes a tax structured by THC concentration or per-mg-THC. NY pre-June 2024 had per-mg-THC (replaced 2024-06-01 with 9% wholesale); IL has tier-graduated (10/20/25%); CT has hybrid (potency excise + retail %). Important for the OM model because per-mg taxes are theoretically Pigouvian on dose.</p>
+</div>
+
+<div class="method-item">
+<h4>24. Effective Estimated Tax % (composite, non-authoritative)</h4>
+<p><b>WARNING: tf is a display heuristic, NOT a clean numeric policy variable.</b> It is intended only as a rough cross-state ordering for the headline visualization. <b>Do not use tf for empirical regressions.</b> The atomic component fields (<code>te</code>, <code>ts</code>, <code>tl</code>, <code>tw</code>, <code>tp</code>) are authoritative; tf approximates a state-only retail-equivalent burden but is applied inconsistently across states with tiered (IL: 10/20/25%), potency-based (NY 2022-2024), hybrid (CT), or weight-based (AK, ME) structures. For tiered states, tf reflects the high tier or a heuristic blend. Local taxes are excluded in principle but included in some jurisdictions where the local rate is fixed and broadly representative. For empirical work, recompute tf from the atomic fields with an explicit formula; for tiered states, use <code>tf_min</code>/<code>tf_modal</code>/<code>tf_max</code> derived from <code>te</code>.</p>
+</div>
+
+<div class="method-item">
+<h4>25. Per-Trip Transaction Cap (oz/visit)</h4>
+<p>Single-transaction purchase ceiling, distinct from possession. CT launched 0.25 oz / visit then 0.5 oz from Dec 2023, raised again to 1 oz from 2025-07-30 (CT DCP notice); CO 1 oz/day flower (post HB 21-1317); IL has resident/non-resident differential (encoded via "sb" flag). NV raised to 2.5 oz from 2024-01-01. OH raised daily flower limit from 1 oz to 2.5 oz effective 2025-06-04 (DCC announcement; corroborated by Marijuana Moment / Cannabis Law Report / ABC6 — round-15 audit corrected the file from a prior 2025-06-06 mis-dating).</p>
+</div>
+
+<div class="method-item">
+<h4>26. Concentrate cap / equivalent (g) - txc (mixed AU-transaction / AU-possession / medical-possession)</h4>
+<p>Concentrate ceiling expressed in grams. Mixed-channel field: covers adult-use retail transaction/possession equivalents AND medical-only concentrate possession quantities. Adult-use states (AK 7g, AZ 5g, CA 8g, CO 8g, CT 1.25g pre-2023-12-01 / 2.5g from 2023-12-01 / 5g from 2025-07-30, DE 12g, IL 5g, MD 12g, MA 5g pre-2026 / 10g post-2026, MI 15g, MO 24g, MT 8g, NJ 4g, NM 16g, NV 3.543g pre-2024 / 7.0875g from 2024, NY 24g, OH 15g, OR 10g, RI 5g, VT 5g, WA 7g). Medical-only states with explicit concentrate caps: OK 28.35g (1 oz medical concentrate possession). Pure prohibition states or states without explicit concentrate quantities: <code>txc:0</code>. For empirical work that requires channel-clean fields, split into <code>txc_au</code> and <code>txc_med</code>. Companion product-THC-equivalent fields (e.g., 750 mg edible product limit, 800 mg infused THC) are noted in <code>tw</code> or <code>win</code>.</p>
+</div>
+
+<div class="method-item">
+<h4>27. Per-Window Aggregate Quota</h4>
+<p>Time-window aggregate THC ceiling per patient (the "blending-robust" instrument). Rendered as a categorical: present vs. absent. IA 4.5 g THC / 90 days; MS 3 oz / 30 days + 3.5 g daily MMCEU; FL 2.5 oz smokable / 35 days; AR 2.5 oz / 14 days; NM medical (currently 15 oz / 90 days); AL 50 mg / day. Most adult-use states do not impose aggregate windows.</p>
+</div>
+
+<div class="method-item">
+<h4>28. Tax Structure Type</h4>
+<p>Categorical type of the tax architecture. <b>Live categories used in v3 data</b>: <b>none</b> (medical-exempt or no operational program); <b>flat</b> ad valorem retail (most adult-use states: AZ, CA, IL post-AU, MA pre-2026, MO, OR, RI baseline+post-2022, etc.; <i>NJ is NOT flat — see <code>sales_plus_weight</code> below</i>); <b>grad</b> graduated by potency (IL adult-use: 10%/20%/25% by THC tier); <b>pot</b> per-mg-THC tax (NY 2022-12-29 to 2024-06-01); <b>hybrid</b> per-mg potency excise + retail % (CT); <b>weight</b> weight-based cultivation tax (AK $/oz); <b>upstream</b> upstream grower/processor gross-receipts tax (PA 5%); <b>dispensary_gr</b> downstream dispensary gross-receipts tax (WV 10%); <b>mixed</b> upstream excise + retail sales tax (MS 5% cultivator + 7% retail sales); <b>retail_plus_wholesale</b> retail excise + separate wholesale tax (NY post-2024-06-01 9% retail + 9% wholesale; CO 15% retail + 15% wholesale; MI post-2026 24% wholesale + 10% retail; UT n/a); <b>retail_plus_weight</b> retail excise + weight-based excise (ME 2020-onward 10%/14% retail + $223/lb-style weight schedule; CA pre-2022 15% excise + $9.25/oz cultivation, becomes <code>flat</code> after 2022-07-01 cultivation-tax repeal); <b>sales_plus_weight</b> sales tax + per-ounce cultivator fee (NJ AU: 6.625% sales + up to 2% local + SEEF per-oz; SEEF 1.10→1.52→1.24→2.50). Theoretically distinct because consumer blending response differs across structures; tt classification is the headline machine-readable summary, atomic component fields (<code>te</code>, <code>tw</code>, etc.) are authoritative.</p>
+</div>
+
+<div class="method-item">
+<h4>29. Cross-Border Special Instruments</h4>
+<p>Categorical: <b>none</b>, <b>residency differential</b> (IL 30 g/15 g resident/non-resident), <b>distance-conditioned home grow</b> (NV >25 mi from dispensary; AZ medical pre-2020), or <b>both</b>. Captures regulator's endogenous response to predicted cross-border arbitrage.</p>
+</div>
+
+<div class="method-item">
+<h4>Visualization details</h4>
+<p>Tile color encodes the value of the selected parameter at the selected month. Composite parameters (Legal Status, Form Profile, Effective Tax) derive from the atomic underlying fields. Side panel always lists the selected state's full timeline with bill citations and official URLs (state legislatures, cannabis agencies, codes). Hover shows tooltip; click locks selection. Tile-grid is approximate geography.</p>
+</div>
+
+</div>
+
+<div class="note" style="margin-top: 10px;"><b>Sources.</b> All parameter values trace to specific bills, propositions, regulations, or agency codifications. Where regulatory rules (rather than statutes) set values, they are inferred from the agency's published rule package and flagged where independent verification was incomplete. CDTFA, CT.gov, CDOR, NJ.gov, CCB.NV, and similar state-agency portals are primary sources; ballot-measure outcomes from state Secretaries of State; case-law citations to state Supreme Court opinions where applicable. v3 reflects the external reviewer's identified errors as of April 2026; further verification of newly-effective 2025-2026 rule packages is encouraged before publication use.</div>
+</details>
+
+<div class="controls">
+  <div class="tabs" id="paramTabs"></div>
+  <div class="slider-row">
+    <button class="play-btn" id="playBtn">&#9654; Play</button>
+    <span class="date-label" id="dateLabel"></span>
+    <input type="range" id="dateSlider" min="0" max="90" value="0" step="1">
+  </div>
+</div>
+
+<div class="main">
+  <div class="map-wrap">
+    <svg id="map" viewBox="0 0 760 380" width="100%" style="max-width: 760px;"></svg>
+    <div class="legend" id="legend"></div>
+    <div class="note">Tile-grid layout (not geographically exact). Cell color encodes the selected parameter at the selected month. Hover for value, click for full citations.</div>
+  </div>
+  <div class="info" id="info">
+    <div class="placeholder">Click a state on the map to see its full atomic policy state with citations and official-source URLs. Open the methodology panel above for parameter definitions.</div>
+  </div>
+</div>
+
+<div class="tooltip" id="tooltip"></div>
+
+<script>
+// ============ TIME ============
+const TOTAL = 91;
+function monthLabel(idx) {
+  const d = new Date(2018, 9 + idx, 1);
+  return d.toLocaleDateString('en-US', {month: 'long', year: 'numeric'});
+}
+function dateToIdx(yyyymmdd) {
+  const [y,m] = yyyymmdd.split('-').map(Number);
+  const idx = (y - 2018) * 12 + (m - 1) - 9;
+  return Math.max(0, Math.min(TOTAL - 1, idx));
+}
+
+// ============ TILE POSITIONS ============
+const POS = {
+  ME:[12,0], AK:[0,1], VT:[10,1], NH:[11,1], MA:[12,1],
+  WA:[1,2], ID:[2,2], MT:[3,2], ND:[4,2], MN:[5,2], WI:[6,2], MI:[7,2], NY:[10,2], CT:[11,2], RI:[12,2],
+  OR:[1,3], NV:[2,3], UT:[3,3], WY:[4,3], SD:[5,3], IA:[6,3], IL:[7,3], IN:[8,3], OH:[9,3], PA:[10,3], NJ:[11,3], MD:[12,3], DE:[13,3],
+  CA:[1,4], CO:[3,4], NE:[4,4], KS:[5,4], MO:[6,4], KY:[7,4], WV:[8,4], VA:[9,4], DC:[10,4],
+  AZ:[2,5], NM:[3,5], OK:[4,5], AR:[5,5], TN:[6,5], NC:[7,5], SC:[8,5],
+  HI:[1,7], TX:[4,6], LA:[5,6], MS:[6,6], AL:[7,6], GA:[8,6], FL:[10,7]
+};
+
+// ============ DATA (atomic schema) ============
+// Field keys:
+// Status booleans: med, dec, au, ret (0/1)
+// Possession: mp = medical possession (oz or string); dp = decriminalized civil/fine threshold (oz); ap = adult-use lawful possession (oz, -1 = criminal, "NA" = N/A)
+// Home grow: mh = medical, ah = adult-use (plant counts)
+// Caps: fc = flower%, cc = concentrate%, es = edibleServing(mg), ep = ediblePkg(mg). null=no cap, "NA"=form not permitted
+// Forms (booleans): F=flower, S=smoking, V=vape, C=concentrate, E=edible, L=lowTHCoil
+// Tax: te=excise%, te_med=medical-channel excise%, ts=stateSales%, ts_med=medical-channel sales%, tl=localMax%, tw=wholesaleStr, tp=potencyTaxBool, tf=effective%
+// Other: txn=AU-retail transaction cap (oz, "NA" before AU retail), txc=concDaily(g), win=windowStr, tt=taxType, sb=specialBorder
+
+const DATA = {
+AL: {n:"Alabama",
+  b:{med:0,dec:0,au:0,ret:0, mp:"NA",ap:-1,dp:"NA", mh:0,ah:0,
+     fc:"NA",cc:"NA",es:"NA",ep:"NA",
+     F:0,S:0,V:0,C:0,E:0,L:0,
+     te:0,ts:0,tl:0,tw:"none",tp:0,tf:0,
+     txn:"NA",txc:0,win:"none",tt:"none",sb:0},
+  c:[["2021-05-17",{med:1,mp:"50mg/day initial; 75mg/day after 90 days continuous care if medically appropriate; terminal illness exception above 75mg",
+       cc:null,es:"NA",ep:"NA",
+       C:1,V:0,E:0,
+       te:9,tf:9,win:"50mg/day initial daily cap; 75mg/day after 90d if medically appropriate; terminal illness >75mg with DL consequences; oral non-food forms only (gelatinous cubes/lozenges, capsules, tinctures, gels, oils, patches, suppositories, nebulizers); no traditional edibles, no smoking, no vaping",tt:"flat"}]],
+  ci:[["2018-10-17","Alabama Code §13A-12-213/214 - cannabis prohibited; no medical or decriminalization framework as of October 2018 (baseline); SB 46 medical Compassion Act passed 2021","https://codes.findlaw.com/al/title-13a-criminal-code/al-code-sect-13a-12-213/"],["2021-05-17","SB 46 - Compassion Act (no flower; no smoking; NO vaping; tablets/capsules/tinctures/gels/oils/creams/patches/suppositories/nebulizers/lozenges only; daily 50mg patient cap; 9% gross proceeds tax)","https://alison.legislature.state.al.us/files/pdf/SearchableInstruments/2021RS/SB46-enr.pdf"]]},
+
+AK: {n:"Alaska",
+  b:{med:1,dec:1,au:1,ret:1, mp:1,ap:1,dp:"NA", mh:6,ah:6,
+     fc:null,cc:null,es:5,ep:50,
+     F:1,S:1,V:1,C:1,E:1,L:0,
+     te:0,ts:0,tl:0,tw:"$50/oz mature bud cultivation tax (AS 43.61.010)",tp:0,tf:25,
+     txn:1,txc:7,win:"7g concentrate/transaction (3 AAC 306)",tt:"weight",sb:0},
+  c:[],
+  ci:[["2018-10-17","AS 17.38 (Ballot Measure 2 of 2014) and AS 43.61.010 (cultivation tax)","https://www.akleg.gov/basis/statutes.asp#17.38"],["1998-11-03","Ballot Measure 8 (medical, predates window)","https://www.commerce.alaska.gov/web/amco/"]]},
+
+AZ: {n:"Arizona",
+  b:{med:1,dec:0,au:0,ret:0, mp:"2.5oz/14d",ap:"NA",dp:"NA", mh:12,ah:0,
+     fc:null,cc:null,es:null,ep:null,
+     F:1,S:1,V:1,C:1,E:1,L:0,
+     te:0,ts:5.6,tl:0,tw:"none",tp:0,tf:5.6,
+     txn:"NA",txc:0,win:"2.5oz/14d (medical)",tt:"none",sb:2},
+  c:[["2020-11-30",{au:1, ap:1, ah:6, sb:0}],
+     ["2021-01-22",{ret:1, es:10, ep:100,
+                    te:16,tf:21.6, txn:1, txc:5, win:"1 oz cannabis or 5 g concentrate (AU)", tt:"flat"}]],
+  ci:[["2018-10-17","Prop 203 (2010) / A.R.S. Title 36 Ch. 28.1 (medical; 25-mile home-grow rule)","https://www.azleg.gov/arsDetail/?title=36"],["2020-11-30","Prop 207 - Smart and Safe Arizona","https://apps.azsos.gov/election/2020/general/Ballotmeasuretext/Prop%20207.pdf"],["2021-01-22","A.R.S. 36-2852, 42-5452 (16% excise + TPT; AU home-grow no longer distance-conditioned)","https://www.azleg.gov/ars/42/05452.htm"]]},
+
+AR: {n:"Arkansas",
+  b:{med:1,dec:0,au:0,ret:0, mp:"2.5oz/14d",ap:-1,dp:"NA", mh:0,ah:0,
+     fc:null,cc:null,es:10,ep:100,
+     F:1,S:1,V:1,C:1,E:1,L:0,
+     te:4,ts:6.5,tl:0,tw:"none",tp:0,tf:10.5,
+     txn:"NA",txc:0,win:"2.5oz/14d",tt:"flat",sb:0},
+  c:[],
+  ci:[["2018-10-17","Amendment 98 (Nov 2016) / Arkansas Medical Marijuana Amendment - establishes the medical-marijuana program","https://www.dfa.arkansas.gov/services/category/medical-marijuana/"],["2017-07-01","Act 1098 of 2017 - originally levied the 4% Arkansas medical-marijuana special privilege tax (effective July 1, 2017; this is the source of the te:4 baseline value as of October 2018, predating Act 740/2019)","https://www.dfa.arkansas.gov/medical-marijuana-amendment"],["2019-07-01","Act 740 of 2019 - extended/modified the 4% special privilege tax framework (continuation of Act 1098 levy)","https://www.arkleg.state.ar.us/Acts/FTPDocument?path=%2FACTS%2F2019R%2FPublic%2F&file=740.pdf"],["2024-11-05","Issue 3 (2024) struck/votes uncertified - no change","https://www.sos.arkansas.gov/elections/election-results/2024-general-election"]]},
+
+CA: {n:"California",
+  b:{med:1,dec:0,au:1,ret:1, mp:"8oz/recommendation",ap:1,dp:"NA", mh:6,ah:6,
+     fc:null,cc:null,es:10,ep:100,
+     F:1,S:1,V:1,C:1,E:1,L:0,
+     te:15,ts:7.25,tl:10,tw:"$9.25/oz cultivation (until 2022-07-01) + 15% cannabis excise + 7.25% state sales tax",tp:0,tf:22,
+     txn:1,txc:8,win:"28.5g cannabis + 8g concentrate (Prop 64)",tt:"retail_plus_weight",sb:0},
+  c:[["2022-07-01",{tw:"15% cannabis excise + 7.25% state sales tax (cultivation tax repealed AB 195)", tt:"flat"}],
+     ["2025-07-01",{te:19,tf:26}],
+     ["2025-10-01",{te:15,tf:22}]],
+  ci:[["2018-10-17","Prop 64 (2016) / MAUCRSA","https://cannabis.ca.gov/"],["2022-07-01","AB 195 - cultivation tax repealed; excise stays at 15% with biennial CDTFA adjustment","https://leginfo.legislature.ca.gov/faces/billNavClient.xhtml?bill_id=202120220AB195"],["2025-07-01","CDTFA L-1054 - excise raised to 19%","https://www.cdtfa.ca.gov/formspubs/l1054.pdf"],["2025-10-01","CDTFA reset excise back to 15% (CORRECTED v3)","https://cdtfa.ca.gov/taxes-and-fees/special-taxes-and-fees-tax-rates/"]]},
+
+CO: {n:"Colorado",
+  b:{med:1,dec:0,au:1,ret:1, mp:2,ap:1,dp:"NA", mh:6,ah:6,
+     fc:null,cc:null,es:10,ep:100,
+     F:1,S:1,V:1,C:1,E:1,L:0,
+     te:15,ts:0,ts_med:2.9,tl:5.5,tw:"15% AU retail marijuana sales tax + 15% wholesale/first-transfer excise; AU exempt from 2.9% state sales tax; medical subject to 2.9% state sales tax; local cannabis exposure varies (Denver 5.5% special retail marijuana tax + 5.15% general local; CO does not have a single statewide local cap — tl shows representative special-tax layer)",tp:0,tf:30,
+     txn:1,txc:8,win:"1 oz flower = 8 g concentrate = 800 mg infused THC product (1 CCR 212-3 retail equivalency)",tt:"retail_plus_wholesale",sb:0},
+  c:[["2021-05-20",{ap:2}],
+     ["2022-01-01",{txc:8, win:"1 oz flower = 8 g concentrate; HB 21-1317 added daily-tracking enforcement (txc unchanged)"}]],
+  ci:[["2018-10-17","Amendment 64 (2012); HB 17-1220","https://leg.colorado.gov/"],["2021-05-20","HB 21-1090 - adult possession increased from 1 oz to 2 oz (CORRECTED from prior SB 19-224 attribution)","https://leg.colorado.gov/bills/hb21-1090"],["2022-01-01","HB 21-1317 - 8 g/day concentrate purchase limit (product-specific, not general window quota)","https://leg.colorado.gov/bills/hb21-1317"]]},
+
+CT: {n:"Connecticut",
+  b:{med:1,dec:1,au:0,ret:0, mp:2.5,ap:"NA",dp:0.5, mh:0,ah:0,
+     fc:null,cc:null,es:null,ep:null,
+     F:1,S:1,V:1,C:1,E:1,L:0,
+     te:0,ts:0,tl:0,tw:"none",tp:0,tf:0,
+     txn:"NA",txc:0,win:"none",tt:"none",sb:0},
+  c:[["2021-07-01",{au:1, ap:1.5, dp:"NA"}],
+     ["2021-10-01",{mh:6, mp:5, win:"5 oz medical possession / monthly purchase; no individual transaction limit"}],
+     ["2023-01-10",{ret:1, fc:30, cc:60, es:5, ep:100,
+                    te:11, ts:6.35, tl:3, tw:"per-mg potency excise: $0.00625/mg flower, $0.0275/mg edibles, $0.009/mg other",
+                    tp:1, tf:22, txn:0.25, txc:1.25, tt:"hybrid"}],
+     ["2023-07-01",{ah:6}],
+     ["2023-12-01",{txn:0.5, txc:2.5}],
+     ["2025-07-30",{txn:1, txc:5}],
+     ["2025-10-01",{fc:35, cc:70, win:"CT PA 25-166 (eff. 2025-10-01): flower cap 30% to 35%; non-flower cannabis products 60% to 70%; statutory exception (PA 25-166): prefilled cartridges for use in an electronic cannabis delivery system are exempt from the 70% non-flower cap; high-THC labeling/display thresholds preserved"}]],
+  ci:[["2018-10-17","HB 5389 (2012) - CT medical marijuana program (CORRECTED v2 baseline; medical was active in 2018)","https://www.cga.ct.gov/2012/act/pa/pdf/2012PA-00055-R00HB-05389-PA.pdf"],["2021-06-22","SB 1201 - RERACA (signed by Gov. Lamont)","https://portal.ct.gov/-/media/DCP/drug_control/2021PA-00001-R00SB-01201SS1-PA.PDF"],["2021-07-01","RERACA possession provisions effective: AU possession 1.5 oz protected; decrim threshold superseded","https://portal.ct.gov/cannabis"],["2021-10-01","Medical patient home grow (3 mature/3 immature) effective Oct 1, 2021","https://portal.ct.gov/cannabis"],["2023-07-01","RERACA AU home cultivation provisions effective: 6 plants per adult","https://portal.ct.gov/cannabis"],["2023-01-10","Retail launch; THC-based potency excise + 6.35% sales + 3% municipal","https://portal.ct.gov/drs/taxes/cannabis/cannabis-tax"],["2023-12-01","Transaction limit raised from 0.25 oz to 0.5 oz","https://portal.ct.gov/dcp/news-releases-from-the-department-of-consumer-protection/2023-news-releases/department-of-consumer-protection-announces-adult-use-cannabis-transaction-limit-increase"],["2025-07-30","Transaction limit raised from 0.5 oz to 1 oz","https://portal.ct.gov/cannabis/-/media/cannabis/notices/2025/722025-increase-in-per-transaction-limit.pdf"],["2025-10-01","CT Public Act 25-166 (HB 7181 enrolled) - 35% flower / 70% non-flower THC cap; statutory exception: prefilled cartridges for use in an electronic cannabis delivery system are exempt from the 70% non-flower cap","https://cga.ct.gov/2025/ACT/PA/PDF/2025PA-00166-R00HB-07181-PA.PDF"]]},
+
+DE: {n:"Delaware",
+  b:{med:1,dec:1,au:0,ret:0, mp:6,ap:"NA",dp:1, mh:0,ah:0,
+     fc:null,cc:null,es:null,ep:null,
+     F:1,S:1,V:1,C:1,E:1,L:0,
+     te:0,ts:0,tl:0,tw:"none",tp:0,tf:0,
+     txn:"NA",txc:0,win:"30-day supply (medical)",tt:"none",sb:0},
+  c:[["2023-04-23",{au:1, ap:1, dp:"NA"}],
+     ["2025-08-01",{ret:1, es:10, ep:50,
+                    te:15,tf:15, txn:1, txc:12, win:"1 oz flower + 12 g concentrate + 750 mg THC product (AU)", tt:"flat"}]],
+  ci:[["2018-10-17","SB 17 (2011) / 16 Del. C. Ch. 49A - DE medical (CORRECTED v2 baseline; 6 oz qualifying patient possession)","https://delcode.delaware.gov/title16/c049A/"],["2023-04-23","HB 1 / HB 2 became law without Gov. Carney's signature","https://legis.delaware.gov/BillDetail?LegislationId=140172"],["2024-09-01","OMC adult-use final regs (28 DE Reg 226, eff. Sept 2024) - 10 mg/serving, 50 mg/package edibles","https://regulations.delaware.gov/register/september2024/final/28%20DE%20Reg%20226%2009-01-24.htm"],["2025-08-01","DE OMC announces adult-use retail begins August 1, 2025 via medical compassion-center conversion licenses (12 dispensaries on day one)","https://news.delaware.gov/2025/07/01/delaware-to-launch-adult-use-marijuana-on-august-1/"]]},
+
+DC: {n:"District of Columbia",
+  b:{med:1,dec:0,au:1,ret:0, mp:2,ap:2,dp:"NA", mh:6,ah:6,
+     fc:null,cc:null,es:null,ep:null,
+     F:1,S:1,V:1,C:1,E:1,L:0,
+     te:0,ts:6,tl:0,tw:"6% medical gross-receipts (no AU retail per Harris rider)",tp:0,tf:6,
+     txn:"NA",txc:0,win:"none",tt:"flat",sb:0},
+  c:[],
+  ci:[["2018-10-17","Initiative 71 (2014); medical I-59 (2010) - Harris rider blocks commercial sales","https://abca.dc.gov"],["2022-07-13","B24-0118 - medical self-certification","https://lims.dccouncil.gov/Legislation/B24-0118"]]},
+
+FL: {n:"Florida",
+  b:{med:1,dec:0,au:0,ret:0, mp:"70-day supply non-smokable",ap:-1,dp:"NA", mh:0,ah:0,
+     fc:"NA",cc:null,es:"NA",ep:"NA",
+     F:0,S:0,V:1,C:1,E:0,L:0,
+     te:0,ts:0,tl:0,tw:"none (medical sales-tax exempt)",tp:0,tf:0,
+     txn:"NA",txc:0,win:"70-day supply non-smokable routes",tt:"none",sb:0},
+  c:[["2019-03-18",{F:1,S:1, fc:null, mp:"70-day non-smokable + 2.5oz smokable/35d",
+                    win:"70-day non-smoking routes; 2.5oz/35d smoking; 4oz smoking possession cap"}],
+     ["2020-08-27",{E:1, es:10, ep:200}]],
+  ci:[["2018-10-17","Amendment 2 (2016); SB 8A (2017); medical sales-tax exempt","https://knowthefactsmmj.com/"],["2019-03-18","SB 182 - smokable medical flower legalized; 2.5 oz/35-day supply ceiling for smokable (CORRECTED v2 from 0)","https://www.flsenate.gov/Session/Bill/2019/182"],["2020-08-27","DOH Rule 64-4.011 - edibles authorized; 10 mg serving / 200 mg package","https://knowthefactsmmj.com/patients/edibles/"],["2024-11-05","Amendment 3 FAILED (55.9% yes; 60% required)","https://results.elections.myflorida.com/"]]},
+
+GA: {n:"Georgia",
+  b:{med:1,dec:0,au:0,ret:0, mp:"20 fl oz low-THC oil",ap:-1,dp:"NA", mh:0,ah:0,
+     fc:"NA",cc:"NA",es:"NA",ep:"NA",
+     F:0,S:0,V:0,C:0,E:0,L:1,
+     te:0,ts:0,tl:0,tw:"none",tp:0,tf:0,
+     txn:"NA",txc:0,win:"5% THC oil cap",tt:"none",sb:0},
+  c:[],
+  ci:[["2018-10-17","Haleigh's Hope Act (HB 1, 2015); program is LOW-THC OIL ONLY at <=5% THC (CORRECTED v2 schema; not flower/concentrate caps)","https://dph.georgia.gov/low-thc-oil-registry"],["2019-04-17","HB 324 - GA Access to Medical Cannabis Commission","https://www.legis.ga.gov/legislation/54907"],["2023-04-13","First sales (Botanical Sciences, Trulieve GA)","https://gmcc.ga.gov/"]]},
+
+HI: {n:"Hawaii",
+  b:{med:1,dec:0,au:0,ret:0, mp:"4oz/15d",ap:-1,dp:"NA", mh:10,ah:0,
+     fc:null,cc:null,es:"NA",ep:"NA",
+     F:1,S:1,V:1,C:1,E:0,L:0,
+     te:0,ts:4,tl:0,tw:"none",tp:0,tf:4,
+     txn:"NA",txc:0,win:"4oz/15d (medical)",tt:"flat",sb:0},
+  c:[["2020-01-11",{dec:1, ap:"NA", dp:0.106}],
+     ["2023-07-03",{E:1, es:10, ep:1000}]],
+  ci:[["2018-10-17","Act 228 (2000); Act 241 (2015) dispensary program (CORRECTED v2: medical NOT replaced by D)","https://health.hawaii.gov/medicalcannabis/"],["2020-01-11","HB 1383 (Act 273 SLH 2019) - decrim 3 g (separate flag, medical retained)","https://www.civilbeat.org/beat/hawaiis-pot-decriminalization-takes-effect-jan-11/"],["2023-07-03","Act 220 / HB 1359 - edibles authorized; 10 mg serving / 1000 mg package (CORRECTED v2 from 100)","https://www.law.cornell.edu/regulations/hawaii/Haw-Code-R-SS-11-850-76"]]},
+
+ID: {n:"Idaho",
+  b:{med:0,dec:0,au:0,ret:0, mp:"NA",ap:-1,dp:"NA", mh:0,ah:0,
+     fc:"NA",cc:"NA",es:"NA",ep:"NA",
+     F:0,S:0,V:0,C:0,E:0,L:0,
+     te:0,ts:0,tl:0,tw:"none",tp:0,tf:0,
+     txn:"NA",txc:0,win:"none",tt:"none",sb:0},
+  c:[],
+  ci:[["2018-10-17","Idaho Code 37-2732(c) - any-amount possession criminal","https://legislature.idaho.gov/statutesrules/idstat/Title37/T37CH27/SECT37-2732/"],["2021-02-08","SJR 101 - constitutional entrenchment effort (passed Senate, died in House)","https://legislature.idaho.gov/sessioninfo/2021/legislation/SJR101/"]]},
+
+IL: {n:"Illinois",
+  b:{med:1,dec:1,au:0,ret:0, mp:"2.5oz/14d",ap:"NA",dp:0.353, mh:0,ah:0,
+     fc:null,cc:null,es:null,ep:null,
+     F:1,S:1,V:1,C:1,E:1,L:0,
+     te:0,ts:1,tl:0,tw:"7% medical cannabis cultivation privilege tax on cultivator (upstream); medical retail subject to 1% state ROT; local cannabis taxes do not apply to medical sales",tp:0,tf:1,
+     txn:"NA",txc:0,win:"2.5oz/14d (medical)",tt:"flat",sb:0},
+  c:[["2020-01-01",{au:1, ret:1, ap:1.06, dp:"NA", mh:5,
+                    es:10, ep:100,
+                    te:"10/20/25 (tiered)", ts:6.25, tl:3.75, tw:"7% cultivation privilege tax on first sale; municipal cannabis retailer tax up to 3% + county tax up to 3.75% unincorporated or 3% incorporated (cannot stack uniformly; tl shows max single layer)",
+                    tp:1, tf:31.25, txn:1.06, txc:5, win:"30g flower + 5g concentrate + 500mg infused THC (AU resident)", tt:"grad", sb:1}]],
+  ci:[["2018-10-17","Compassionate Use of Medical Cannabis Pilot Program Act (PA 098-0122, eff. 2014); medical possession 2.5 oz/14d (CORRECTED v2: 0.09 was scale error)","https://idfpr.illinois.gov/"],["2019-06-25","HB 1438 - CRTA (PA 101-0027); graduated cannabis tax 10%/20%/25% by THC tier; resident 30g vs non-resident 15g (sb=1)","https://www.ilga.gov/legislation/publicacts/101/PDF/101-0027.pdf"],["2020-01-01","Adult-use retail launch; medical patients may grow up to 5 plants (mh=5, separate from au_hg=0)","https://www.ilga.gov/legislation/ilcs/ilcs5.asp?ActID=3992"]]},
+
+IN: {n:"Indiana",
+  b:{med:0,dec:0,au:0,ret:0, mp:"NA",ap:-1,dp:"NA", mh:0,ah:0,
+     fc:"NA",cc:"NA",es:"NA",ep:"NA",
+     F:0,S:0,V:0,C:0,E:0,L:0,
+     te:0,ts:0,tl:0,tw:"none",tp:0,tf:0,
+     txn:"NA",txc:0,win:"none",tt:"none",sb:0},
+  c:[],
+  ci:[["2018-10-17","IC 35-48-4-11 - any-amount possession criminal","https://iga.in.gov/"],["2018-03-21","SEA 52 - hemp-derived CBD <0.3% THC legalized","https://iga.in.gov/legislative/2018/bills/senate/52"]]},
+
+IA: {n:"Iowa",
+  b:{med:1,dec:0,au:0,ret:0, mp:"physician-certified",ap:-1,dp:"NA", mh:0,ah:0,
+     fc:"NA",cc:3,es:"NA",ep:"NA",
+     F:0,S:0,V:1,C:1,E:0,L:0,
+     te:0,ts:6,tl:1,tw:"medical cannabidiol subject to Iowa state sales tax (6%); local-option up to 1%; no cannabis-specific excise",tp:0,tf:6,
+     txn:"NA",txc:0,win:"3% THC product cap",tt:"flat",sb:0},
+  c:[["2020-06-29",{cc:null,
+                    win:"4.5g THC / 90 days aggregate (no concentration cap)"}]],
+  ci:[["2018-10-17","Iowa Code Ch. 124E (HF 524, 2017); products limited to oils/inhalable; 3% THC product cap (CORRECTED v2 cc:null)","https://www.legis.iowa.gov/docs/ico/chapter/124E.pdf"],["2020-06-29","HF 2589 - replaced 3% concentration cap with 4.5g THC/90-day aggregate quota (the blending-robust instrument)","https://www.legis.iowa.gov/legislation/BillBook?ga=88&ba=HF2589"]]},
+
+KS: {n:"Kansas",
+  b:{med:0,dec:0,au:0,ret:0, mp:"NA",ap:-1,dp:"NA", mh:0,ah:0,
+     fc:"NA",cc:"NA",es:"NA",ep:"NA",
+     F:0,S:0,V:0,C:0,E:0,L:0,
+     te:0,ts:0,tl:0,tw:"none",tp:0,tf:0,
+     txn:"NA",txc:0,win:"none",tt:"none",sb:0},
+  c:[["2019-05-24",{L:1}]],
+  ci:[["2018-10-17","K.S.A. 21-5706 - any-amount possession criminal","http://kslegislature.org/"],["2019-05-24","SB 28 - Claire and Lola's Law (CBD <5% THC affirmative defense for limited conditions)","http://kslegislature.org/li_2020/b2019_20/measures/sb28/"]]},
+
+KY: {n:"Kentucky",
+  b:{med:0,dec:0,au:0,ret:0, mp:"NA",ap:-1,dp:"NA", mh:0,ah:0,
+     fc:"NA",cc:"NA",es:"NA",ep:"NA",
+     F:0,S:0,V:0,C:0,E:0,L:0,
+     te:0,ts:0,tl:0,tw:"none",tp:0,tf:0,
+     txn:"NA",txc:0,win:"none",tt:"none",sb:0},
+  c:[["2025-01-01",{med:1, mp:"30-day supply",
+                    fc:35, cc:70, es:10, ep:100,
+                    F:1,S:0,V:1,C:1,E:1,
+                    te:0,ts:0,tl:0,tw:"none (medical exempt from sales/excise)",tp:0,tf:0,
+                    win:"30-day supply",tt:"none"}]],
+  ci:[["2018-10-17","KRS 218A - prohibited","https://legislature.ky.gov/"],["2023-03-31","SB 47 - medical legalized (program effective 2025-01-01)","https://legislature.ky.gov/Law/Acts/23RS/Documents/0103.pdf"],["2025-01-01","Medical operational; 35% THC raw plant cap, 70% concentrate cap (CORRECTED v2 from null/null); medical exempt from sales/excise tax (CORRECTED v2 from 6%); flower allowed but smoking prohibited (vape only)","https://kymedcan.ky.gov/FAQs/Pages/Banking-and-Taxes-Questions.aspx"]]},
+
+LA: {n:"Louisiana",
+  b:{med:1,dec:0,au:0,ret:0, mp:"30-day supply",ap:-1,dp:"NA", mh:0,ah:0,
+     fc:"NA",cc:null,es:"NA",ep:"NA",
+     F:0,S:0,V:1,C:1,E:0,L:0,
+     te:0,ts:0,tl:0,tw:"7% gross-sales fee on therapeutic-marijuana licensee under La. R.S. 40:1046(H)(4)(c) - reported and paid by the licensed production facility / contractor selling to LA marijuana pharmacies, collected by LA Department of Revenue, deposited to Disability Services Fund (R.S. 28:826); medical retail sales-tax-exempt for patients (separate from this licensee fee)",tp:0,tf:7,
+     txn:"NA",txc:0,win:"30-day supply (medical)",tt:"licensee_gr",sb:0},
+  c:[["2021-08-01",{dec:1, ap:"NA", dp:0.494}],
+     ["2022-01-01",{F:1,S:1, fc:null, mp:"2.5oz flower/14d", win:"2.5oz flower / 14 days; non-flower products may use 30-day supply"}]],
+  ci:[["2018-10-17","Therapeutic Use of Marijuana Act (R.S. 40:1046); medical only, no smokable initially. R.S. 40:1046(H)(4)(c) imposes a 7% fee on gross sales of therapeutic marijuana on the licensed production facility (collected by LA Dept. of Revenue, deposited to Disability Services Fund per R.S. 28:826).","https://www.legis.la.gov/Legis/Law.aspx?d=96986"],["2021-08-01","Act 247 (HB 652) - decrim <=14g effective Aug 1, 2021 (CORRECTED v2 date 2022-06-14; medical retained)","https://legis.la.gov/legis/BillInfo.aspx?b=HB652&s=21RS"],["2022-01-01","Act 424 (HB 819) - smokable medical flower; 2.5 oz / 14-day supply","http://legis.la.gov/legis/BillInfo.aspx?s=21RS&b=HB819"]]},
+
+ME: {n:"Maine",
+  b:{med:1,dec:1,au:1,ret:0, mp:2.5,ap:2.5,dp:"NA", mh:6,ah:3,
+     fc:null,cc:null,es:null,ep:null,
+     F:1,S:1,V:1,C:1,E:1,L:0,
+     te:0,ts:5.5,tl:0,tw:"medical taxable: 5.5% sales tax; 8% on prepared food containing medical marijuana (Maine Revenue Services)",tp:0,tf:5.5,
+     txn:"NA",txc:0,win:"none",tt:"flat",sb:0},
+  c:[["2020-10-09",{ret:1, es:10, ep:100, txn:2.5,
+                    te:10, ts:0, tl:0, tw:"$335/lb flower wholesale (10% retail + weight wholesale)",
+                    tp:0, tf:10, txc:10, win:"2.5 oz purchase, no more than 10 g concentrate", tt:"retail_plus_weight"}],
+     ["2023-10-25",{ah:6, win:"6 mature + 12 immature + unlimited seedlings (PL 2023 c.220)"}],
+     ["2026-01-01",{te:14, tw:"AU 14% retail tax (was 10%); weight excise: flower $223/lb, trim $63/lb, immature plant/seedling $1, mature plant $23, seed $0.20; medical 5.5% sales tax + 8% prepared food (channel-specific)", tf:14, tt:"retail_plus_weight"}]],
+  ci:[["2018-10-17","Question 1 (2016) / LD 1719; medical Act since 1999; baseline 3 mature + 12 immature + unlimited seedlings (PL 2017 c.409)","https://lldc.mainelegislature.org/Open/Laws/2017/2017_PL_c409.pdf"],["2020-03-09","OCP final adult-use rules (Ch. 1) - 10mg/100mg edibles","https://www.maine.gov/dafs/ocp/rules-statutes"],["2020-10-09","Retail launch","https://www.maine.gov/dafs/ocp"],["2023-10-25","PL 2023 c.220 - mature plant count raised from 3 to 6","https://www.maine.gov/dafs/ocp/resources/faq"],["2026-01-01","Maine 36 MRSA §1811 - AU retail tax raised 10% to 14%; weight excise rates updated","https://legislature.maine.gov/legis/statutes/36/title36sec1811.html"]]},
+
+MD: {n:"Maryland",
+  b:{med:1,dec:1,au:0,ret:0, mp:"120g/30d",ap:"NA",dp:0.353, mh:0,ah:0,
+     fc:null,cc:null,es:null,ep:null,
+     F:1,S:1,V:1,C:1,E:1,L:0,
+     te:0,ts:0,tl:0,tw:"medical exempt",tp:0,tf:0,
+     txn:"NA",txc:0,win:"120g/30d (medical)",tt:"none",sb:0},
+  c:[["2023-01-01",{dec:1, dp:1.5}],
+     ["2023-07-01",{au:1, ret:1, ap:1.5, dp:"NA", ah:2,
+                    es:10, ep:100,
+                    te:9,tf:9, txn:1.5, txc:12, win:"1.5 oz flower + 12 g concentrate + 750 mg THC product (AU)", tt:"flat"}],
+     ["2025-07-01",{te:12,tf:12}]],
+  ci:[["2018-10-17","HB 881 (2014) - MD medical","https://cannabis.maryland.gov/"],["2022-11-08","Question 4 (Nov 2022) approved 65.5%","https://mgaleg.maryland.gov/2022RS/bills/hb/hb0001E1.pdf"],["2023-01-01","HB 837 (2022) - civil/decrim transitional 1.5 oz personal use; NOT full AU until July 1 (CORRECTED v2 'AN' encoding)","https://mgaleg.maryland.gov/2022RS/Chapters_noln/CH_26_hb0837e.pdf"],["2023-07-01","HB 556 - Cannabis Reform Act effective; AU + retail launch","https://mgaleg.maryland.gov/2023RS/Chapters_noln/CH_254_hb0556e.pdf"],["2025-07-01","BRFA 2025 - excise raised 9% to 12%","https://mgaleg.maryland.gov/2025RS/bills/hb/hb0352E1.pdf"]]},
+
+MA: {n:"Massachusetts",
+  b:{med:1,dec:1,au:1,ret:0, mp:10,ap:1,dp:"NA", mh:12,ah:6,
+     fc:null,cc:null,es:5,ep:100,
+     F:1,S:1,V:1,C:1,E:1,L:0,
+     te:0,ts:0,tl:0,tw:"medical tax-free; AU retail not yet active (Oct-Nov 2018 transition)",tp:0,tf:0,
+     txn:"NA",txc:0,win:"none",tt:"none",sb:0},
+  c:[["2018-11-20",{ret:1, txn:1, txc:5, te:10.75, ts:6.25, tl:3, tw:"AU retail launch: 10.75% state excise + 6.25% sales + up to 3% local; medical remains tax-free", win:"1 oz flower = 5 g active THC concentrate = 500 mg active THC edibles (935 CMR 500.140(3))", tp:0, tf:17, tt:"flat"}],
+     ["2026-04-19",{ap:2,txn:2,txc:10,win:"2 oz flower = 10 g active THC concentrate = 1000 mg active THC edibles (Ch.65 reform doubles the equivalency from 5g/500mg pre-2026 per 935 CMR 500.140(3))"}]],
+  ci:[["2018-10-17","Question 4 (2016) / Ch. 334/2016; medical Q3 2012; 935 CMR 500.150 (5 mg/serving, 100 mg/package; 5.5/110 with regulatory variance)","https://malegislature.gov/"],["2018-11-20","First retail sales (Cultivate Leicester, NETA Northampton)","https://masscannabiscontrol.com/"],["2022-08-11","Ch. 180/2022 - equity reform (HCA caps, social consumption framework)","https://malegislature.gov/Laws/SessionLaws/Acts/2022/Chapter180"],["2026-04-19","An Act Modernizing the Commonwealth's Cannabis Laws - adult possession 1 oz to 2 oz","https://masscannabiscontrol.com/2026/04/bulletin-no-1-an-act-modernizing-the-commonwealths-cannabis-laws-april-17-2026/"]]},
+
+MI: {n:"Michigan",
+  b:{med:1,dec:0,au:0,ret:0, mp:2.5,ap:-1,dp:"NA", mh:12,ah:0,
+     fc:null,cc:null,es:50,ep:200,
+     F:1,S:1,V:1,C:1,E:1,L:0,
+     te:0,ts:6,tl:0,tw:"3% medical provisioning tax (until 2021-03-06)",tp:0,tf:9,
+     txn:"NA",txc:0,win:"2.5 oz/day; 10 oz/month medical (CRA)",tt:"flat",sb:0},
+  c:[["2018-12-06",{au:1, ap:2.5, ah:12}],
+     ["2019-12-01",{ret:1, txn:2.5, es:10, ep:100,
+                    te:10,tf:16, tw:"none AU; 3% medical until 2021",
+                    txc:15, win:"AU 2.5 oz transaction + 15 g concentrate; medical 2.5 oz/day, 10 oz/month"}],
+     ["2021-03-06",{tw:"none (medical 3% sunset)"}],
+     ["2026-01-01",{tw:"24% AU wholesale marijuana tax + 10% AU retail excise + 6% sales tax", tf:40, tt:"retail_plus_wholesale"}]],
+  ci:[["2018-10-17","MMMA Initiated Law 1 of 2008; PA 281 of 2016 (MMFLA)","https://www.michigan.gov/cra"],["2018-12-06","Proposal 1 (MRTMA) effective; possession/home grow legal","https://www.legislature.mi.gov/Laws/MCL?objectName=mcl-Initiated-Law-1-of-2018"],["2019-12-01","First adult-use retail sales","https://www.michigan.gov/cra"],["2021-03-06","MRTMA Sec. 13(2) self-execution - medical 3% tax sunset","https://www.michigan.gov/treasury"],["2026-01-01","Revenue Administrative Bulletin 2026-3 - new 24% AU wholesale marijuana tax effective Jan 1, 2026 (separate from existing 10% retail excise)","https://www.michigan.gov/taxes/rep-legal/rab/2026-revenue-administrative-bulletins/revenue-administrative-bulletin-2026-3"]]},
+
+MN: {n:"Minnesota",
+  b:{med:1,dec:1,au:0,ret:0, mp:"30-day supply",ap:"NA",dp:1.5, mh:0,ah:0,
+     fc:"NA",cc:null,es:"NA",ep:"NA",
+     F:0,S:0,V:1,C:1,E:0,L:0,
+     te:0,ts:0,tl:0,tw:"medical sold to registry patient is exempt from MN Cannabis Tax and sales tax",tp:0,tf:0,
+     txn:"NA",txc:0,win:"30-day supply (medical)",tt:"none",sb:0},
+  c:[["2022-03-01",{F:1, S:1, fc:null}],
+     ["2022-08-01",{E:1, es:10, ep:100, win:"30-day supply (medical); infused edibles/gummies/chews authorized at 10mg/serving + 100mg/package medical cap"}],
+     ["2023-08-01",{au:1, ap:2, dp:"NA", ah:8,
+                    txc:8, ep:200,
+                    mp:"90-day supply",
+                    te:10, ts:6.875, tw:"10% gross receipts (cannabis-specific) + 6.875% state sales tax (AU only; medical remains exempt)",
+                    tp:0, tf:16.875,
+                    win:"AU possession 2 oz; AU edibles 10mg/200mg; medical edibles 10mg/100mg; medical 90-day supply (HF 100); 8g/day concentrate (AU)",
+                    tt:"flat"}],
+     ["2025-07-01",{te:15, tw:"15% gross receipts (cannabis-specific)",
+                    tf:21.875}],
+     ["2025-09-16",{ret:1, txn:2}]],
+  ci:[["2018-10-17","SF 2470 (2014) medical; no flower until 2022; no edibles","https://health.state.mn.us"],["2022-03-01","Medical flower allowed for patients 21+","https://health.state.mn.us"],["2022-07-01","HF 4065 - hemp THC edibles legalized (separate from cannabis; 5mg/50mg). NOTE: hemp-edibles not adult-use cannabis edibles.","https://revisor.mn.gov/laws/2022/0/Session+Law/Chapter/98"],["2022-08-01","Medical infused edibles (gummies/chews) authorized for registry patients","https://mn.gov/ocm/dmc/about-us/program-info/key-dates.jsp"],["2023-08-01","HF 100 - adult-use legalization signed May 30, 2023, effective Aug 1; 10mg/200mg adult-use cannabis edibles (CORRECTED v2 from 5/50 hemp values)","https://revisor.mn.gov/laws/2023/0/Session+Law/Chapter/63"],["2025-07-01","Cannabis gross receipts tax raised 10% to 15% (CORRECTED v2 unchanged at 17%)","https://www.revenue.state.mn.us/cannabis-tax"],["2025-09-16","First non-tribal adult-use retail sales (CORRECTED v2 date 2025-12-01)","https://mn.gov/ocm/media/news-releases/?id=705993"]]},
+
+MS: {n:"Mississippi",
+  b:{med:0,dec:1,au:0,ret:0, mp:"NA",ap:"NA",dp:1.06, mh:0,ah:0,
+     fc:"NA",cc:"NA",es:"NA",ep:"NA",
+     F:0,S:0,V:0,C:0,E:0,L:0,
+     te:0,ts:0,tl:0,tw:"none",tp:0,tf:0,
+     txn:"NA",txc:0,win:"<=30g first-offense fine-only (decrim)",tt:"none",sb:0},
+  c:[["2022-02-02",{med:1, mp:"3oz/30d MMCEU",
+                    fc:30, cc:60, es:5, ep:100,
+                    F:1,S:1,V:1,C:1,E:1,
+                    te:0, ts:7, tl:0, tw:"5% cultivator first-sale/transfer excise (upstream, NOT retail) + 7% retail sales tax",
+                    tp:0, tf:12, win:"3oz/30d + 3.5g daily MMCEU", tt:"mixed"}]],
+  ci:[["2018-10-17","First-offense simple possession <=30g fine-only/decriminalized (Miss. Code 41-29-139); larger amounts and certain contexts remain criminal","https://law.justia.com/codes/mississippi/title-41/chapter-29/article-3/section-41-29-139/"],["2021-05-14","In re Initiative Measure No. 65 - Initiative 65 STRUCK by MS Sup Ct (single-subject)","https://courts.ms.gov/Images/Opinions/CO156645.pdf"],["2022-02-02","SB 2095 - Mississippi Medical Cannabis Act (MMCEU equivalency: 3oz/30d + 3.5g daily; 30% flower / 60% concentrate THC caps)","http://billstatus.ls.state.ms.us/documents/2022/pdf/SB/2000-2099/SB2095SG.pdf"]]},
+
+MO: {n:"Missouri",
+  b:{med:0,dec:0,au:0,ret:0, mp:"NA",ap:-1,dp:"NA", mh:0,ah:0,
+     fc:"NA",cc:"NA",es:"NA",ep:"NA",
+     F:0,S:0,V:0,C:0,E:0,L:0,
+     te:0,ts:0,tl:0,tw:"none",tp:0,tf:0,
+     txn:"NA",txc:0,win:"none",tt:"none",sb:0},
+  c:[["2018-12-06",{med:1, mp:"4oz/30d", mh:6,
+                    fc:null, cc:null, es:null, ep:null,
+                    F:1,S:1,V:1,C:1,E:1,
+                    te:4, ts:4.225, tl:0, tw:"4% medical marijuana tax + 4.225% state sales tax (MO DOR: cannabis tax is in addition to applicable sales tax)",
+                    tp:0, tf:8.225, win:"4oz/30d (medical)", tt:"flat"}],
+     ["2022-12-08",{au:1, ap:3, ah:6, mp:"6oz/30d purchase allotment", win:"6oz/30d medical purchase; possession >=60-day supply"}],
+     ["2023-02-03",{ret:1, te:6, ts:4.225, tl:3, tw:"6% adult-use cannabis tax + 4.225% state sales tax",
+                    tp:0, tf:10.225, txn:3, txc:24, win:"3 oz cannabis = 24 g concentrate = 2400 mg infused THC (AU); 6oz/30d medical purchase"}]],
+  ci:[["2018-10-17","Missouri RSMo §195.202 et seq. - cannabis prohibited as of October 2018 (baseline; pre-Amendment 2 medical legalization); Amendment 2 approved 2018-11-06 takes effect later","https://revisor.mo.gov/main/OneSection.aspx?section=195.202"],["2018-11-06","Amendment 2 (medical) approved 65.5%","https://www.sos.mo.gov/elections/petitions/2018petitions"],["2018-12-06","Amendment 2 effective (constitutional self-execution 30 days after election)","https://www.sos.mo.gov/elections/petitions/2018petitions"],["2022-11-08","Amendment 3 (adult-use) approved 53.1%","https://www.sos.mo.gov/elections/petitions/2022petitions"],["2022-12-08","Amendment 3 effective (constitutional self-execution 30 days after election)","https://www.sos.mo.gov/elections/petitions/2022petitions"],["2023-02-03","Adult-use retail launch at converted comprehensive facilities","https://cannabis.mo.gov/"]]},
+
+MT: {n:"Montana",
+  b:{med:1,dec:0,au:0,ret:0, mp:1,ap:-1,dp:"NA", mh:4,ah:0,
+     fc:null,cc:null,es:null,ep:null,
+     F:1,S:1,V:1,C:1,E:1,L:0,
+     te:4,ts:0,tl:0,tw:"none",tp:0,tf:4,
+     txn:"NA",txc:0,win:"5oz/month purchase allotment; 1oz/day cap (medical)",tt:"flat",sb:0},
+  c:[["2021-01-01",{au:1, ap:1, ah:4}],
+     ["2022-01-01",{ret:1, es:10, ep:100,
+                    te:20, tl:3, tf:20, txn:1, txc:8, win:"1 oz cannabis + 8 g concentrate + 800 mg THC product (AU); county local-option up to 3%"}]],
+  ci:[["2018-10-17","I-148 (2004) / I-182 (2016) - MT medical","https://mtrevenue.gov/cannabis"],["2020-11-03","I-190 (adult-use 56.9%) and CI-118 approved","https://leg.mt.gov"],["2021-01-01","I-190 takes effect (AU possession protected; pre-retail; constitutional initiative effective 30 days after canvass)","https://leg.mt.gov"],["2021-05-18","HB 701 - I-190 implementation; 20% AU / 4% medical; up to 3% county local-option","https://leg.mt.gov/bills/2021/billpdf/HB0701.pdf"],["2022-01-01","Montana adult-use retail sales begin (per HB 701 implementation; first commercial sales)","https://mtrevenue.gov/cannabis"]]},
+
+NE: {n:"Nebraska",
+  b:{med:0,dec:1,au:0,ret:0, mp:"NA",ap:"NA",dp:1, mh:0,ah:0,
+     fc:"NA",cc:"NA",es:"NA",ep:"NA",
+     F:0,S:0,V:0,C:0,E:0,L:0,
+     te:0,ts:0,tl:0,tw:"none",tp:0,tf:0,
+     txn:"NA",txc:0,win:"none",tt:"none",sb:0},
+  c:[["2024-12-10",{med:1, mp:5,
+                    fc:null, cc:null, es:null, ep:null,
+                    F:1, V:1, C:1, E:1,
+                    win:"5 oz patient legal protection (Init 437/438; licensed access NOT operational by Apr 2026)"}]],
+  ci:[["2018-10-17","Neb. Rev. Stat. 28-416(13) - 1oz first-offense civil","https://nebraskalegislature.gov/"],["2024-11-05","Initiatives 437 and 438 approved by Nebraska voters","https://ballotpedia.org/Nebraska_Initiative_437,_Medical_Marijuana_Legalization_Initiative_(2024)"],["2024-12-10","Initiatives 437 and 438 effective after Gov. Pillen proclamation - 5 oz patient legal-protection (operational access not yet active)","https://ballotpedia.org/Nebraska_Initiative_437,_Medical_Marijuana_Legalization_Initiative_(2024)"],["2025-10-01","Statutory licensing deadline; first cultivator licenses offered Oct 7, 2025; patient access not operational by April 2026","https://nebraskapublicmedia.org/en/news/news-articles/medical-cannabis-commission-approves-initial-set-of-cultivator-applications-denies-others/"],["2026-04-13","Permanent NMCC regulations forwarded to AG/Governor","https://nebraskaexaminer.com/2026/04/13/medical-cannabis-regulations-now-headed-to-nebraska-ag-governor-for-approval/"]]},
+
+NV: {n:"Nevada",
+  b:{med:1,dec:0,au:1,ret:1, mp:"2.5oz/14d",ap:1,dp:"NA", mh:6,ah:6,
+     fc:null,cc:null,es:10,ep:100,
+     F:1,S:1,V:1,C:1,E:1,L:0,
+     te:10,ts:6.85,ts_med:6.85,tl:0,tw:"AU: 10% retail excise + 15% wholesale excise + 6.85% state sales tax; medical is exempt from 10% retail excise but medical sales remain subject to state sales tax (NV Tax)",tp:0,tf:25,
+     txn:1,txc:3.543,win:"1 oz usable cannabis + 1/8 oz concentrate (3.543 g) not to exceed 3,543 mg THC product equivalent",tt:"flat",sb:2},
+  c:[["2024-01-01",{ap:2.5, txn:2.5, txc:7.0875, win:"2.5 oz usable cannabis + 1/4 oz concentrate (7.0875 g)"}]],
+  ci:[["2018-10-17","Question 2 (2016) / NRS 453D; home grow only if >25 mi from licensed dispensary","https://ccb.nv.gov/"],["2019-06-12","AB 533 - Cannabis Compliance Board created","https://www.leg.state.nv.us/App/NELIS/REL/80th2019/Bill/6960/Overview"],["2024-01-01","CCB transaction/possession increase to 2.5 oz usable cannabis + 0.25 oz concentrate (CORRECTED v2 unchanged at 1 oz)","https://ccb.nv.gov/wp-content/uploads/2024/01/CannabisTransactionPossession-Limit-Exchange-Chart.pdf"]]},
+
+NH: {n:"New Hampshire",
+  b:{med:1,dec:1,au:0,ret:0, mp:2,ap:"NA",dp:0.75, mh:0,ah:0,
+     fc:null,cc:null,es:null,ep:null,
+     F:1,S:1,V:1,C:1,E:1,L:0,
+     te:0,ts:0,tl:0,tw:"none",tp:0,tf:0,
+     txn:"NA",txc:0,win:"2oz/10d (medical)",tt:"none",sb:0},
+  c:[],
+  ci:[["2018-10-17","RSA 126-X - NH Therapeutic Cannabis Program (since 2013); patient possession 2 oz / 10-day supply (CORRECTED v2 baseline 0.75 was nonmedical decrim only)","https://www.dhhs.nh.gov/programs-services/population-health/therapeutic-cannabis"],["2017-09-16","HB 640 - decrim 3/4 oz $100 civil","https://gencourt.state.nh.us/"],["2024-05","HB 1633 adult-use FAILED in Senate","https://gencourt.state.nh.us/bill_status/billinfo.aspx?id=2105"]]},
+
+NJ: {n:"New Jersey",
+  b:{med:1,dec:0,au:0,ret:0, mp:3,ap:-1,dp:"NA", mh:0,ah:0,
+     fc:null,cc:null,es:null,ep:null,
+     F:1,S:1,V:1,C:1,E:1,L:0,
+     te:0,ts:6.625,ts_med:6.625,tl:0,tw:"medical sales tax 6.625% (NJ Treasury phaseout: 4% from 2020-07-01, 2% from 2021-07-01, 0% from 2022-07-01)",tp:0,tf:6.625,
+     txn:"NA",txc:0,win:"3oz patient (medical)",tt:"flat",sb:0},
+  c:[["2020-07-01",{ts:4, ts_med:4, tw:"medical sales tax 4% (NJ phaseout)", tf:4}],
+     ["2021-02-22",{au:1, ap:6, dp:"NA"}],
+     ["2021-07-01",{ts:2, ts_med:2, tw:"medical sales tax 2% (NJ phaseout)", tf:2}],
+     ["2022-04-21",{ret:1, es:10, ep:100,
+                    te:0, ts:6.625, ts_med:2, tl:2, tw:"AU sales 6.625% + up to 2% local; SEEF $1.10/oz cultivator (CPI-indexed); medical phaseout still 2% until 2022-07-01",
+                    tp:0, tf:6.625, txn:1, txc:4, win:"AU 1 oz flower or 4 g concentrate or 1000 mg ingestible (CRC FAQ); medical 2% sales tax (until 2022-07-01)", tt:"sales_plus_weight"}],
+     ["2022-07-01",{ts_med:0, tw:"AU 6.625% sales + 2% local + SEEF; medical NOW 0% (phaseout complete)"}],
+     ["2023-01-01",{tw:"AU 6.625% sales + 2% local + SEEF $1.52/oz cultivator (2023 rate, NJ-CRC); medical 0%"}],
+     ["2024-01-01",{tw:"AU 6.625% sales + 2% local + SEEF $1.24/oz cultivator (2024 rate); medical 0%"}],
+     ["2025-01-01",{tw:"AU 6.625% sales + 2% local + SEEF $2.50/oz cultivator (2025 rate, NJ-CRC); medical 0%"}],
+     ["2026-01-01",{tw:"AU 6.625% sales + 2% local + SEEF $2.50/oz cultivator (held flat for 2026); medical 0%"}]],
+  ci:[["2018-10-17","CUMMA (2010) medical","https://www.nj.gov/health/medicalmarijuana/"],["2020-11-03","Public Question 1 - constitutional amendment 67.1% yes","https://www.njelections.org/2020-results/2020-general-election-results-public-questions.pdf"],["2021-01-01","Constitutional amendment effective (transitional Jan-Feb)","https://www.nj.gov/cannabis"],["2021-02-22","CREAMM Act / A21 (P.L.2021 c.16) - 6 oz possession statutory rule (CORRECTED v2 date 2021-01-01)","https://pub.njleg.gov/Bills/2020/PL21/16_.PDF"],["2022-04-21","Adult-use retail begins; 6.625% sales + up to 2% local + SEEF cultivator fee","https://www.nj.gov/cannabis/news/press/04212022.shtml"],["2022-07-01","Medical sales tax phaseout completes (0%) per NJ Treasury schedule","https://www.nj.gov/treasury/taxation/cannabis/cannabis-tax.shtml"],["2024-01-01","NJ-CRC 2024 SEEF rate $1.24/oz (continuation of CPI-indexed schedule)","https://www.nj.gov/cannabis/businesses/seef/"],["2025-01-01","NJ-CRC SEEF rate raised to $2.50/oz (was $1.24/oz in 2024)","https://www.nj.gov/cannabis/news-events/20241213.shtml"],["2026-01-01","NJ-CRC December 2025 vote: SEEF held flat at $2.50/oz for 2026 (4-0-1; FY2026 projection ~$11.5M)","https://www.nj.gov/cannabis/highpoints/20260206.shtml"]]},
+
+NM: {n:"New Mexico",
+  b:{med:1,dec:0,au:0,ret:0, mp:"8oz/90d",ap:-1,dp:"NA", mh:16,ah:0,
+     fc:null,cc:null,es:null,ep:null,
+     F:1,S:1,V:1,C:1,E:1,L:0,
+     te:0,ts:0,tl:0,tw:"medical GRT-exempt",tp:0,tf:0,
+     txn:"NA",txc:0,win:"8oz/90d (medical)",tt:"none",sb:0},
+  c:[["2019-07-01",{dec:1, ap:"NA", dp:0.5}],
+     ["2021-06-29",{au:1, ap:2, dp:"NA", mh:6, ah:6}],
+     ["2022-04-01",{ret:1, es:10, ep:100,
+                    te:12,ts:5.125,tw:"medical GRT-exempt; adult-use subject to GRT + cannabis excise",
+                    tf:17.125, txn:2, txc:16, mp:"15oz/90d", win:"AU: 2 oz cannabis or 16 g concentrate or 800 mg edible; medical 15oz/90d", tt:"flat"}],
+     ["2025-07-01",{te:13,tf:18.125}]],
+  ci:[["2018-10-17","Lynn and Erin Compassionate Use Act (2007)","https://www.rld.nm.gov/cannabis/"],["2019-07-01","SB 323 (2019) - decriminalized possession <=0.5 oz to $50 fine","https://en.wikipedia.org/wiki/Cannabis_in_New_Mexico"],["2021-04-12","HB 2 - Cannabis Regulation Act (signed)","https://www.nmlegis.gov/Sessions/21%20Special/final/HB0002.pdf"],["2021-06-29","HB 2 §76 effective date - AU possession 2 oz takes effect","https://www.nmlegis.gov/Sessions/21%20Special/final/HB0002.pdf"],["2022-04-01","Adult-use retail; 12% excise (held through 2025-06-30); state GRT 5.125%; medical patient quota currently 15 oz / 90 days","https://www.rld.nm.gov/wp-content/uploads/2023/08/Guide_to_Cannabis.pdf"],["2025-07-01","First excise escalation: 12% to 13% (statutory schedule continues to 18% by 2030)","https://www.tax.newmexico.gov/businesses/cannabis-excise-tax/"]]},
+
+NY: {n:"New York",
+  b:{med:1,dec:1,au:0,ret:0, mp:"30-day supply",ap:"NA",dp:0.88, mh:0,ah:0,
+     fc:"NA",cc:null,es:"NA",ep:"NA",
+     F:0,S:0,V:1,C:1,E:0,L:0,
+     te:7,te_med:7,ts:0,tl:0,tw:"7% medical excise",tp:0,tf:7,
+     txn:"NA",txc:0,win:"30-day supply (medical)",tt:"flat",sb:0},
+  c:[["2019-08-28",{dec:1, ap:"NA", dp:2}],
+     ["2021-03-31",{au:1, ap:3, dp:"NA", F:1, S:1, fc:null, mp:"60-day supply", win:"60-day supply (medical); AU possession 3 oz"}],
+     ["2022-10-05",{mh:3, win:"60-day supply (medical); medical home cultivation 3 mature + 3 immature per patient (residence cap 6 mature/6 immature)"}],
+     ["2022-12-29",{ret:1, E:1, es:10, ep:100,
+                    te:9, ts:0, tl:4, tw:"per-mg potency distributor tax: $0.005/mg flower, $0.008/mg conc, $0.03/mg edible (NY AU sales-tax exempt)",
+                    tp:1, tf:18, txn:3, txc:24, win:"AU 3 oz cannabis + 24 g concentrate; AU retail; 60-day supply medical", tt:"pot"}],
+     ["2024-06-01",{te:9, te_med:3.15, ts:0, tl:4, tw:"AU: 9% wholesale distributor tax (replaces potency tax); 9% state retail + 4% local; medical excise REDUCED to 3.15% effective same date (separate medical channel; te_med field)",
+                    tp:0, tf:18, tt:"retail_plus_wholesale"}],
+     ["2024-06-26",{ah:6}]],
+  ci:[["2018-10-17","Compassionate Care Act (2014); medical only, no smokable initially","https://cannabis.ny.gov/"],["2019-07-29","S6579A - decrim possession <2 oz expanded (medical retained, not replaced by D); signed","https://www.nysenate.gov/legislation/bills/2019/S6579"],["2019-08-28","S6579A effective date - decriminalization expansion takes effect 30 days after signing","https://www.nysenate.gov/legislation/bills/2019/S6579"],["2021-03-31","MRTA - S854A; AU possession 3 oz; medical expansion: 60-day supply, smoking allowed, whole flower added","https://www.nysenate.gov/legislation/bills/2021/S854"],["2022-10-05","OCM medical home cultivation regulations - 3 mature + 3 immature per patient (residence cap 6/6)","https://cannabis.ny.gov/medical-cannabis"],["2022-12-29","First CAURD retail sale; per-mg-THC potency tax structure","https://cannabis.ny.gov/press"],["2024-06-01","FY2025 Budget (S8309-C Part EE) - potency tax replaced with 9% wholesale distributor tax","https://www.tax.ny.gov/bus/auc/"],["2024-06-26","OCM Adult-Use Home Cultivation Final Regs - 6 plants per adult (3 mature + 3 immature; 12 per residence cap)","https://cannabis.ny.gov/system/files/documents/2024/07/au-home-cultivation-faq.pdf"]]},
+
+NC: {n:"North Carolina",
+  b:{med:0,dec:0,au:0,ret:0, mp:"NA",ap:-1,dp:"NA", mh:0,ah:0,
+     fc:"NA",cc:"NA",es:"NA",ep:"NA",
+     F:0,S:0,V:0,C:0,E:0,L:1,
+     te:0,ts:0,tl:0,tw:"none",tp:0,tf:0,
+     txn:"NA",txc:0,win:"hemp extract <0.9% THC narrow",tt:"none",sb:0},
+  c:[],
+  ci:[["2018-10-17","NCGS 90-95 (criminal Schedule VI; ap=-1 CORRECTED v2 from 0); NC Hemp Extract Registry (2014) <0.9% THC for intractable epilepsy","https://www.ncleg.net/EnactedLegislation/Statutes/HTML/BySection/Chapter_90/GS_90-95.html"],["2024-09-07","Great Smoky Cannabis Co. opens AU sales on EBCI tribal land (sovereign jurisdiction, not NC state law)","https://greatsmokycannabis.com/"]]},
+
+ND: {n:"North Dakota",
+  b:{med:1,dec:0,au:0,ret:0, mp:"3oz dried flower possession",ap:-1,dp:"NA", mh:0,ah:0,
+     fc:null,cc:null,es:"NA",ep:"NA",
+     F:1,S:1,V:1,C:1,E:0,L:0,
+     te:0,ts:5,tl:0,tw:"none",tp:0,tf:5,
+     txn:"NA",txc:0,win:"3oz dried flower possession; 2.5oz/30d purchase (medical)",tt:"flat",sb:0},
+  c:[["2019-08-01",{dec:1, ap:"NA", dp:0.5}],
+     ["2025-08-01",{E:1, es:5, ep:50,
+                    win:"3oz dried flower possession; 500mg edible THC possession; 310mg edible THC daily purchase (medical, 2025 amendments)"}]],
+  ci:[["2018-10-17","Measure 5 (2016) / N.D.C.C. 19-24.1; SB 2344 (2017) added flower","https://www.hhs.nd.gov/mm"],["2018-11-06","Measure 3 (recreational) FAILED 59-41","https://www.legis.nd.gov/"],["2019-08-01","HB 1050 (2019) - first-offense possession <0.5 oz reclassified to infraction","https://ndlegis.gov/assembly/66-2019/documents/19-0335-08000.pdf"],["2024-11-05","Statutory Measure 5 (adult-use) FAILED 53-47","https://www.legis.nd.gov/"],["2025-08-01","ND HHS 2025 medical-cannabis amendments: edibles authorized at 5mg/serving, 50mg/package; 310mg daily edible purchase; 500mg edible THC possession","https://www.hhs.nd.gov/sites/default/files/documents/DOH%20Legacy/MM/Summary-of-Bills-Passed-2025-Legislative-Session-archive.pdf"]]},
+
+OH: {n:"Ohio",
+  b:{med:1,dec:1,au:0,ret:0, mp:"90-day supply",ap:"NA",dp:3.5, mh:0,ah:0,
+     fc:null,cc:null,es:null,ep:null,
+     F:1,S:0,V:1,C:1,E:1,L:0,
+     te:0,ts:5.75,tl:0,tw:"no special medical marijuana excise; medical patients pay regular Ohio state sales tax (5.75%) + applicable local/transit",tp:0,tf:5.75,
+     txn:"NA",txc:0,win:"90-day supply (medical)",tt:"flat",sb:0},
+  c:[["2023-12-07",{au:1, ap:2.5, dp:"NA", ah:6, S:1}],
+     ["2024-08-06",{ret:1, es:10, ep:100,
+                    te:10, ts:5.75, tw:"none",
+                    tp:0, tf:15.75, txn:1, txc:15, win:"none (AU); 1oz/day flower at launch; 15g extract", tt:"flat"}],
+     ["2025-06-04",{txn:2.5, win:"none (AU); 2.5oz/day flower (DCC raised limit); 15g extract; 15,000 mg total THC/day cap on non-flower products"}],
+     ["2026-03-20",{fc:35, cc:70, win:"AU; 35% flower / 70% extract potency caps (SB 56; previously DCC permitted up to 90% extracts); 2.5oz/15g possession unchanged"}]],
+  ci:[["2018-10-17","HB 523 (2016) medical; first sales Jan 16, 2019","https://www.medicalmarijuana.ohio.gov"],["2023-11-07","Issue 2 - 57% yes","https://www.ohiosos.gov"],["2024-08-06","First adult-use retail sales at dual-use dispensaries; 1oz/day flower limit + 15g extract","https://com.ohio.gov/divisions-and-programs/cannabis-control"],["2025-06-04","Ohio DCC official daily-limits page: effective June 4, 2025, daily AU purchase limit is 2.5 oz of plant material plus a separate 15,000 mg total THC daily cap for non-plant-material products; ABC6 / Marijuana Moment / Cannabis Law Report corroborate (CORRECTED v3 round-15 audit from prior 2025-06-06 mis-dating; round-16 reviewer-feedback audit upgraded to primary com.ohio.gov DCC source)","https://com.ohio.gov/divisions-and-programs/cannabis-control/patients-caregivers/product-supply"],["2026-03-20","SB 56 effective - 35% flower / 70% concentrate potency caps; 2.5oz / 15g possession structure preserved","https://moritzlaw.osu.edu/sites/default/files/2026-01/Ohio%20reforms_SB56%20and%20Issue%202_January%208%202026_final.pdf"]]},
+
+OK: {n:"Oklahoma",
+  b:{med:1,dec:0,au:0,ret:0, mp:"3oz on person; 8oz residence; 1oz concentrate; 72oz edible",ap:-1,dp:"NA", mh:6,ah:0,
+     fc:null,cc:null,es:null,ep:null,
+     F:1,S:1,V:1,C:1,E:1,L:0,
+     te:7,ts:4.5,tl:0,tw:"none",tp:0,tf:11.5,
+     txn:"NA",txc:28.35,win:"3oz on person; 8oz residence; 1oz concentrate; 72oz edible (medical SQ 788; mh=6 mature + 6 seedlings; OK is medical-only - no AU retail transaction cap applies)",tt:"flat",sb:0},
+  c:[],
+  ci:[["2018-10-17","SQ 788 (June 2018) - operational since Aug 25, 2018","https://oklahoma.gov/omma"],["2019-03-14","SB 1030 / HB 2612 'Unity Bill'","https://oklegislature.gov"],["2023-03-07","SQ 820 adult-use FAILED 38-62","https://oklahoma.gov/elections"]]},
+
+OR: {n:"Oregon",
+  b:{med:1,dec:0,au:1,ret:1, mp:"24oz patient",ap:1,dp:"NA", mh:6,ah:4,
+     fc:null,cc:null,es:5,ep:50,
+     F:1,S:1,V:1,C:1,E:1,L:0,
+     te:17,ts:0,tl:3,tw:"none",tp:0,tf:17,
+     txn:1,txc:10,win:"1 oz cannabis + 10 g concentrate transaction (OAR 845-025)",tt:"flat",sb:0},
+  c:[["2022-01-01",{ap:2,txn:2}],
+     ["2022-04-01",{es:10,ep:100}]],
+  ci:[["2018-10-17","Measure 91 (2014); medical since 1998","https://www.oregon.gov/olcc"],["2020-11-03","Measure 110 - drug decrim (cannabis revenue redirected)","https://www.oregon.gov/oha/HSD/AMH/Pages/Measure110.aspx"],["2022-01-01","ORS 475C.337 - public possession increased to 2 oz (CORRECTED v2 unchanged at 1)","https://oregon.public.law/statutes/ors_475c.337"],["2022-04-01","OLCC Compliance Bulletin 2021-04 - edibles raised to 10 mg / 100 mg (CORRECTED v2 unchanged at 5/50)","https://www.oregon.gov/olcc/Docs/news/news_releases/2022/nr033122-Edible-Limits-Increase.pdf"],["2024-04-01","HB 4002 - M110 repeal (cannabis legality unaffected)","https://olis.oregonlegislature.gov/liz/2024R1/Measures/Overview/HB4002"]]},
+
+PA: {n:"Pennsylvania",
+  b:{med:1,dec:0,au:0,ret:0, mp:"30-day supply",ap:-1,dp:"NA", mh:0,ah:0,
+     fc:null,cc:null,es:"NA",ep:"NA",
+     F:1,S:0,V:1,C:1,E:0,L:0,
+     te:0,ts:0,tl:0,tw:"5% grower/processor gross-receipts tax on sales to dispensaries (NOT a retail excise; medical sales tax-exempt)",tp:0,tf:5,
+     txn:"NA",txc:0,win:"30-day supply (medical)",tt:"upstream",sb:0},
+  c:[["2021-06-30",{mp:"90-day supply", win:"90-day supply (medical)"}]],
+  ci:[["2018-10-17","Act 16 of 2016; sales Feb 15, 2018; dry leaf for vaporization approved Apr 9, 2018; NO smoking, NO traditional edibles. Tax: 5% wholesale gross receipts (CORRECTED v2 from 15%)","https://www.pa.gov/agencies/revenue/resources/tax-types-and-information/medical-marijuana-tax"],["2021-06-30","Act 44 of 2021 (HB 1024) - 30-day supply raised to 90-day supply","https://www.palegis.us/statutes/unconsolidated/law-information?actNum=44&sessInd=0&sessYr=2021"],["2025-05-07","HB 1200 - state-store adult-use legalization PASSED House 102-101","https://www.palegis.us/legislation/bills/2025/hb1200"],["2025-05-13","HB 1200 DEFEATED in Senate Law and Justice Committee 7-3","https://www.palegis.us/"]]},
+
+RI: {n:"Rhode Island",
+  b:{med:1,dec:1,au:0,ret:0, mp:2.5,ap:"NA",dp:1, mh:12,ah:0,
+     fc:null,cc:null,es:null,ep:null,
+     F:1,S:1,V:1,C:1,E:1,L:0,
+     te:0,ts:7,tl:0,tw:"medical cannabis subject to RI sales/use tax (7%); exempt from 10% state and 3% local cannabis excise; compassion-center surcharge separate",tp:0,tf:7,
+     txn:"NA",txc:0,win:"2.5oz patient (medical)",tt:"flat",sb:0},
+  c:[["2022-05-25",{au:1, ap:1, dp:"NA", ah:6}],
+     ["2022-12-01",{ret:1,
+                    es:10, ep:100,
+                    te:10, ts:7, tl:3, tw:"local 3% cannabis excise (tf:17 state-only; total 20 with local)",
+                    tp:0, tf:17, txn:1, txc:5, win:"1 oz cannabis or up to 5 g concentrate (AU)", tt:"flat"}]],
+  ci:[["2018-10-17","Edward O. Hawkins and Thomas C. Slater Medical Marijuana Act (2006); medical was active in 2018","https://dbr.ri.gov/divisions/cannabisregulation"],["2022-05-25","RI Cannabis Act (S2430A) enacted - adult possession 1 oz, 6 plants home grow (3 mature/3 immature) effective on enactment","https://webserver.rilegislature.gov/PublicLaws/law22/law22032.htm"],["2022-12-01","Adult-use retail launch; 10mg/100mg edibles","https://www.law.cornell.edu/regulations/rhode-island/560-RICR-10-10-2.6"]]},
+
+SC: {n:"South Carolina",
+  b:{med:0,dec:0,au:0,ret:0, mp:"NA",ap:-1,dp:"NA", mh:0,ah:0,
+     fc:"NA",cc:"NA",es:"NA",ep:"NA",
+     F:0,S:0,V:0,C:0,E:0,L:1,
+     te:0,ts:0,tl:0,tw:"none",tp:0,tf:0,
+     txn:"NA",txc:0,win:"Julian's Law <0.9% THC narrow",tt:"none",sb:0},
+  c:[],
+  ci:[["2018-10-17","Julian's Law (2014) - CBD <0.9% THC narrow exception for severe epilepsy","https://www.scstatehouse.gov/"],["2024-02-29","S.423 Compassionate Care Act passed Senate 24-19; died in House","https://www.scstatehouse.gov/sess125_2023-2024/bills/423.htm"]]},
+
+SD: {n:"South Dakota",
+  b:{med:0,dec:0,au:0,ret:0, mp:"NA",ap:-1,dp:"NA", mh:0,ah:0,
+     fc:"NA",cc:"NA",es:"NA",ep:"NA",
+     F:0,S:0,V:0,C:0,E:0,L:0,
+     te:0,ts:0,tl:0,tw:"none",tp:0,tf:0,
+     txn:"NA",txc:0,win:"none",tt:"none",sb:0},
+  c:[["2021-07-01",{med:1, mp:3, mh:3,
+                    fc:null, cc:null, es:null, ep:null,
+                    F:1,S:1,V:1,C:1,E:1,
+                    te:0, ts:4.5, tw:"no cannabis-specific excise; medical cannabis generally subject to state sales tax; municipal sales tax may apply",
+                    tp:0, tf:4.5, win:"3oz/30d (medical)", tt:"none"}],
+     ["2023-07-01",{ts:4.2, tf:4.2}]],
+  ci:[["2018-10-17","Prohibited","https://sdsos.gov/"],["2020-11-03","Amendment A (adult-use) and IM 26 (medical) approved","https://medcannabis.sd.gov/"],["2021-07-01","IM 26 medical effective","https://medcannabis.sd.gov/"],["2021-11-24","Amendment A STRUCK by SD Sup Ct (single-subject)","https://ujs.sd.gov/uploads/sc/opinions/29521.pdf"],["2023-07-01","SD state sales/use tax reduced 4.5% to 4.2% (eff. 2023-07-01 through 2027-06-30)","https://dor.sd.gov/businesses/taxes/sales-use-tax/2023-legislative-updates/"],["2024-11-05","IM 29 adult-use FAILED 56-44","https://sdsos.gov/elections-voting/past-elections/election-results/2024-general-election.aspx"]]},
+
+TN: {n:"Tennessee",
+  b:{med:0,dec:0,au:0,ret:0, mp:"NA",ap:-1,dp:"NA", mh:0,ah:0,
+     fc:"NA",cc:"NA",es:"NA",ep:"NA",
+     F:0,S:0,V:0,C:0,E:0,L:1,
+     te:0,ts:0,tl:0,tw:"none",tp:0,tf:0,
+     txn:"NA",txc:0,win:"<0.9% THC narrow",tt:"none",sb:0},
+  c:[],
+  ci:[["2018-10-17","TCA 39-17-402 - prohibited; narrow CBD <0.9% THC","https://capitol.tn.gov/"],["2021-05-27","SB 118 - Medical Cannabis Commission (advisory only)","https://publications.tnsosfiles.com/acts/112/pub/pc0562.pdf"]]},
+
+TX: {n:"Texas",
+  b:{med:1,dec:0,au:0,ret:0, mp:"physician-certified",ap:-1,dp:"NA", mh:0,ah:0,
+     fc:"NA",cc:0.5,es:"NA",ep:"NA",
+     F:0,S:0,V:0,C:1,E:0,L:1,
+     te:0,ts:0,tl:0,tw:"none",tp:0,tf:0,
+     txn:"NA",txc:0,win:"<0.5% THC product cap (CUP)",tt:"none",sb:0},
+  c:[["2021-09-01",{cc:1, win:"<1% THC product cap (CUP)"}],
+     ["2025-09-01",{cc:null, V:1, E:1, es:10, ep:1000,
+                    win:"10 mg THC/dosage unit; 1 g THC/package or device (HB 46 dosage-unit limits; ingestion/absorption/insertion forms; no smoking)"}]],
+  ci:[["2018-10-17","SB 339 (2015) - Compassionate Use Program; <0.5% THC oil only (CUP)","https://www.dps.texas.gov/section/compassionate-use-program"],["2019-06-14","HB 3703 - expanded conditions, removed 2-physician requirement","https://capitol.texas.gov/BillLookup/History.aspx?LegSess=86R&Bill=HB3703"],["2021-09-01","HB 1535 - cap raised 0.5% to 1.0%","https://capitol.texas.gov/BillLookup/History.aspx?LegSess=87R&Bill=HB1535"],["2025-09-01","HB 46 - shifted to dosage-unit limits (10mg THC/unit, ~1g THC/package); flower NOT permitted; smoking prohibited; pulmonary inhalation/vape allowed (CORRECTED v2 percentage-cap encoding)","https://capitol.texas.gov/tlodocs/89R/billtext/html/HB00046S.htm"]]},
+
+UT: {n:"Utah",
+  b:{med:0,dec:0,au:0,ret:0, mp:"NA",ap:-1,dp:"NA", mh:0,ah:0,
+     fc:"NA",cc:"NA",es:"NA",ep:"NA",
+     F:0,S:0,V:0,C:0,E:0,L:0,
+     te:0,ts:0,tl:0,tw:"none",tp:0,tf:0,
+     txn:"NA",txc:0,win:"none",tt:"none",sb:0},
+  c:[["2018-12-03",{med:1, mp:"113g/28d",
+                    fc:null, cc:null, es:"NA", ep:"NA",
+                    F:1,S:0,V:1,C:1,E:0,
+                    te:0,ts:0,tl:0,tw:"medical exempt",
+                    tp:0,tf:0, win:"113g/28d medical; gelatinous cubes/lozenges only - no traditional food edibles", tt:"none"}]],
+  ci:[["2018-10-17","Utah Code §58-37-8 - cannabis prohibited as of October 2018 (baseline; pre-Prop 2 ballot of November 2018); Prop 2 approved 2018-11-06 was implemented via HB 3001 enacted Dec 3, 2018 with first sales in March 2020","https://le.utah.gov/xcode/Title58/Chapter37/58-37-S8.html"],["2018-11-06","Prop 2 approved 52.75%","https://elections.utah.gov/"],["2018-12-03","HB 3001 - Utah Medical Cannabis Act; flower vapor only (NO smoking); gelatinous cubes only (NO traditional edibles)","https://le.utah.gov/~2018S3/bills/static/HB3001.html"],["2020-03-01","First medical pharmacies operational","https://medicalcannabis.utah.gov/"]]},
+
+VT: {n:"Vermont",
+  b:{med:1,dec:0,au:1,ret:0, mp:"2oz patient",ap:1,dp:"NA", mh:9,ah:6,
+     fc:null,cc:null,es:null,ep:null,
+     F:1,S:1,V:1,C:1,E:1,L:0,
+     te:0,ts:0,tl:0,tw:"none",tp:0,tf:0,
+     txn:"NA",txc:5,win:"1 oz cannabis or 5 g hashish (Act 86; AU possession only, no retail)",tt:"none",sb:0},
+  c:[["2022-10-01",{ret:1, txn:1, fc:30, cc:60, es:5, ep:50,
+                    te:14, ts:6, tl:0, tw:"none",
+                    tp:0, tf:20, tt:"flat"}]],
+  ci:[["2018-10-17","Act 86 (2018) - possession only; medical since Act 76 (2004)","https://legislature.vermont.gov/"],["2020-10-07","Act 164 (S.54) - retail framework","https://legislature.vermont.gov/bill/status/2020/S.54"],["2022-10-01","Adult-use retail begins; 30% flower / 60% concentrate cap (vape exempt); 5mg/50mg edibles","https://ccb.vermont.gov"]]},
+
+VA: {n:"Virginia",
+  b:{med:1,dec:0,au:0,ret:0, mp:"90-day supply",ap:-1,dp:"NA", mh:0,ah:0,
+     fc:"NA",cc:null,es:"NA",ep:"NA",
+     F:0,S:0,V:0,C:1,E:0,L:1,
+     te:0,ts:0,tl:0,tw:"medical exempt",tp:0,tf:0,
+     txn:"NA",txc:0,win:"CBD/THC-A oil only; 90-day supply; 5 mg THC/dose (narrow program; no flower, no smoking, no vape, no edibles)",tt:"none",sb:0},
+  c:[["2020-07-01",{dec:1, ap:"NA", dp:1}],
+     ["2021-07-01",{au:1, ap:1, dp:"NA", ah:4, F:1,S:1,V:1,E:1, fc:null, cc:null, es:null, ep:null, L:0,
+                    mp:"90-day supply; 4oz botanical/30d",
+                    win:"AU possession 1 oz; medical 90-day supply, 4oz botanical cannabis per 30 days; broad product forms now permitted"}]],
+  ci:[["2018-10-17","HB 1251 (2018) - very narrow medical CBD/THC-A oil (CORRECTED v2: medical retained through window)","https://lis.virginia.gov/bill-details/20181/HB1251"],["2020-05-21","HB 972 - decrim <1 oz $25 civil (signed)","https://lis.virginia.gov/cgi-bin/legp604.exe?201+sum+HB972"],["2020-07-01","HB 972 effective date (decriminalization takes effect)","https://lis.virginia.gov/cgi-bin/legp604.exe?201+sum+HB972"],["2021-04-21","SB 1406 / HB 2312 - adult possession 1 oz, 4 plants home grow (signed)","https://lis.virginia.gov/cgi-bin/legp604.exe?211+sum+SB1406"],["2021-07-01","SB 1406 / HB 2312 effective date (AU possession + home cultivation protections take effect)","https://lis.virginia.gov/cgi-bin/legp604.exe?211+sum+SB1406"],["2024-03-28","SB 448 retail framework VETOED by Gov. Youngkin","https://www.governor.virginia.gov/"],["2025-03-24","HB 2485 / SB 970 retail framework VETOED again","https://www.governor.virginia.gov/"]]},
+
+WA: {n:"Washington",
+  b:{med:1,dec:0,au:1,ret:1, mp:3,ap:1,dp:"NA", mh:6,ah:0,
+     fc:null,cc:null,es:10,ep:100,
+     F:1,S:1,V:1,C:1,E:1,L:0,
+     te:37,ts:6.5,tl:0,tw:"none (37% excise NOT included in sales-tax base per WA DOR)",tp:0,tf:43.5,
+     txn:1,txc:7,win:"1 oz usable, 16 oz solid infused, 72 fl oz liquid infused, 7 g concentrate",tt:"flat",sb:0},
+  c:[],
+  ci:[["2018-10-17","I-502 (2012); RCW 69.51A medical (4-15 plants depending on authorization/recognition card)","https://lcb.wa.gov/"],["2020-04-01","HB 2870 - social equity licensing","https://app.leg.wa.gov/billsummary?BillNumber=2870&Year=2019"],["2024-06-06","HB 2320 - high-potency cannabis warnings (proposed cap not enacted)","https://app.leg.wa.gov/billsummary?BillNumber=2320&Year=2023"]]},
+
+WV: {n:"West Virginia",
+  b:{med:1,dec:0,au:0,ret:0, mp:"30-day supply",ap:-1,dp:"NA", mh:0,ah:0,
+     fc:"NA",cc:null,es:"NA",ep:"NA",
+     F:0,S:0,V:1,C:1,E:0,L:0,
+     te:0,ts:0,tl:0,tw:"10% dispensary gross-receipts tax (W.Va. Code §16A-9-1); imposed on dispensary's gross receipts from sales to patients/caregivers (downstream, NOT upstream like PA); sales/use and local sales taxes exempt if gross receipts included",tp:0,tf:10,
+     txn:"NA",txc:0,win:"30-day supply (medical)",tt:"dispensary_gr",sb:0},
+  c:[["2019-03-27",{F:1,V:1, fc:null}]],
+  ci:[["2018-10-17","SB 386 (2017) signed but not operational until 2021","https://oma.wv.gov/"],["2019-03-27","HB 2538 - dry leaf for vaporization (no smoking, no edibles)","https://wvlegislature.gov/"],["2021-11-12","First medical sales (Trulieve, Morgantown)","https://oma.wv.gov/"]]},
+
+WI: {n:"Wisconsin",
+  b:{med:0,dec:0,au:0,ret:0, mp:"NA",ap:-1,dp:"NA", mh:0,ah:0,
+     fc:"NA",cc:"NA",es:"NA",ep:"NA",
+     F:0,S:0,V:0,C:0,E:0,L:0,
+     te:0,ts:0,tl:0,tw:"none",tp:0,tf:0,
+     txn:"NA",txc:0,win:"none",tt:"none",sb:0},
+  c:[],
+  ci:[["2018-10-17","WI Stat. ch. 961 - prohibited statewide (some local decrim)","https://docs.legis.wisconsin.gov/statutes/statutes/961"],["2025-02-18","Gov. Evers 2025-27 budget legalization stripped by JFC","https://docs.legis.wisconsin.gov/"]]},
+
+WY: {n:"Wyoming",
+  b:{med:0,dec:0,au:0,ret:0, mp:"NA",ap:-1,dp:"NA", mh:0,ah:0,
+     fc:"NA",cc:"NA",es:"NA",ep:"NA",
+     F:0,S:0,V:0,C:0,E:0,L:0,
+     te:0,ts:0,tl:0,tw:"none",tp:0,tf:0,
+     txn:"NA",txc:0,win:"none",tt:"none",sb:0},
+  c:[],
+  ci:[["2018-10-17","WY Stat. § 35-7-1031 - prohibited","https://wyoleg.gov/"],["2019-03-07","SF0027 - hemp legalized","https://wyoleg.gov/Legislation/2019/SF0027"]]}
+};
+
+// Pre-process timeline
+for (const k in DATA) {
+  const s = DATA[k];
+  s.timeline = [{m: 0, ...s.b}];
+  for (const [date, partial] of (s.c || [])) {
+    s.timeline.push({m: dateToIdx(date), ...partial});
+  }
+  s.timeline.sort((a, b) => a.m - b.m);
+}
+
+const ALL_KEYS = ['med','dec','au','ret','mp','ap','dp','mh','ah','fc','cc','es','ep','F','S','V','C','E','L','te','ts','tl','tw','tp','tf','te_med','ts_med','txn','txc','win','tt','sb'];
+
+function getStateAt(stateCode, monthIdx) {
+  const s = DATA[stateCode];
+  if (!s) return null;
+  let cur = {...s.b};
+  for (const t of s.timeline) {
+    if (t.m <= monthIdx) {
+      for (const k of ALL_KEYS) {
+        if (t[k] !== undefined) cur[k] = t[k];
+      }
+    } else break;
+  }
+  return cur;
+}
+
+// Derive composite legal status
+function deriveStatus(s) {
+  if (s.ret) return 'A';
+  if (s.au) return 'AN';
+  if (s.med) return 'M';
+  if (s.dec) return 'D';
+  return 'P';
+}
+
+// Derive form profile (5-level)
+function deriveForms(s) {
+  if (!s.F && !s.C && !s.E && !s.L) return 0;
+  if (s.L && !s.F && !s.C) return 1; // low-THC oil only
+  if (s.C && !s.F && !s.E) return 2; // oils/concentrates only
+  if (s.F && !s.S && !s.E) return 3; // flower vape, no edibles (PA/WV)
+  if (s.F && !s.S && s.E) return 4;  // flower vape, edibles ok (UT/KY/IA)
+  if (s.F && s.S && s.E && s.C) return 5; // full
+  if (s.F && s.S && !s.E) return 4;
+  return 3;
+}
+
+// ============ PARAMETERS ============
+const PARAMS = [
+  // Status
+  { id: 'status_d',    label: 'Legal Status (composite)', group:'status', derived:'status' },
+  { id: 'med',         label: 'Medical Active',           key: 'med',  group:'status' },
+  { id: 'dec',         label: 'Decriminalized',           key: 'dec',  group:'status' },
+  { id: 'au',          label: 'Adult-Use Possession',     key: 'au',   group:'status' },
+  { id: 'ret',         label: 'Retail Active',            key: 'ret',  group:'status' },
+  // Possession & home grow
+  { id: 'med_poss',    label: 'Medical Possession',       key: 'mp',   group:'poss' },
+  { id: 'decrim_poss', label: 'Decrim Threshold',         key: 'dp',   group:'poss' },
+  { id: 'au_poss',     label: 'Adult-Use Possession',     key: 'ap',   group:'poss' },
+  { id: 'med_hg',      label: 'Medical Home Grow',        key: 'mh',   group:'poss' },
+  { id: 'au_hg',       label: 'Adult-Use Home Grow',      key: 'ah',   group:'poss' },
+  // Caps & forms
+  { id: 'flower',      label: 'Flower THC Cap',           key: 'fc',   group:'caps' },
+  { id: 'concentrate', label: 'Concentrate Cap',          key: 'cc',   group:'caps' },
+  { id: 'eserving',    label: 'Edible Serving',           key: 'es',   group:'caps' },
+  { id: 'epackage',    label: 'Edible Package',           key: 'ep',   group:'caps' },
+  { id: 'forms_d',     label: 'Form Profile (composite)', group:'caps', derived:'forms' },
+  // Tax
+  { id: 'tax_eff',     label: 'Effective Tax %',          key: 'tf',   group:'tax' },
+  { id: 'tax_excise',  label: 'Cannabis Excise %',        key: 'te',   group:'tax' },
+  { id: 'tax_sales',   label: 'State Sales %',            key: 'ts',   group:'tax' },
+  { id: 'tax_local',   label: 'Local cannabis tax %',     key: 'tl',   group:'tax' },
+  { id: 'tax_excise_med', label: 'Medical Excise %',      key: 'te_med', group:'tax' },
+  { id: 'tax_sales_med',  label: 'Medical Sales %',       key: 'ts_med', group:'tax' },
+  { id: 'tax_struct',  label: 'Tax Structure',            key: 'tt',   group:'tax' },
+  // Cross-border / OM-specific
+  { id: 'txn',         label: 'Per-Trip Cap',             key: 'txn',  group:'cb' },
+  { id: 'txc',         label: 'Concentrate cap/equiv (g)',key: 'txc',  group:'cb' },
+  { id: 'window',      label: 'Window Quota',             key: 'win',  group:'cb' },
+  { id: 'special',     label: 'Cross-Border Rules',       key: 'sb',   group:'cb' },
+];
+
+const STATUS_COLORS = {
+  P:  {c:'#9ca3af', label:'Prohibited'},
+  D:  {c:'#fde68a', label:'Decriminalized only'},
+  M:  {c:'#86efac', label:'Medical legal'},
+  AN: {c:'#22d3ee', label:'AU possession only'},
+  A:  {c:'#047857', label:'AU w/ retail'}
+};
+const FORM_COLORS = {
+  0: {c:'#9ca3af', label:'None (prohibition)'},
+  1: {c:'#fca5a5', label:'Low-THC oil only (GA)'},
+  2: {c:'#fdba74', label:'Oils/concentrates only (IA, AL pre/post change)'},
+  3: {c:'#fcd34d', label:'Vape flower, no edibles (PA, WV)'},
+  4: {c:'#bef264', label:'Vape flower + edibles, no smoking (UT, KY)'},
+  5: {c:'#047857', label:'Full (flower+smoke+conc+edible)'}
+};
+const TAX_TYPE_COLORS = {
+  none:    {c:'#e5e7eb', label:'None (medical-exempt)'},
+  flat:    {c:'#86efac', label:'Flat ad valorem'},
+  grad:    {c:'#fcd34d', label:'Graduated by potency'},
+  pot:     {c:'#fb923c', label:'Per-mg-THC tax'},
+  hybrid:  {c:'#a855f7', label:'Hybrid (potency + retail)'},
+  weight:  {c:'#60a5fa', label:'Weight-based (cultivation)'},
+  upstream:{c:'#94a3b8', label:'Upstream gross-receipts (cultivator/processor)'},
+  dispensary_gr:{c:'#475569', label:'Dispensary/retailer gross-receipts (downstream)'},
+  mixed:   {c:'#f59e0b', label:'Mixed (upstream excise + retail sales tax)'},
+  retail_plus_wholesale:{c:'#0891b2', label:'Retail excise + separate wholesale tax'},
+  retail_plus_weight:{c:'#10b981', label:'Retail excise + weight-based excise'},
+  sales_plus_weight:{c:'#ec4899', label:'Sales tax + per-oz cultivator fee (e.g., NJ SEEF)'},
+  licensee_gr:{c:'#6366f1', label:'Medical licensee gross-sales fee (e.g., LA 7% on production licensee)'}
+};
+const SB_COLORS = {
+  0: {c:'#e5e7eb', label:'None'},
+  1: {c:'#60a5fa', label:'Residency differential (IL)'},
+  2: {c:'#a78bfa', label:'Distance home-grow rule (NV)'},
+  3: {c:'#7c3aed', label:'Both'}
+};
+
+function numericColor(v, min, max, invert=false) {
+  if (v === null || v === undefined) return '#16a34a';
+  if (v === 'NA' || v === -1) return '#e5e7eb';
+  if (typeof v === 'string') return '#e5e7eb';
+  const t = Math.max(0, Math.min(1, (v - min) / (max - min)));
+  const tt = invert ? 1 - t : t;
+  const r1=254, g1=226, b1=226, r2=127, g2=29, b2=29;
+  const r = Math.round(r1 + (r2 - r1) * tt);
+  const g = Math.round(g1 + (g2 - g1) * tt);
+  const b = Math.round(b1 + (b2 - b1) * tt);
+  return `rgb(${r},${g},${b})`;
+}
+
+function colorForParam(paramId, val, stateAt) {
+  if (paramId === 'status_d') {
+    return STATUS_COLORS[deriveStatus(stateAt)].c;
+  }
+  if (paramId === 'forms_d') {
+    return FORM_COLORS[deriveForms(stateAt)].c;
+  }
+  if (val === 'NA') return '#e5e7eb';
+  if (paramId === 'med' || paramId === 'dec' || paramId === 'au' || paramId === 'ret') {
+    return val ? '#047857' : '#e5e7eb';
+  }
+  if (paramId === 'flower') {
+    if (val === null) return '#16a34a';
+    return numericColor(val, 0, 30, true);
+  }
+  if (paramId === 'concentrate') {
+    if (val === null) return '#16a34a';
+    return numericColor(val, 0, 70, true);
+  }
+  if (paramId === 'eserving') {
+    if (val === null) return '#16a34a';
+    return numericColor(val, 0, 10, true);
+  }
+  if (paramId === 'epackage') {
+    if (val === null) return '#16a34a';
+    return numericColor(val, 0, 200, true);
+  }
+  if (paramId === 'tax_eff' || paramId === 'tax_excise' || paramId === 'tax_sales' || paramId === 'tax_local') {
+    return numericColor(val, 0, 40, false);
+  }
+  if (paramId === 'med_poss') {
+    if (typeof val === 'string') return '#fcd34d';
+    if (val === -1) return '#7f1d1d';
+    return numericColor(val, 0, 6, true);
+  }
+  if (paramId === 'au_poss') {
+    if (typeof val === 'string') return '#e5e7eb';
+    if (val === -1) return '#7f1d1d';
+    return numericColor(val, 0, 6, true);
+  }
+  if (paramId === 'decrim_poss') {
+    if (typeof val === 'string') return '#e5e7eb';
+    if (val === -1) return '#7f1d1d';
+    if (val === undefined || val === 0) return '#e5e7eb';
+    return numericColor(val, 0, 4, true);
+  }
+  if (paramId === 'med_hg' || paramId === 'au_hg') {
+    return numericColor(val, 0, 12, true);
+  }
+  if (paramId === 'txn') {
+    if (val === 'NA') return '#e5e7eb';
+    return numericColor(val, 0, 3, true);
+  }
+  if (paramId === 'txc') return val > 0 ? '#fb923c' : '#16a34a';
+  if (paramId === 'window') {
+    if (!val || val === 'none' || val.startsWith('none')) return '#16a34a';
+    return '#fb923c';
+  }
+  if (paramId === 'tax_struct') {
+    return (TAX_TYPE_COLORS[val] || {c:'#999'}).c;
+  }
+  if (paramId === 'special') {
+    return (SB_COLORS[val] || {c:'#e5e7eb'}).c;
+  }
+  return '#999';
+}
+
+function formatVal(paramId, val, stateAt) {
+  if (val === undefined && paramId !== 'status_d' && paramId !== 'forms_d') return 'N/A';
+  if (paramId === 'status_d') return STATUS_COLORS[deriveStatus(stateAt)].label;
+  if (paramId === 'forms_d') return FORM_COLORS[deriveForms(stateAt)].label;
+  if (val === 'NA') return 'N/A';
+  if (paramId === 'med' || paramId === 'dec' || paramId === 'au' || paramId === 'ret') {
+    return val ? 'Yes' : 'No';
+  }
+  if (val === null) return 'No cap';
+  if (val === -1) return 'Criminal';
+  if (paramId === 'flower' || paramId === 'concentrate') return val + '%';
+  if (paramId === 'eserving' || paramId === 'epackage') return val + ' mg';
+  if (paramId === 'tax_eff' || paramId === 'tax_excise' || paramId === 'tax_sales' || paramId === 'tax_local') return val + '%';
+  if (paramId === 'med_poss' || paramId === 'au_poss' || paramId === 'decrim_poss' || paramId === 'txn') {
+    return typeof val === 'string' ? val : val + ' oz';
+  }
+  if (paramId === 'med_hg' || paramId === 'au_hg') return val === 0 ? 'Not allowed' : val + ' plants';
+  if (paramId === 'txc') return val === 0 ? 'No specific cap' : val + ' g';
+  if (paramId === 'window') return !val || val === 'none' ? 'No window quota' : val;
+  if (paramId === 'tax_struct') return (TAX_TYPE_COLORS[val] || {label: val}).label;
+  if (paramId === 'special') return (SB_COLORS[val] || {label: 'unknown'}).label;
+  return String(val);
+}
+
+function formatValShort(paramId, val, stateAt) {
+  if (val === undefined && paramId !== 'status_d' && paramId !== 'forms_d') return '';
+  if (paramId === 'status_d') return deriveStatus(stateAt);
+  if (paramId === 'forms_d') return ['✕','oil','C','V','VE','full'][deriveForms(stateAt)] || '';
+  if (val === 'NA') return '';
+  if (paramId === 'med' || paramId === 'dec' || paramId === 'au' || paramId === 'ret') return val ? 'Y' : '—';
+  if (val === null) return '∞';
+  if (val === -1) return '✕';
+  if (paramId === 'flower' || paramId === 'concentrate' || paramId === 'tax_eff' || paramId === 'tax_excise' || paramId === 'tax_sales' || paramId === 'tax_local') return val + '%';
+  if (paramId === 'eserving' || paramId === 'epackage') return val + 'mg';
+  if (paramId === 'med_poss' || paramId === 'au_poss' || paramId === 'decrim_poss' || paramId === 'txn') {
+    if (typeof val === 'string') return val.slice(0, 8);
+    return val + 'oz';
+  }
+  if (paramId === 'med_hg' || paramId === 'au_hg') return val === 0 ? '✕' : val + 'p';
+  if (paramId === 'txc') return val > 0 ? val + 'g' : '—';
+  if (paramId === 'window') return !val || val === 'none' || val.startsWith('none') ? '—' : val.slice(0, 8);
+  if (paramId === 'tax_struct') return val === 'none' ? '—' : val.slice(0,4);
+  if (paramId === 'special') return val === 0 ? '—' : ['','res','dst','both'][val];
+  return String(val);
+}
+
+// ============ RENDER ============
+let currentParam = 'status_d';
+let currentMonth = 0;
+let selectedState = null;
+let playInterval = null;
+
+const map = document.getElementById('map');
+const tooltip = document.getElementById('tooltip');
+const dateLabel = document.getElementById('dateLabel');
+const slider = document.getElementById('dateSlider');
+const info = document.getElementById('info');
+
+const GROUP_LABELS = {
+  status: 'Status',
+  poss: 'Possession & Grow',
+  caps: 'Caps & Forms',
+  tax: 'Tax',
+  cb: 'Cross-Border / OM'
+};
+
+function renderTabs() {
+  const tabs = document.getElementById('paramTabs');
+  tabs.innerHTML = '';
+  ['status','poss','caps','tax','cb'].forEach(grp => {
+    const g = document.createElement('div');
+    g.className = 'tab-group';
+    g.innerHTML = `<span class="tab-group-label">${GROUP_LABELS[grp]}:</span>`;
+    PARAMS.filter(p => p.group === grp).forEach(p => {
+      const b = document.createElement('button');
+      b.className = 'tab' + (p.id === currentParam ? ' active' : '');
+      b.textContent = p.label;
+      b.onclick = () => { currentParam = p.id; renderAll(); };
+      g.appendChild(b);
+    });
+    tabs.appendChild(g);
+  });
+}
+
+function renderMap() {
+  const cellW = 52, cellH = 42, padX = 14, padY = 14;
+  let html = '<rect x="0" y="0" width="760" height="380" fill="#fff"/>';
+  for (const code in POS) {
+    const [c, r] = POS[code];
+    const x = padX + c * cellW;
+    const y = padY + r * cellH;
+    const stateAt = getStateAt(code, currentMonth);
+    if (!stateAt) continue;
+    const param = PARAMS.find(p => p.id === currentParam);
+    const val = param.derived ? null : stateAt[param.key];
+    const color = colorForParam(currentParam, val, stateAt);
+    let isLight = false;
+    const lightSet = ['#e5e7eb','#fde68a','#86efac','#fee2e2','#22d3ee','#fcd34d','#fca5a5','#60a5fa','#fb923c','#fdba74','#bef264','#a78bfa'];
+    if (lightSet.includes(color)) isLight = true;
+    if (color.startsWith('rgb')) {
+      const m = color.match(/\d+/g);
+      if (m && parseInt(m[0]) > 220) isLight = true;
+    }
+    const labelClass = isLight ? 'tile-label dark' : 'tile-label';
+    const sel = (code === selectedState) ? ' selected' : '';
+    html += `<g class="tile-group" data-code="${code}">`;
+    html += `<rect class="tile${sel}" x="${x}" y="${y}" width="${cellW-3}" height="${cellH-3}" rx="4" fill="${color}" stroke="#cbd5e1" stroke-width="1"/>`;
+    html += `<text class="${labelClass}" x="${x + (cellW-3)/2}" y="${y + (cellH-3)/2 - 4}">${code}</text>`;
+    const vstr = formatValShort(currentParam, val, stateAt);
+    if (vstr) html += `<text x="${x + (cellW-3)/2}" y="${y + (cellH-3)/2 + 9}" font-size="8" fill="${isLight ? '#222' : '#fff'}" text-anchor="middle" pointer-events="none">${vstr}</text>`;
+    html += '</g>';
+  }
+  map.innerHTML = html;
+  map.querySelectorAll('.tile-group').forEach(g => {
+    const code = g.dataset.code;
+    g.addEventListener('click', () => { selectedState = code; renderAll(); });
+    g.addEventListener('mouseenter', e => showTooltip(code, e));
+    g.addEventListener('mousemove', e => moveTooltip(e));
+    g.addEventListener('mouseleave', hideTooltip);
+  });
+}
+
+function showTooltip(code, e) {
+  const stateAt = getStateAt(code, currentMonth);
+  const param = PARAMS.find(p => p.id === currentParam);
+  const val = param.derived ? null : stateAt[param.key];
+  tooltip.innerHTML = `<b>${DATA[code].n}</b><br>${param.label}: ${formatVal(currentParam, val, stateAt)}`;
+  tooltip.style.opacity = 1;
+  moveTooltip(e);
+}
+function moveTooltip(e) {
+  tooltip.style.left = (e.clientX + 12) + 'px';
+  tooltip.style.top = (e.clientY - 18) + 'px';
+}
+function hideTooltip() { tooltip.style.opacity = 0; }
+
+function renderLegend() {
+  const el = document.getElementById('legend');
+  el.innerHTML = '';
+  if (currentParam === 'status_d') {
+    Object.values(STATUS_COLORS).forEach(s => {
+      el.innerHTML += `<span class="legend-item"><span class="legend-swatch" style="background:${s.c}"></span>${s.label}</span>`;
+    });
+  } else if (currentParam === 'forms_d') {
+    [5,4,3,2,1,0].forEach(k => {
+      const f = FORM_COLORS[k];
+      el.innerHTML += `<span class="legend-item"><span class="legend-swatch" style="background:${f.c}"></span>${f.label}</span>`;
+    });
+  } else if (currentParam === 'tax_struct') {
+    Object.values(TAX_TYPE_COLORS).forEach(t => {
+      el.innerHTML += `<span class="legend-item"><span class="legend-swatch" style="background:${t.c}"></span>${t.label}</span>`;
+    });
+  } else if (currentParam === 'special') {
+    Object.values(SB_COLORS).forEach(s => {
+      el.innerHTML += `<span class="legend-item"><span class="legend-swatch" style="background:${s.c}"></span>${s.label}</span>`;
+    });
+  } else if (currentParam === 'med' || currentParam === 'dec' || currentParam === 'au' || currentParam === 'ret') {
+    el.innerHTML += `<span class="legend-item"><span class="legend-swatch" style="background:#047857"></span>Yes</span>`;
+    el.innerHTML += `<span class="legend-item"><span class="legend-swatch" style="background:#e5e7eb"></span>No</span>`;
+  } else if (currentParam === 'window') {
+    el.innerHTML += `<span class="legend-item"><span class="legend-swatch" style="background:#16a34a"></span>No window quota</span>`;
+    el.innerHTML += `<span class="legend-item"><span class="legend-swatch" style="background:#fb923c"></span>Has window quota</span>`;
+    el.innerHTML += `<span class="legend-item"><span class="legend-swatch" style="background:#e5e7eb"></span>N/A</span>`;
+  } else {
+    el.innerHTML = `<span>${PARAMS.find(p=>p.id===currentParam).label} →</span>`;
+    el.innerHTML += `<span class="legend-item"><span class="legend-swatch" style="background:#7f1d1d"></span>Restrictive / High</span>`;
+    el.innerHTML += `<span class="legend-item"><span class="legend-swatch" style="background:#fee2e2"></span>Mid</span>`;
+    el.innerHTML += `<span class="legend-item"><span class="legend-swatch" style="background:#16a34a"></span>Permissive / No cap</span>`;
+    el.innerHTML += `<span class="legend-item"><span class="legend-swatch" style="background:#e5e7eb"></span>Not applicable</span>`;
+  }
+}
+
+function renderInfo() {
+  if (!selectedState) {
+    info.innerHTML = '<div class="placeholder">Click a state on the map to see its full atomic policy state with citations and official-source URLs. Open the methodology panel above for parameter definitions.</div>';
+    return;
+  }
+  const s = DATA[selectedState];
+  const stateAt = getStateAt(selectedState, currentMonth);
+  let html = `<h2>${s.n} <span style="font-weight:400; color:#666; font-size:11px;">- as of ${monthLabel(currentMonth)}</span></h2>`;
+  html += `<div class="section-h">Status</div>`;
+  html += `<div class="params-grid">`;
+  html += `<div class="k">Composite</div><div class="v">${formatVal('status_d', null, stateAt)}</div>`;
+  ['med','dec','au','ret'].forEach(k => {
+    const p = PARAMS.find(p => p.key === k);
+    if (!p) return;
+    html += `<div class="k">${p.label}</div><div class="v">${formatVal(p.id, stateAt[k], stateAt)}</div>`;
+  });
+  html += `</div>`;
+  html += `<div class="section-h">Possession & Home Grow</div>`;
+  html += `<div class="params-grid">`;
+  ['mp','dp','ap','mh','ah'].forEach(k => {
+    const p = PARAMS.find(p => p.key === k);
+    if (!p) return;
+    html += `<div class="k">${p.label}</div><div class="v">${formatVal(p.id, stateAt[k], stateAt)}</div>`;
+  });
+  html += `</div>`;
+  html += `<div class="section-h">Potency Caps & Forms</div>`;
+  html += `<div class="params-grid">`;
+  html += `<div class="k">Form Profile</div><div class="v">${formatVal('forms_d', null, stateAt)}</div>`;
+  ['fc','cc','es','ep'].forEach(k => {
+    const p = PARAMS.find(p => p.key === k);
+    if (!p) return;
+    html += `<div class="k">${p.label}</div><div class="v">${formatVal(p.id, stateAt[k], stateAt)}</div>`;
+  });
+  html += `<div class="k">Form booleans</div><div class="v">${
+    [['F','flower'],['S','smoke'],['V','vape'],['C','conc'],['E','edible'],['L','low-THC oil']]
+    .map(([k,lbl]) => `${stateAt[k] ? '✓' : '·'}${lbl}`).join(', ')
+  }</div>`;
+  html += `</div>`;
+  html += `<div class="section-h">Tax</div>`;
+  html += `<div class="params-grid">`;
+  html += `<div class="k">Effective %</div><div class="v">${formatVal('tax_eff', stateAt.tf, stateAt)}</div>`;
+  html += `<div class="k">Cannabis Excise</div><div class="v">${stateAt.te}%</div>`;
+  html += `<div class="k">State Sales</div><div class="v">${stateAt.ts}%</div>`;
+  html += `<div class="k">Local Max</div><div class="v">${stateAt.tl}%</div>`;
+  html += `<div class="k">Wholesale</div><div class="v">${stateAt.tw}</div>`;
+  html += `<div class="k">Potency-based?</div><div class="v">${stateAt.tp ? 'Yes' : 'No'}</div>`;
+  html += `<div class="k">Structure</div><div class="v">${formatVal('tax_struct', stateAt.tt, stateAt)}</div>`;
+  html += `</div>`;
+  html += `<div class="section-h">Cross-Border / OM Parameters</div>`;
+  html += `<div class="params-grid">`;
+  ['txn','txc','win','sb'].forEach(k => {
+    const p = PARAMS.find(p => p.key === k);
+    if (!p) return;
+    html += `<div class="k">${p.label}</div><div class="v">${formatVal(p.id, stateAt[k], stateAt)}</div>`;
+  });
+  html += `</div>`;
+  html += `<div style="font-size:12px; font-weight:600; color:#1f3864; margin-top:8px;">Policy Citations</div>`;
+  html += `<ul class="timeline-list">`;
+  s.ci.forEach(([date, label, url]) => {
+    html += `<li><span class="tdate">${date}</span> &mdash; <a href="${url}" target="_blank" rel="noopener">${label}</a></li>`;
+  });
+  html += `</ul>`;
+  info.innerHTML = html;
+}
+
+function renderAll() {
+  dateLabel.textContent = monthLabel(currentMonth);
+  slider.value = currentMonth;
+  renderTabs();
+  renderMap();
+  renderLegend();
+  renderInfo();
+}
+
+slider.addEventListener('input', e => { currentMonth = parseInt(e.target.value); renderAll(); });
+
+const playBtn = document.getElementById('playBtn');
+playBtn.addEventListener('click', () => {
+  if (playInterval) {
+    clearInterval(playInterval); playInterval = null; playBtn.textContent = '▶ Play';
+  } else {
+    playBtn.textContent = '⏸ Pause';
+    playInterval = setInterval(() => {
+      if (currentMonth >= TOTAL - 1) { currentMonth = 0; }
+      else currentMonth += 1;
+      renderAll();
+    }, 280);
+  }
+});
+
+renderAll();
+</script>
+</body>
+</html>
